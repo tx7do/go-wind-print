@@ -3,6 +3,13 @@ export default {
   id: 'changelog',
   title: '更新记录',
   content: `
+<h2>V1.3.6<small>(2026-10-16)</small></h2>
+
+<h3>修复</h3>
+<ul>
+  <li><strong>桌面客户端打印标签不再被转 90°</strong>：宽大于高的标签（如 100×75 mm）经桌面客户端静默打印时，纸上内容会被整体旋转 90°（导出的 PDF 本身是正的）。Windows 上出纸交给 SumatraPDF，它默认会给「宽 &gt; 高」的页面加 90°，现已按页面自身长宽比显式声明方向；macOS / Linux 上此前的纸张声明因出纸参数漏传从未真正下发，现已一并修复。</li>
+</ul>
+
 <h2>V1.3.5<small>(2026-10-05)</small></h2>
 
 <h3>移除</h3>

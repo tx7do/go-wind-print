@@ -1,6 +1,6 @@
 // 收集桌面客户端安装包：校验和清单 + 发行版附件上传命令。
 // 用法：node scripts/pack-client-release.mjs [标签，默认取根 package.json 版本]
-// 前置：已执行 npm run pack:client（产物在 clients/print-client/dist）。
+// 前置：已执行 npm run pack:client（mac/win）与 npm run pack:client:linux（Linux），产物在 clients/print-client/dist。
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
@@ -10,10 +10,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = join(root, 'clients/print-client/dist')
 const tag = process.argv[2] || `v${JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version}`
 
-// 只收可分发安装包：dmg（mac 安装镜像）与 exe（Windows NSIS）。
+// 只收可分发安装包：dmg（mac 安装镜像）、exe（Windows NSIS）、deb/rpm/AppImage（Linux）。
 // 同一构建还会产出 *.zip 与 *.blockmap，它们是 electron-updater 差量更新的元数据，
 // 本客户端未接自动更新，挂进发行版只会让人下错文件，因此不上传。
-const INSTALLER = /\.(dmg|exe)$/i
+const INSTALLER = /\.(dmg|exe|deb|rpm|AppImage)$/i
 
 let files = []
 try {

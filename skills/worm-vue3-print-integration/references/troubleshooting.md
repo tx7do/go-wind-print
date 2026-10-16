@@ -91,10 +91,20 @@ npm run build
 ## 出纸方向与浏览器/服务端预览不一致（横向被打成纵向）
 
 1. 现象：模板是横向（或宽幅自定义纸），浏览器预览、服务端 PDF 都正常，但桌面客户端静默出纸后纸张方向不对、内容被旋转。
-2. 根因：出纸命令（`lp`）未声明纸张，CUPS 按队列默认纸张（多为纵向 A4）处理，`pdftopdf` 把横向页面旋转 90°；用 `pdfinfo` 看产物 PDF 会看到 MediaBox 仍是横向但多了 `/Rotate 90`（部分查看器会按 `/Rotate` 显示成纵向）。
-3. 修复规则：出纸时必须显式下发 `-o media=…`，优先级为「宿主指定驱动纸型（`print.paperName`）→ 页面尺寸匹配标准纸型（A3/A4/A5/Letter/Legal）→ `Custom.<宽>x<高>`（单位：点，`mm × 72 / 25.4`）」。客户端已封装在 `src/main/pdf-printer.ts` 的 `resolveMediaOption`（有单测）。
-4. 注意：不要用 `orientation-requested` 纠正方向。实测该选项会让 CUPS 反向旋转（横向页变成纵向 MediaBox，或纵向页被再次旋转）；把 `media` 声明成页面真实尺寸即可，方向由页面本身决定。
-5. 验证方法（无需真机）：`lp -d <队列> -o media=<纸型> out.pdf` 打印后用 `pdfinfo`/`pypdf` 检查 `/Rotate` 是否为 0，`pdftoppm` 转 PNG 确认宽高比（如 A4 横向应为 1169×827）。
+2. 先归类：core 的出纸旋转（`outputRotation`）是烤进内容流并交换 `@page`/`.print-page` 长宽的真旋转，不靠 PDF 的 `/Rotate` 标记，所以产物 PDF 永远是对的——方向不一致只可能出在出纸参数或驱动侧。
+3. macOS / Linux（`lp` + CUPS）：
+   - 根因：出纸命令未声明纸张时，CUPS 按队列默认纸张（多为纵向 A4）处理，`pdftopdf` 把横向页面旋转 90°，产物 PDF 会出现 `/Rotate 90`。
+   - 规则：必须显式下发 `-o media=…`，优先级为「宿主指定驱动纸型（`print.paperName`）→ 页面尺寸匹配标准纸型（A3/A4/A5/Letter/Legal）→ `Custom.<宽>x<高>`（单位：点，`mm × 72 / 25.4`）」，封装在 `src/main/pdf-printer.ts` 的 `resolveMediaOption`。
+   - 不要用 `orientation-requested` 纠正方向：实测该选项会让 CUPS 反向旋转（横向页变成纵向 MediaBox，或纵向页被再次旋转）；`media` 声明成页面真实尺寸即可，方向由页面本身决定。
+   - 附带坑：`printPdfFile` 曾按字段逐个转发分支参数、漏掉 `paper`，导致 `media` 声明实际从未下发。新增平台参数时必须原样透传整个 `options`（`pdf-printer.test.ts` 有转发回归用例）。
+4. Windows（SumatraPDF）：
+   - 根因：SumatraPDF 默认开启 `autoRotate`，对「宽 > 高」的页面无条件加 90°（内部规范化为 270°），只有方向判定为横向时才抵消回 0°；方向判定值取自驱动 DEVMODE 的默认方向。出纸命令只传份数时，宽幅标签页会被转 90° 出纸。纸张尺寸本身不是问题——`PrintFile2` 会先按页面尺寸匹配驱动纸型（1mm 容差，不匹配则回退自定义尺寸）。
+   - 规则：`-print-settings` 必须按页面长宽比显式带方向 token：宽 > 高 → `landscape`，否则 `portrait`（相等归 `portrait`——正方页带 `landscape` 会被反向旋转 90°），封装在 `buildSumatraSettings`。
+   - 边界：Windows 侧不声明纸张尺寸（`paper=` 依赖驱动纸型名或 `paper=100mm x 75mm` 这类自定义语法，未在真机验证），依赖驱动内已定义同尺寸标签或 SumatraPDF 的尺寸匹配回退；需要指定驱动预置纸型时走 macOS/Linux 的 `media` 通路。
+5. 验证方法（无需真机）：
+   - CUPS：`lp -d <队列> -o media=<纸型> out.pdf` 打印后用 `pdfinfo`/`pypdf` 检查 `/Rotate` 是否为 0，`pdftoppm` 转 PNG 确认宽高比（如 A4 横向应为 1169×827）。
+   - Windows：同一份 PDF 跑两条命令对照——`SumatraPDF.exe -print-to "<打印机>" -print-settings "1x" -silent out.pdf`（复现旋转）与 `-print-settings "1x,landscape" -silent out.pdf`（应正立；若正立的是 `portrait` 则页面为纵向）。页面真实尺寸可用 SumatraPDF 打开 PDF 按 `Ctrl+D` 看 Page size。
+   - 通用前提：先确认产物 PDF 自身的页面尺寸/方向正确（客户端配置勾「保留生成的 PDF」，任务记录页可取绝对路径）。
 
 ## 先分清「生成 PDF 的问题」还是「打印机/驱动的问题」
 

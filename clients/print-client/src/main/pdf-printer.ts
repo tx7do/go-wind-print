@@ -5,6 +5,10 @@
 // （多为纵向 A4）处理，横向页面会被 pdftopdf 旋转成 `/Rotate 90`，出纸方向与浏览器/
 // 服务端预览不一致。纸张名优先用宿主指定的驱动纸型（`paperName`），否则按页面尺寸
 // 匹配标准纸型，再不匹配则用 `Custom.<宽>x<高>`（单位：点）。
+//
+// 各平台分支必须原样透传 options（尤其 paper）：曾按字段逐个转发，paper 被漏掉，
+// media 声明从未真正下发。Windows 无 CUPS 的纸张声明可用，方向靠 SumatraPDF 的
+// print-settings 显式声明（见 buildSumatraSettings）。
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { Logger } from './logger.js'
@@ -78,8 +82,15 @@ export function buildCupsArgs(pdfPath: string, options: PdfPrintOptions = {}): s
 
 /** 构造 SumatraPDF 打印参数（纯函数，便于单测） */
 export function buildSumatraSettings(options: PdfPrintOptions = {}): string {
-  const { copies = 1 } = options
-  return `${copies}x`
+  const { copies = 1, paper } = options
+  const tokens = [`${copies}x`]
+  // SumatraPDF 默认 autoRotate：对「宽>高」的页面无条件加 90°，只有方向判定为横向时才抵消回
+  // 0°；不声明方向时该判定取驱动 DEVMODE 的默认值，宽幅标签页会被转 90° 出纸。
+  // 故按页面自身长宽比显式声明（相等归 portrait——正方页声明 landscape 会被反向旋转 90°）。
+  if (paper && paper.width > 0 && paper.height > 0) {
+    tokens.push(paper.width > paper.height ? 'landscape' : 'portrait')
+  }
+  return tokens.join(',')
 }
 
 /**
@@ -91,17 +102,17 @@ export async function printPdfFile(
   options: PdfPrintOptions = {},
 ): Promise<void> {
   const platform = process.platform
-  const { printerName, copies = 1, paperName, duplex, logger } = options
+  const { printerName, copies = 1, logger } = options
 
   logger?.info('开始打印 PDF', { pdfPath, platform, printerName, copies })
 
   try {
     if (platform === 'darwin') {
-      await printOnMac(pdfPath, { printerName, copies, paperName, duplex, logger })
+      await printOnMac(pdfPath, options)
     } else if (platform === 'win32') {
-      await printOnWindows(pdfPath, { printerName, copies, logger })
+      await printOnWindows(pdfPath, options)
     } else if (platform === 'linux') {
-      await printOnLinux(pdfPath, { printerName, copies, paperName, duplex, logger })
+      await printOnLinux(pdfPath, options)
     } else {
       throw new Error(`不支持的操作系统平台: ${platform}`)
     }

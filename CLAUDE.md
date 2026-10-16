@@ -33,6 +33,7 @@ npm run dev -w @worm-vue3-print/print-client # Electron 客户端开发
 cd demo && npm run dev                       # demo 不在根 workspaces 内，有独立 node_modules，须进目录运行
 
 npm run pack:client        # 打包 Electron 客户端安装包（mac/win）
+npm run pack:client:linux  # 客户端 Linux 安装包（deb/rpm/AppImage），走 Docker 容器交叉构建
 npm run publish:dry-run    # 发版演练；正式发布流程见 CONTRIBUTING.md
 ```
 

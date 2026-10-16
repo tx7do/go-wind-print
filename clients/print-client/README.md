@@ -23,6 +23,8 @@ PrintEngine（串行锁，并发直接 BUSY）
 > 纸张尺寸与背景（含水印）表现一致；`webContents.print()` 依赖打印驱动的纸张/可打印区域，已不再使用。
 > 出纸时显式向打印系统声明纸张（`lp -o media=…`：宿主指定驱动纸型 > 标准纸型匹配 > `Custom.<宽>x<高>`），
 > 避免驱动按队列默认纸张处理、把横向页旋转成纵向（产物 PDF 出现 `/Rotate 90`）。
+> Windows 侧无 CUPS 的纸张声明可用，改为按页面长宽比显式声明方向（`-print-settings "<份数>x,landscape|portrait"`），
+> 抑制 SumatraPDF 的 `autoRotate` 把「宽>高」页面转 90° 出纸。
 
 ## 目录结构
 
@@ -48,7 +50,7 @@ npm run build -w @worm-vue3-print/print-client # electron-vite 三环境构建�
 
 ### 安装包（macOS 上交叉打包 mac + win）
 
-macOS 上可同时产出 **Intel 与 Apple Silicon 两份 mac 安装包**与**交叉构建的 Windows 安装包**（`win.nsis` 目标；Linux 安装包只能在 Linux 上构建）。要构建的架构由 `electron-builder.yml` 的 `mac.target.arch` 声明，命令行无需指定：
+macOS 上可同时产出 **Intel 与 Apple Silicon 两份 mac 安装包**与**交叉构建的 Windows 安装包**（`win.nsis` 目标）。要构建的架构由 `electron-builder.yml` 的 `mac.target.arch` 声明，命令行无需指定；Linux 三类安装包走 Docker 容器，见下一节：
 
 ```bash
 npm run pack:client          # 只产出安装包（先构建 core 与 client 的 dist）
@@ -81,6 +83,35 @@ npm run pack:client:release  # 额外生成 SHA256SUMS.txt 并打印发行版附
 > - Windows：SmartScreen 提示「未知发布者」→「更多信息」→「仍要运行」。
 > - 在 Intel 机上构建的 arm64 包，其在 Apple Silicon 真机的实际启动**未经真机验证**（本机无法执行 arm64 切片）；要根除拦截提示需补 Apple Developer ID 证书 + 公证（`mac.notarize`）。
 
+### Linux 安装包（Docker 容器内构建）
+
+deb / rpm / AppImage 三类 Linux 安装包统一在容器里出，命令一条：
+
+```bash
+npm run pack:client:linux
+```
+
+- 为什么要容器：`rpm` 目标要调用 `rpmbuild`，宿主 macOS 没有这个可执行文件。`deb` 与 `AppImage` 实测可在 macOS 直接交叉产出，但三类产物同源同环境，口径不分叉。
+- 前置：安装并启动 Docker Desktop（或任意 Linux 容器运行时，脚本会自动探测 `docker` 与 `/Applications/Docker.app/Contents/Resources/bin/docker`）。
+- 首次约 10 分钟：拉 `node:22-bookworm` 镜像 + 容器内 `npm ci`。源码与依赖分别放在容器工作卷 `worm-print-client-linux-work` 里，之后只同步源码；`package-lock.json` 未变则跳过 `npm ci`。
+- 容器把仓库只读挂载到 `/src`，产物只回拷三类安装包，`dist/` 里已有的 mac/win 安装包不会被覆盖。
+- 实现见 `scripts/pack-client-linux.mjs`；镜像可用 `WORM_LINUX_BUILDER_IMAGE` 覆盖。
+
+产物（同一 `artifactName` 规则，架构由 `linux.target.arch` 声明，当前为 x64）：
+
+| 文件 | 用途 |
+| --- | --- |
+| `WormPrintClient-<version>-linux-amd64.deb` | Debian / Ubuntu 系，`sudo apt install ./<文件>` |
+| `WormPrintClient-<version>-linux-x86_64.rpm` | Fedora / RHEL / openSUSE 系，`sudo rpm -i <文件>` |
+| `WormPrintClient-<version>-linux-x86_64.AppImage` | 免安装单文件，`chmod +x` 后直接执行 |
+
+> **未纳入的目标**：`snap` 需要 snapcraft，只能在真 Linux 上构建；`pacman` 未纳入。
+> **arm64 未验证**：Electron 提供 linux-arm64 预编译包且本客户端无原生依赖，理论上同样可交叉，但需 ARM 容器实测后才写进 `linux.target.arch`。
+> **AppImage 依赖 libfuse2**：只提供 fuse3 的发行版（如 Ubuntu 24.04）若报 `error loading libfuse.so.2`，装 `libfuse2` 或用 `--appimage-extract-and-run` 启动。
+> **出纸依赖 CUPS**：客户端在 Linux 上通过 `lp` 提交任务，需安装并启动 CUPS，另见「平台注意」。
+> **沙箱 helper 权限**：deb/rpm 里的 `/opt/WormPrintClient/chrome-sandbox` 实测为 `root:root 0755`（非 setuid）。启动若报 `The SUID sandbox helper binary was found, but is not configured correctly`，需启用非特权用户命名空间（内核 `kernel.unprivileged_userns_clone=1`，较新的 Debian/Ubuntu 默认开启；Ubuntu 24.04 还要给该二进制放行 AppArmor `userns`），或临时加 `--no-sandbox` 启动。该口径未在真机验证。
+> **已知落后**：未设 `desktopName`，构建时会提示窗口关联警告，DE 任务栏可能把应用窗口与快捷方式分成两组；不影响出纸，需要时补 `package.json` 的 `desktopName` 与 `linux.syncDesktopName: true`。
+
 ### 挂到 GitHub 发行版
 
 发行版的附件（Assets）就是给需要静默打印客户端的用户直接下载的安装包，产物本身不入库：
@@ -91,6 +122,9 @@ gh release upload v1.3.5 \
   clients/print-client/dist/WormPrintClient-1.3.5-mac-x64.dmg \
   clients/print-client/dist/WormPrintClient-1.3.5-mac-arm64.dmg \
   clients/print-client/dist/WormPrintClient-1.3.5-win-x64.exe \
+  clients/print-client/dist/WormPrintClient-1.3.5-linux-amd64.deb \
+  clients/print-client/dist/WormPrintClient-1.3.5-linux-x86_64.rpm \
+  clients/print-client/dist/WormPrintClient-1.3.5-linux-x86_64.AppImage \
   clients/print-client/dist/SHA256SUMS.txt --clobber
 ```
 
@@ -104,7 +138,7 @@ gh release upload v1.3.5 \
 npm run pack:client:dir
 ```
 
-产物（electron-builder 限制，各平台只能在对应系统上构建本平台产物）：
+产物（`npm run pack:client:dir` 只产出**宿主平台**的目录版；要交叉产出别的平台用 `electron-builder --win --dir` / `--linux`，Linux 目录版已在 macOS 交叉实测通过）：
 
 - macOS：`clients/print-client/dist/mac/WormPrintClient.app`
 - Windows：`clients/print-client/dist/win-unpacked/`
@@ -182,8 +216,8 @@ npm run pack:client:dir
 ## 平台注意
 
 - macOS：未签名应用首次需右键 → 打开；命令行启动可能出现「Unable to set login item」提示，为系统自启权限限制，不影响打印。
-- Linux：依赖 CUPS 与 Electron 所需系统库（如 `libgtk-3-0` 等，按 electron-builder/启动报错安装）。
-- 针式打印机：优先使用驱动预置纸型 `paperName`。
+- Linux：依赖 CUPS（出纸走 `lp`）与 Electron 所需系统库。deb/rpm 已声明这些依赖，用包管理器安装即自动带入；AppImage 免安装但需 `libfuse2`（只提供 fuse3 的发行版用 `--appimage-extract-and-run`）。缺库时按启动报错补装。
+- 针式打印机：优先使用驱动预置纸型 `paperName`（macOS / Linux 通路；Windows 侧不消费该参数）。
 - 字体：模板使用的字体需在客户机已安装，否则回退字体可能改变测量高度。
 
 ## 真机验证清单
@@ -194,6 +228,6 @@ npm run pack:client:dir
 - [ ] macOS：A4 测试页出纸（含 `{printDate}` 替换）、指定打印机/份数、任务记录与日志实时刷新。
 - [ ] macOS：安全开关开/关两路径（无 token 拒绝、带 token 成功、白名单）。
 - [ ] Windows 10/11：绿色目录启动、默认打印机、中文打印机名、针式 `paperName`。
-- [ ] Linux（Ubuntu 桌面）：绿色目录启动、CUPS 打印、缺库按提示安装。
+- [ ] Linux（Ubuntu 桌面）：deb 安装后启动、托盘、CUPS 打印；rpm 与 AppImage 各至少一次启动验证（含缺库报错口径）。
 - [ ] 连续纸 58/80mm：探针推导高度出纸，检查末尾留白/走纸公差；不满足时显式 `paperSize.height` 覆盖。
 - [ ] 脱机/缺纸：返回 `PRINTER_OFFLINE`/`PRINT_FAILED`，记录可查、锁释放可再次打印。

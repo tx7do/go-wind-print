@@ -1,8 +1,21 @@
 // pdf-printer 参数构造单测：纸张（方向）与色彩模式必须显式下发给打印系统
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+
+// 出纸命令替换为桩，用于核对各平台分支真实下发的参数
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn((_file: string, _args: string[], _opts: unknown,
+    cb: (err: unknown, res: { stdout: string; stderr: string }) => void) => {
+    cb(null, { stdout: '', stderr: '' })
+  }),
+}))
+// SumatraPDF 探测路径改为恒存在，使 win32 分支可在非 Windows 宿主上跑
+vi.mock('node:fs', () => ({ statSync: vi.fn(() => ({})) }))
+
+import { execFile } from 'node:child_process'
 import {
   buildCupsArgs,
   buildSumatraSettings,
+  printPdfFile,
   resolveMediaOption,
   PT_PER_MM,
 } from './pdf-printer.js'
@@ -67,5 +80,62 @@ describe('buildCupsArgs', () => {
 describe('buildSumatraSettings', () => {
   it('份数前缀', () => {
     expect(buildSumatraSettings({ copies: 3 })).toBe('3x')
+  })
+
+  it('按页面长宽比显式声明方向：宽>高 → landscape，否则 portrait', () => {
+    expect(buildSumatraSettings({ copies: 1, paper: { width: 100, height: 75 } })).toBe('1x,landscape')
+    expect(buildSumatraSettings({ copies: 2, paper: { width: 75, height: 100 } })).toBe('2x,portrait')
+    // 正方形归 portrait：SumatraPDF 只对「宽>高」加 90°，正方页声明 landscape 会被反向旋转
+    expect(buildSumatraSettings({ paper: { width: 100, height: 100 } })).toBe('1x,portrait')
+  })
+
+  it('页面尺寸缺失时只下发份数（交给驱动默认）', () => {
+    expect(buildSumatraSettings({ copies: 1 })).toBe('1x')
+    expect(buildSumatraSettings({ paper: { width: 0, height: 0 } })).toBe('1x')
+  })
+})
+
+describe('printPdfFile 出纸参数转发', () => {
+  const REAL_PLATFORM = process.platform
+  const setPlatform = (p: NodeJS.Platform): void => {
+    Object.defineProperty(process, 'platform', { value: p, configurable: true })
+  }
+  afterEach(() => {
+    setPlatform(REAL_PLATFORM)
+    vi.mocked(execFile).mockClear()
+  })
+
+  function lastCall(): { file: string; args: string[] } {
+    const [file, args] = vi.mocked(execFile).mock.calls.at(-1) as unknown as [string, string[]]
+    return { file, args }
+  }
+
+  it('macOS：页面尺寸必须转发到 lp（否则 media 声明形同虚设）', async () => {
+    setPlatform('darwin')
+    await printPdfFile('/tmp/job.pdf', {
+      printerName: '标签机',
+      copies: 2,
+      paper: { width: 100, height: 75 },
+    })
+    const { file, args } = lastCall()
+    expect(file).toBe('lp')
+    expect(args).toEqual([
+      '-d', '标签机',
+      '-n', '2',
+      '-o', 'media=Custom.283.46x212.6',
+      '/tmp/job.pdf',
+    ])
+  })
+
+  it('Windows：方向随页面尺寸转发（否则宽幅页面被 SumatraPDF 转 90°）', async () => {
+    setPlatform('win32')
+    await printPdfFile('/tmp/job.pdf', {
+      printerName: '标签机',
+      copies: 1,
+      paper: { width: 100, height: 75 },
+    })
+    const { args } = lastCall()
+    expect(args).toContain('-print-to')
+    expect(args[args.indexOf('-print-settings') + 1]).toBe('1x,landscape')
   })
 })

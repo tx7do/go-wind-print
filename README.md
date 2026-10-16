@@ -294,7 +294,10 @@ shasum -a 256 -c SHA256SUMS.txt
 # 在仓库根构建并产出安装包（macOS 可同时交叉打包 Windows）
 npm run pack:client
 
-# 绿色目录版（免安装，各平台只能在本平台构建自家产物）
+# Linux 安装包（deb / rpm / AppImage），在 Docker 容器内交叉构建
+npm run pack:client:linux
+
+# 绿色目录版（免安装，默认只产出当前系统的目录）
 npm run pack:client:dir
 ```
 

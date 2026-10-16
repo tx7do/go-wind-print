@@ -82,9 +82,14 @@ import '@worm-vue3-print/canvas/style.css'
 | `WormPrintClient-1.3.5-mac-x64.dmg` | Intel Mac |
 | `WormPrintClient-1.3.5-mac-arm64.dmg` | Apple Silicon Mac |
 | `WormPrintClient-1.3.5-win-x64.exe` | Windows 10 / 11 x64（NSIS 安装程序，可选择安装目录、创建桌面快捷方式） |
+| `WormPrintClient-1.3.5-linux-amd64.deb` | Debian / Ubuntu x64（`sudo apt install ./<文件>`） |
+| `WormPrintClient-1.3.5-linux-x86_64.rpm` | Fedora / RHEL / openSUSE x64（`sudo rpm -i <文件>`） |
+| `WormPrintClient-1.3.5-linux-x86_64.AppImage` | 任意 x64 发行版，免安装单文件（需 `libfuse2`） |
 | `SHA256SUMS.txt` | 以上安装包的 SHA-256 校验和 |
 
 > ⚠️ **安装包未做 Developer ID 签名与公证**（本项目没有 Apple Developer ID 与 Windows 签名证书）。主程序、Helper 与 `Electron Framework` 保留 Electron 官方预编译自带的 ad-hoc 签名，所以 arm64 包在 Apple Silicon 上不缺执行前提；缺的只是 bundle 级资源封印，表现为 macOS 首次打开被 Gatekeeper 拦截。绕过方式：`xattr -dr com.apple.quarantine /Applications/WormPrintClient.app`（与系统版本无关），或 macOS 15 起在 系统设置 → 隐私与安全性 点「仍要打开」。Windows 会在 SmartScreen 提示「未知发布者」，点「更多信息」→「仍要运行」。arm64 包在 Apple Silicon 真机的实际启动**未经真机验证**（构建机为 Intel）。打包与上传步骤见 [客户端 README](https://github.com/worm-longliu/worm-vue3-print/blob/master/clients/print-client/README.md)。
+
+> 🐧 **Linux 三个包在 x64 的 Docker 容器里构建**：包内容、依赖声明与 SHA-256 均已核对，但**没有经过任何 Linux 真机安装与出纸验证**。出纸依赖 CUPS；deb/rpm 内的 `chrome-sandbox` 为非 setuid（`0755`），若启动报 `SUID sandbox helper` 错误，需启用非特权用户命名空间或临时加 `--no-sandbox`。只提供 fuse3 的发行版（如 Ubuntu 24.04）跑 AppImage 前要装 `libfuse2`，或用 `--appimage-extract-and-run`。本版不提供 `snap` 与 arm64 包。
 
 ### 质量
 
@@ -166,9 +171,14 @@ The desktop client `clients/print-client` (Electron silent printing over a loopb
 | `WormPrintClient-1.3.5-mac-x64.dmg` | Intel Mac |
 | `WormPrintClient-1.3.5-mac-arm64.dmg` | Apple Silicon Mac |
 | `WormPrintClient-1.3.5-win-x64.exe` | Windows 10 / 11 x64 (NSIS, selectable install dir and desktop shortcut) |
+| `WormPrintClient-1.3.5-linux-amd64.deb` | Debian / Ubuntu x64 (`sudo apt install ./<file>`) |
+| `WormPrintClient-1.3.5-linux-x86_64.rpm` | Fedora / RHEL / openSUSE x64 (`sudo rpm -i <file>`) |
+| `WormPrintClient-1.3.5-linux-x86_64.AppImage` | Any x64 distribution, single self-contained file (requires `libfuse2`) |
 | `SHA256SUMS.txt` | SHA-256 checksums for the installers above |
 
 > ⚠️ **The installers carry no Developer ID signature and are not notarized** — the project holds no Apple Developer ID or Windows signing certificate. The main executable, the Helpers and `Electron Framework` keep the ad-hoc signature that ships inside Electron's official prebuilds, so the arm64 package is not missing any execution prerequisite on Apple Silicon; what is missing is the bundle-level resource seal, which surfaces as a Gatekeeper prompt on first launch. Bypass it with `xattr -dr com.apple.quarantine /Applications/WormPrintClient.app` (works on every macOS version), or on macOS 15 via System Settings → Privacy & Security → "Open Anyway". On Windows, SmartScreen reports an unknown publisher → More info → Run anyway. Launching the arm64 build on real Apple Silicon hardware has **not been verified** (the build machine is Intel). Packaging and upload steps live in the [client README](https://github.com/worm-longliu/worm-vue3-print/blob/master/clients/print-client/README.md).
+
+> 🐧 **The three Linux packages were built inside an x64 Docker container**: payload, declared dependencies and SHA-256 are all verified, but **no installation or printing on real Linux hardware has been tested**. Printing relies on CUPS; `chrome-sandbox` inside the deb/rpm is not setuid (`0755`), so a `SUID sandbox helper` error at launch means you need unprivileged user namespaces enabled or `--no-sandbox` for now. On distributions that ship only fuse3 (Ubuntu 24.04 and newer), install `libfuse2` before running the AppImage, or launch it with `--appimage-extract-and-run`. No `snap` and no arm64 builds in this release.
 
 ### Quality
 

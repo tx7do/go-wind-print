@@ -175,7 +175,7 @@ try {
 
 客户端是 monorepo 内私有工作区包 `clients/print-client`（Electron，**不发布 npm**）。
 
-**优先直接下载安装包**：成品安装包挂在 [GitHub Releases](https://github.com/worm-longliu/worm-vue3-print/releases)（点击下载无需登录），按工位系统取 `WormPrintClient-<版本>-mac-x64.dmg`（Intel Mac）/ `-mac-arm64.dmg`（Apple Silicon）/ `-win-x64.exe`（Windows x64），并可用同页 `SHA256SUMS.txt` 校验。Gitee 发行版附件单文件上限 100MB，安装包体积超限，只走 GitHub。首次打开需绕过系统拦截（macOS `xattr -dr com.apple.quarantine /Applications/WormPrintClient.app`；Windows SmartScreen「更多信息」→「仍要运行」）。
+**优先直接下载安装包**：成品安装包挂在 [GitHub Releases](https://github.com/worm-longliu/worm-vue3-print/releases)（点击下载无需登录），按工位系统取 `WormPrintClient-<版本>-mac-x64.dmg`（Intel Mac）/ `-mac-arm64.dmg`（Apple Silicon）/ `-win-x64.exe`（Windows x64）/ `-linux-amd64.deb`（Debian、Ubuntu）/ `-linux-x86_64.rpm`（Fedora、RHEL 系）/ `-linux-x86_64.AppImage`（免安装单文件，需 `libfuse2`），并可用同页 `SHA256SUMS.txt` 校验。Gitee 发行版附件单文件上限 100MB，安装包体积超限，只走 GitHub。首次打开需绕过系统拦截（macOS `xattr -dr com.apple.quarantine /Applications/WormPrintClient.app`；Windows SmartScreen「更多信息」→「仍要运行」）。
 
 只有需要改造客户端或内网离线定制时才从源码构建：
 
@@ -183,12 +183,16 @@ try {
 # 仓库根：先构建 core 与 SDK dist，再 electron-builder --mac --win
 npm run pack:client
 
+# Linux 安装包（deb / rpm / AppImage）：在 Docker 容器内交叉构建，需已启动 Docker
+npm run pack:client:linux
+
 # 绿色目录版（免安装）
 npm run pack:client:dir
 ```
 
 - macOS：`clients/print-client/dist/mac-arm64/*.dmg|*.zip`（Apple Silicon）/ `dist/mac/*`（Intel）；绿色版为 `dist/mac/WormPrintClient.app`。
-- Windows：`dist/win-unpacked/` + `*.exe`（NSIS 安装程序）；Linux 只能在 Linux 上构建 `dist/linux-unpacked/`。
+- Windows：`dist/win-unpacked/` + `*.exe`（NSIS 安装程序）。
+- Linux：`dist/WormPrintClient-<版本>-linux-{amd64.deb,x86_64.rpm,x86_64.AppImage}`；容器脚本 `scripts/pack-client-linux.mjs`，构建卷 `worm-print-client-linux-work`。`snap` 目标需要真 Linux。
 - 产物默认无签名 + Electron 默认图标；分发前需补充 `build/` 图标资源与签名证书。
 - 客户端闭环说明、WebSocket 协议、连续纸纸长策略、配置/日志/任务记录文件位置见 [`clients/print-client/README.md`](../../../clients/print-client/README.md)。
 
