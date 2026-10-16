@@ -4,6 +4,10 @@
 
 ## V1.3.6(2026-10-16)
 
+### 新增
+
+- 桌面客户端 Linux 安装包（`deb` / `rpm` / `AppImage`，x64）：`npm run pack:client:linux` 在 Docker 容器内交叉构建（`rpm` 目标依赖 `rpmbuild`，macOS 宿主没有该可执行文件），产物随发行版附件提供。包内容、依赖声明与 SHA-256 均已核对，但**未经任何 Linux 真机安装与出纸验证**：出纸依赖 CUPS，AppImage 需 `libfuse2`（只提供 fuse3 的发行版可用 `--appimage-extract-and-run`），deb/rpm 内 `chrome-sandbox` 为非 setuid（`0755`）。本版不提供 `snap` 与 arm64 包，口径见 [客户端 README](../../clients/print-client/README.md)。
+
 ### 修复
 
 - 桌面客户端（Windows）：**静默打印把「宽大于高」的标签页旋转 90° 出纸**。100×75 mm 这类宽幅标签经客户端静默打印时，纸上内容被整体旋转 90°，而生成的 PDF 本身正确（在阅读器里方向正常）。根因是 Windows 出纸交给 SumatraPDF，它默认会对「宽 > 高」的页面无条件加 90°，只在方向被判定为横向时才抵消回 0°，而未显式声明方向时该判定取自打印驱动（标签驱动默认多为纵向）。现按页面自身长宽比显式声明方向（`-print-settings "<份数>x,landscape|portrait"`，正方形页归 `portrait`），宽幅页不再被旋转。**行为变更**：升级后同一份宽幅标签的出纸方向与 PDF 一致；此前为规避该问题把模板做成竖版再手动旋转的做法需改回按真实出纸方向设计。驱动中标签定义的朝向若与模板不一致，仍可能由驱动反向旋转，需在驱动 / 机器设置里对齐。

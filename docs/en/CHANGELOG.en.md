@@ -6,6 +6,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## V1.3.6(2026-10-16)
 
+### Added
+
+- Linux installers for the desktop client (`deb` / `rpm` / `AppImage`, x64): `npm run pack:client:linux` cross-builds them inside a Docker container (the `rpm` target needs `rpmbuild`, which macOS does not have), and the artifacts are attached to the release. Payload, declared dependencies and SHA-256 are verified, but **no installation or printing on real Linux hardware has been tested**: printing relies on CUPS, the AppImage needs `libfuse2` (or `--appimage-extract-and-run` on fuse3-only distributions), and `chrome-sandbox` inside the deb/rpm is not setuid (`0755`). No `snap` and no arm64 builds in this release. See the [client README](../../clients/print-client/README.md).
+
 ### Fixed
 
 - Desktop client (Windows): **silent printing rotated wide label pages 90°**. A 100×75 mm label came out a quarter turn off even though the generated PDF is correct in any viewer. Windows output is handed to SumatraPDF, whose default `autoRotate` unconditionally adds 90° to pages where width > height and cancels it back to 0° only when the page is judged landscape — with no orientation declared, that judgement comes from the print driver (label drivers usually report portrait). The client now declares the orientation from the page's own aspect ratio (`-print-settings "<copies>x,landscape|portrait"`, square pages counted as `portrait`). **Behavior change**: the same wide label now prints in the orientation the PDF shows; templates turned sideways to work around the old behavior must go back to their real output orientation. If the label definition in the driver disagrees with the template, the driver can still rotate the output back — align the driver / machine setting.
