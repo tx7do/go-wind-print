@@ -6,8 +6,12 @@
 
 ### 新增
 
-- 桌面客户端出纸通路：**HTML 直打**。core 产出的最终 HTML 直接交给 `webContents.print({ silent: true })`，与浏览器 `window.print()` 同源：纸张按渲染管线算出的 `paperMm` 以**微米**显式声明，边距恒 `none`，出纸前把 `deviceName/pageSize/copies/landscape` 落日志（`Chromium 原生打印参数`）。三端都不再依赖外部命令。勾选「保留生成的 PDF」时才额外产出同一份 `printToPDF` 结果作为比对**参考件**（不勾选则渲染停在准备阶段，省一次出图）；任务记录新增 `printRoute` 留痕，旧记录按 `pdf` 理解。
+- 桌面客户端出纸通路：**HTML 直打**。core 产出的最终 HTML 直接交给 `webContents.print({ silent: true })`，与浏览器 `window.print()` 同源：纸张按渲染管线算出的 `paperMm` 以**微米**显式声明，边距恒 `none`，出纸前把 `deviceName/pageSize/copies/landscape` 落日志（`Chromium 原生打印参数`）。三端都不再依赖外部命令。勾选「保留生成的 PDF」时才额外产出同一份 `printToPDF` 结果作为比对**参考件**（不勾选则渲染停在准备阶段，省一次出图）；任务记录新增 `printRoute` 留痕，旧记录按 `pdf` 理解。macOS 实测（支持自定义尺寸的标签队列）：落盘介质精确等于声明值（60×40 / 80×60 / 100×80 mm，`/Rotate=0`、内容正立），比 PDF 通路 `printToPDF` 的取整结果（60.4×40.2 mm）更准；`silent` 未弹交互框，60s 回调兜底未触发。
 - 桌面客户端窗口与托盘图标改用与安装包同源的 `build/icon.png`（该图随之进 asar，安装包约 +1 MB），任务栏、Alt-Tab 与快捷方式图形一致；macOS 托盘仍用单色模板图以适配菜单栏深浅色。
+
+### 变更
+
+- demo：**自定义字体改为跟随模板声明**。设计器字体候选与画布 `@font-face` 的来源由宿主常量 `DESIGNER_FONTS` 改为**当前模板 JSON 自带的 `fonts`**（多页模板用 core 的 `mergeFontDeclarations` 合并各页），同时删掉与 `template-comprehensive-showcase.json` 内那份重复的声明。只有综合示例模板内嵌三款公开字体（马善政毛笔楷书 / 站酷快乐体 / 站酷庆科黄油体），其余 9 份示例的字体下拉只剩「默认」，保存与导出也不再被写入字体声明；导入自带 `fonts` 的模板同样自动生效。模板内保存的是相对路径 `/fonts/...`（各出图端按自己的 `baseUrl` 解析），传给设计器前补成 `FONT_BASE_URL` 绝对地址，避免 GitHub Pages 子路径部署时 404。
 
 ### 变更（破坏性）
 
@@ -18,6 +22,10 @@
 
 - 桌面客户端 Windows 侧的 **SumatraPDF 出纸通路整体移除**：`print-backend.ts`（三处安装位置探测）、`sumatra-installer.ts`（官方便携版下载 + sha256 校验 + 一键安装）、设置页的出纸后端状态条与 `worm:settings:install-print-backend` IPC 均不再存在，`printPdfFile` 在 win32 直接报错。此前该通路的口径（只发份数与方向、不发任何纸张参数）随代码删除，Windows 不再需要安装外部工具。
 - 随之失效的参数口径：`paperName`（驱动纸型名）与 `margins` 在当前出纸通路**不被消费**（协议保留以兼容）。要按驱动纸型出纸请设驱动/队列首选项；`-o media=<名称>` 那条通路只在 macOS / Linux 保留。
+
+### 修复
+
+- 桌面客户端（macOS）：**回退的 PDF 出纸通路上，横向标签被打成纵向**。V1.3.6 登记的「`-o orientation-requested=4` 的实现是**交换介质长宽**，故 macOS 的 `Custom.` 也按纵向序（短边×长边）声明」**结论有误**——该观测来自 PostScript 通路（`cgpdftops`）的 `do_rotate` 日志，而 driverless / `_ib` 这类**直接收 PDF 的队列走 `cgpdftopdf`**，其语义是「按你声明的介质朝向，把内容转过去贴它」，并不交换介质。实测（macOS 15.7.8 + CUPS 2.3.4，开源 RWTS-PDFwriter 虚拟队列，9 种纸型 × 3 种下发形态共 27 例）：100×75 标签按 `Custom.212.6x283.46` 加方向请求下发时，落盘介质为 212×283pt 的**纵向页**且内容被补 90°；改按 `Custom.283.46x212.6` 真序声明则介质=100×75 mm、内容正立、产物字节与输入一致。现 **`Custom.` 与 Linux 统一按页面真实朝向声明，macOS 不再为它补方向请求**；方向请求只保留给「命中标准纸型名（`A4` / `Letter` 本身就是纵向介质）的横向页」，该场景实测行为不变（在纵向纸上正立出横向）。**行为变更**：仅影响 macOS 上把 `ACTIVE_PRINT_ROUTE` 改回 `pdf` 的回退构建；默认的 HTML 直打不消费 `media=`，不受本条影响。接单前可用 `grep -m1 CustomPageSize /etc/cups/ppd/<队列>.ppd` 确认队列认不认自定义尺寸——不支持时 `Custom.` 仍会被静默忽略并回落驱动默认纸型，标签只能靠驱动内已定义的 `paperName`（仅在 PDF 通路可用）。
 
 ## V1.3.6(2026-10-16)
 
