@@ -269,12 +269,17 @@ function onLoadDefaultLayout() {
 
 > **[GitHub Releases 页面](https://github.com/worm-longliu/worm-vue3-print/releases)** —— 点击下载，无需登录。当前最新版本为 `v1.3.6`。
 
-| 附件 | 适用系统 |
+下表是 `v1.3.6` 各安装包的完整直链，可直接点击或复制；发版后请同步更新行内的版本号与文件名（可用 `gh release view v1.3.6 --json assets --jq '.assets[].name'` 核对包名是否对得上）。
+
+| 安装包直链 | 适用系统 |
 | --- | --- |
-| `WormPrintClient-<版本>-mac-x64.dmg` | Intel Mac |
-| `WormPrintClient-<版本>-mac-arm64.dmg` | Apple Silicon Mac |
-| `WormPrintClient-<版本>-win-x64.exe` | Windows 10 / 11 x64（NSIS 安装程序，可选择安装目录、创建桌面快捷方式） |
-| `SHA256SUMS.txt` | 上述安装包的 SHA-256 校验和 |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-mac-x64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-mac-x64.dmg) | Intel Mac |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-mac-arm64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-mac-arm64.dmg) | Apple Silicon Mac |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-win-x64.exe](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-win-x64.exe) | Windows 10 / 11 x64（NSIS 安装程序，可选择安装目录、创建桌面快捷方式） |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-linux-amd64.deb](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-linux-amd64.deb) | Debian / Ubuntu x64（`sudo apt install ./<文件>`） |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-linux-x86_64.rpm](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-linux-x86_64.rpm) | Fedora / RHEL / openSUSE x64（`sudo rpm -i <文件>`） |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-linux-x86_64.AppImage](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-linux-x86_64.AppImage) | 任意 x64 发行版，免安装单文件（需 `libfuse2`） |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/SHA256SUMS.txt](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/SHA256SUMS.txt) | 上述安装包的 SHA-256 校验和 |
 
 下载后可与安装包放在同一目录校验完整性（Linux 用 `sha256sum -c`）：
 
@@ -283,7 +288,8 @@ shasum -a 256 -c SHA256SUMS.txt
 ```
 
 - **安装包未做 Developer ID 签名与公证**（本项目没有 Apple Developer ID 与 Windows 签名证书），首次打开会被系统拦截：macOS 执行 `xattr -dr com.apple.quarantine /Applications/WormPrintClient.app`，或在 系统设置 → 隐私与安全性 点「仍要打开」；Windows 在 SmartScreen 提示「未知发布者」页点「更多信息」→「仍要运行」。
-- 发行版里同批出现的 `*.zip` 与 `*.blockmap` 是自动更新用的中间产物，客户端未接自动更新，**请下载 `.dmg` / `.exe`**。
+- **Linux 三个包在 x64 的 Docker 容器内交叉构建，未经 Linux 真机安装与出纸验证**（出纸依赖 CUPS）。deb/rpm 内的 `chrome-sandbox` 为非 setuid（`0755`），启动若报 `SUID sandbox helper` 错误，需启用非特权用户命名空间或临时加 `--no-sandbox`；只提供 fuse3 的发行版（如 Ubuntu 24.04）跑 AppImage 前先装 `libfuse2`，或用 `--appimage-extract-and-run`。本版不提供 `snap` 与 Linux arm64 包。
+- 发行版里同批出现的 `*.zip` 与 `*.blockmap` 是自动更新用的中间产物，客户端未接自动更新，**请下载 `.dmg` / `.exe` / `.deb` / `.rpm` / `.AppImage`**。
 - **Gitee 用户请前往上面的 GitHub 地址下载**：Gitee 发行版附件单文件上限 100MB，超过该体积的安装包只能挂在 GitHub。
 
 ### 从源码构建客户端
