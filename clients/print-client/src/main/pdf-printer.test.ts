@@ -29,12 +29,13 @@ describe('resolveMediaOption', () => {
     }
   })
 
-  it('横向页分平台：macOS 走纵向序纸型名 + 方向翻向，Linux 走 Custom 真实朝向', () => {
+  it('横向页分平台：macOS 命中标准纸型名仍走纸型名，Custom. 两端一律按页面真实朝向', () => {
     expect(resolveMediaOption({ width: 297, height: 210 }, undefined, 'darwin')).toBe('media=A4')
-    // macOS 的 orientation-requested 是「交换介质长宽」，所以纸型必须按纵向序声明，
-    // 翻向后才等于页面真实尺寸；已按真序（横向）声明再翻会被打回纵向。
+    // 实测 macOS（CUPS 2.3.4 + cgpdftopdf）：orientation-requested=4 不是「交换介质长宽」，
+    // 而是「按声明的介质朝向把内容转过去贴它」。故 Custom. 不能再按纵向序声明——
+    // 100×75 标签报成 212.6x283.46 时落盘介质就是 212x283pt 的纵向页，内容反被补 90°。
     expect(resolveMediaOption({ width: 100, height: 75 }, undefined, 'darwin'))
-      .toBe('media=Custom.212.6x283.46')
+      .toBe('media=Custom.283.46x212.6')
     // Linux 没有可抵消旋转的方向 lever（orientation-requested 会被写成 /Rotate 270），
     // 报纵向纸型名等于把横向页钉在纵向介质上必被转，只能按页面真实朝向声明。
     expect(resolveMediaOption({ width: 297, height: 210 }, undefined, 'linux'))
@@ -83,7 +84,7 @@ describe('buildCupsArgs', () => {
     expect(args).toContain('orientation-requested=4')
   })
 
-  it('macOS 方向请求只跟页面长宽比走：纵向页与正方页不发', () => {
+  it('macOS 方向请求只给「命中纵向介质纸型名」的横向页：Custom/纵向页/正方页不发', () => {
     // 实测 macOS：给纵向页发 landscape 会把介质翻成横向，正立内容反被转 90°
     for (const paper of [
       { width: 210, height: 297 },
@@ -93,7 +94,12 @@ describe('buildCupsArgs', () => {
       const args = buildCupsArgs('/tmp/job.pdf', { paper }, 'darwin')
       expect(args, JSON.stringify(paper)).not.toContain('orientation-requested=4')
     }
-    expect(buildCupsArgs('/tmp/job.pdf', { paper: { width: 100, height: 75 } }, 'darwin')).toContain(
+    // 标准纸型名本身就是纵向介质，横向页必须补方向请求
+    expect(buildCupsArgs('/tmp/job.pdf', { paper: { width: 297, height: 210 } }, 'darwin')).toContain(
+      'orientation-requested=4',
+    )
+    // Custom. 已按页面真实朝向声明，再补方向请求等于要打印机换一张不存在的纵向纸
+    expect(buildCupsArgs('/tmp/job.pdf', { paper: { width: 100, height: 75 } }, 'darwin')).not.toContain(
       'orientation-requested=4',
     )
   })
@@ -174,7 +180,7 @@ describe('printPdfFile 出纸参数转发', () => {
     return { file, args }
   }
 
-  it('macOS：页面尺寸必须转发到 lp（否则 media 与方向声明形同虚设）', async () => {
+  it('macOS：页面尺寸必须转发到 lp，横向标签按 Custom 真序且不带方向请求', async () => {
     setPlatform('darwin')
     await printPdfFile('/tmp/job.pdf', {
       printerName: '标签机',
@@ -186,7 +192,19 @@ describe('printPdfFile 出纸参数转发', () => {
     expect(args).toEqual([
       '-d', '标签机',
       '-n', '2',
-      '-o', 'media=Custom.212.6x283.46',
+      '-o', 'media=Custom.283.46x212.6',
+      '/tmp/job.pdf',
+    ])
+  })
+
+  it('macOS：横向 A4 转发标准纸型名 + 方向请求（纸型名是纵向介质，必须翻向）', async () => {
+    setPlatform('darwin')
+    await printPdfFile('/tmp/job.pdf', { printerName: 'A4 机', paper: { width: 297, height: 210 } })
+    const { args } = lastCall()
+    expect(args).toEqual([
+      '-d', 'A4 机',
+      '-n', '1',
+      '-o', 'media=A4',
       '-o', 'orientation-requested=4',
       '/tmp/job.pdf',
     ])

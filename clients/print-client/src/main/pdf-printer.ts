@@ -5,12 +5,14 @@
 // pdftops（macOS/Linux）与 SumatraPDF 的 autoRotate（Windows）都会给朝向不一致的页面补
 // 90°。所以纸张必须显式声明（`-o media=…`：宿主指定驱动纸型 → 标准纸型 → `Custom.<宽>x<高>`，
 // 单位：点，可带小数）；`A4/Letter` 这类纸型名本身是纵向介质，横向页只声明它挡不住旋转。
-// 抵消手段各系统不同：macOS 补 `-o orientation-requested=4`，其实现是**交换介质长宽**（实测
-// do_rotate 由 90 变 0），所以 macOS 的 `Custom.` 也按纵向序（短边×长边）声明，翻一次才落回
-// 页面真实尺寸；Linux 的 cups-filters 用「写 /Rotate 270 + 交换 MediaBox」实现
-// 同一请求，标签机反被打歪，故 Linux 只声明纸张——横向页也就不走标准纸型名（那是纵向介质），
-// 改按页面真实朝向走 `Custom.`。队列 PPD 不支持自定义尺寸时 `Custom.` 会被静默忽略并回落
-// 队列默认纸张，此时只有驱动里已有的纸型名（`paperName`）可用。
+// 抵消手段各系统不同：macOS 的标准纸型名（A4/Letter）本身就是纵向介质，横向页再补
+// `-o orientation-requested=4`，滤镜会把内容转贴到这张纵向介质上（实测横向 A4 正立出在 A4 纸上）；
+// `Custom.` 则两端都按页面真实朝向声明——实测 macOS（CUPS 2.3.4 + cgpdftopdf）该方向请求的实现
+// 不是「交换介质长宽」，而是「按声明的介质朝向把内容转过去贴它」，给物理横向的标签按纵向序
+// （短边×长边）声明，落盘介质就真成纵向（100×75 → 212x283pt）且内容被补 90°。
+// Linux 不发方向请求（cups-filters 把它实现为「写 /Rotate 270 + 交换 MediaBox」，标签机反被打歪），
+// 横向页也不再报纵向纸型名，改按页面真实朝向走 `Custom.`。队列 PPD 不支持自定义尺寸时 `Custom.`
+// 会被静默忽略并回落队列默认纸张，此时只有驱动里已有的纸型名（`paperName`）可用。
 //
 // 各平台分支必须原样透传 options（尤其 paper）：曾按字段逐个转发，paper 被漏掉，
 // media 声明从未真正下发。Windows 无 CUPS 的纸张声明可用，方向靠 SumatraPDF 的
@@ -59,9 +61,9 @@ export function resolveMediaOption(
   if (named) return `media=${named}`
   if (!paper || !(paper.width > 0) || !(paper.height > 0)) return undefined
 
-  // 标准纸型名在 PPD 里就是纵向介质。macOS 还有 orientation-requested 能把介质翻成横向，
-  // 所以照报纸型名；Linux 没有这个 lever（orientation-requested 被实现成写 /Rotate 270），
-  // 给横向页报纵向纸型名等于把它钉在纵向介质上、必被旋转，只能按页面真实朝向走 Custom。
+  // 标准纸型名在 PPD 里就是纵向介质。macOS 有 orientation-requested 可把内容转贴到它上面，
+  // 所以横向页照报纸型名；Linux 没有这个 lever（被实现成写 /Rotate 270 + 交换 MediaBox），
+  // 报纵向纸型名等于把横向页钉在纵向介质上、必被旋转，只能按页面真实朝向走 Custom。
   if (paper.width <= paper.height || platform === 'darwin') {
     const shortSide = Math.min(paper.width, paper.height)
     const longSide = Math.max(paper.width, paper.height)
@@ -73,16 +75,10 @@ export function resolveMediaOption(
     if (matched) return `media=${matched.name}`
   }
 
-  // macOS 的 orientation-requested 实现是「交换介质长宽」，所以纸型一律按纵向序给出
-  // （短边×长边），横向页再翻一次才等于页面真实尺寸；已经按真序（横向）声明再翻会被打回纵向。
+  // Custom. 两端都按页面真实朝向声明：标签/卷纸这类自定义纸张物理上就是横向（宽>高），
+  // 按纵向序声明再补方向请求，等于要求打印机换成一张并不存在的纵向纸（实测内容被转 90° 贴上去）。
   const round2 = (v: number) => Math.round(v * 100) / 100
-  const w = platform === 'darwin'
-    ? Math.min(paper.width, paper.height)
-    : paper.width
-  const h = platform === 'darwin'
-    ? Math.max(paper.width, paper.height)
-    : paper.height
-  return `media=Custom.${round2(w * PT_PER_MM)}x${round2(h * PT_PER_MM)}`
+  return `media=Custom.${round2(paper.width * PT_PER_MM)}x${round2(paper.height * PT_PER_MM)}`
 }
 
 /** 构造 CUPS（lp）命令行参数（纯函数，便于单测） */
@@ -102,6 +98,8 @@ export function buildCupsArgs(
     platform === 'darwin'
     && !paperName
     && media
+    // 只补在纵向介质的标准纸型名上；Custom. 已按页面真实朝向声明，再补就是要求换成纵向纸
+    && !media.startsWith('media=Custom.')
     && paper
     && paper.width > paper.height
   ) {
