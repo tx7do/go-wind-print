@@ -13,7 +13,7 @@ import { dirname, join } from 'node:path'
 const OUT_DIR = fileURLToPath(new URL('../public/fonts', import.meta.url))
 const BASE = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl'
 
-/** 字体族名必须与 demo 的 DESIGNER_FONTS 声明一致 */
+/** 字体族名必须与模板 JSON 的 `fonts` 声明一致（当前仅 template-comprehensive-showcase.json） */
 const FONTS = [
   { family: 'Ma Shan Zheng', file: 'MaShanZheng-Regular.ttf', source: `${BASE}/mashanzheng/MaShanZheng-Regular.ttf` },
   { family: 'ZCOOL KuaiLe', file: 'ZCOOLKuaiLe-Regular.ttf', source: `${BASE}/zcoolkuaile/ZCOOLKuaiLe-Regular.ttf` },
@@ -54,7 +54,7 @@ for (const font of FONTS) {
 }
 
 console.log(`\n输出目录：${OUT_DIR}`)
-console.log('提示：换字体只需改 demo/src/App.vue 的 DESIGNER_FONTS（family 与文件名对应），不需要改库代码。')
+console.log('提示：换字体改 demo/src/template-comprehensive-showcase.json 的 `fonts`（family 与文件名对应），App.vue 会从模板读取，不需要改库代码。')
 
 function formatSize(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`

@@ -37,7 +37,7 @@
         :show-help="true"
         :upload-image="uploadDemoImage"
         :upload-design-background="uploadDemoImage"
-        :fonts="DESIGNER_FONTS"
+        :fonts="activeFonts"
         @preview="onPreview"
         @save="onSave"
       />
@@ -106,7 +106,12 @@ import {
   createDefaultTemplate,
 } from '@worm-vue3-print/canvas'
 import type { PrintBusinessField, TemplateData, MultiPageTemplateData } from '@worm-vue3-print/canvas'
-import type { PrintFontDeclaration } from '@worm-vue3-print/core'
+import { isMultiPageTemplate, mergeFontDeclarations } from '@worm-vue3-print/core'
+import type {
+  PrintFontDeclaration,
+  PrintTemplateData,
+  MultiPageTemplateData as PrintMultiPageTemplateData,
+} from '@worm-vue3-print/core'
 import PrintOutputDialog from './components/PrintOutputDialog.vue'
 import TemplateGalleryDialog from './components/TemplateGalleryDialog.vue'
 import CustomDataDialog from './components/CustomDataDialog.vue'
@@ -178,37 +183,29 @@ function onApplyCustomData(payload: { fields: PrintBusinessField[]; data: Record
 }
 
 /**
- * 模板字体声明（宿主配置）：保存时同步写入模板 JSON，服务端与客户端按模板出图。
- * url 以 '/' 开头 → 各端按自己的 baseUrl 解析：浏览器取当前站点（dev 为 9303 端口），
- * render 服务取请求里的 baseUrl（本机联调填 http://host.docker.internal:9303）。
+ * 设计器字体候选与画布 @font-face 的唯一来源：当前模板 JSON 自带的 `fonts`。
+ * 综合示例内嵌三款公开字体（OFL-1.1，字型与宋体/黑体差异极大，一眼就能看出 webfont 有没有真正生效：
+ * 马善政毛笔楷书 / 站酷快乐体 / 站酷庆科黄油体），其余示例不写 `fonts` → 字体下拉为空、
+ * 保存也不带字体声明；导入的模板自带 `fonts` 时同样自动生效。
+ * 字体文件用 node scripts/fetch-test-fonts.mjs 下载，族名与 public/fonts/*.ttf 对应。
  *
- * 这里用的是三款公开字体（OFL-1.1），字型与宋体/黑体差异极大，一眼就能看出webfont 有没有真正生效：
- * 马善政毛笔楷书 / 站酷快乐体 / 站酷庆科黄油体。文件用 node scripts/fetch-test-fonts.mjs 下载，
- * 换字体只改这份数组（family 与文件名对应），不动库代码。
+ * 模板里存的是相对路径（`/fonts/...`，各出图端按自己的 baseUrl 解析：render 服务取请求里的
+ * baseUrl，本机联调填 http://host.docker.internal:9303）；设计器画布要走本站，这里补成绝对地址，
+ * 否则部署到 GitHub Pages 子路径时 `/fonts/` 会 404。
  */
-const DESIGNER_FONTS: PrintFontDeclaration[] = [
-  {
-    family: 'Ma Shan Zheng',
-    label: '马善政毛笔楷书',
-    files: [
-      { weight: 400, url: `${FONT_BASE_URL}/fonts/MaShanZheng-Regular.ttf` },
-    ],
-  },
-  {
-    family: 'ZCOOL KuaiLe',
-    label: '站酷快乐体',
-    files: [
-      { weight: 400, url: `${FONT_BASE_URL}/fonts/ZCOOLKuaiLe-Regular.ttf` },
-    ],
-  },
-  {
-    family: 'ZCOOL QingKe HuangYou',
-    label: '站酷庆科黄油体',
-    files: [
-      { weight: 400, url: `${FONT_BASE_URL}/fonts/ZCOOLQingKeHuangYou-Regular.ttf` },
-    ],
-  },
-]
+const activeFonts = computed<PrintFontDeclaration[]>(() => {
+  // canvas 的 TemplateData 与 core 的同构类型在元素 id 可选性上有差异，读取 fonts 走 core 口径
+  const tpl = templateData.value as unknown as PrintTemplateData | PrintMultiPageTemplateData
+  const declared = isMultiPageTemplate(tpl)
+    ? mergeFontDeclarations(tpl.pages)
+    : tpl.fonts ?? []
+  return declared.map(font => ({
+    ...font,
+    files: font.files.map(f =>
+      f.url.startsWith('/') ? { ...f, url: `${FONT_BASE_URL}${f.url}` } : f,
+    ),
+  }))
+})
 
 const designerRef = ref<InstanceType<typeof PrintDesigner> | null>(null)
 

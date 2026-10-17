@@ -14,9 +14,12 @@
   提交给同仓库的 render 微服务（`services/print-render`），服务端两遍渲染出 PDF 后在新标签页打开；
   顶栏实时显示渲染服务在线状态（经 `/render-api/health` 探测）
 - 保存演示：`save` 时输出控制台并将模板 JSON 下载为本地文件
-- 自定义字体联调：`public/fonts/` 放三款公开字体（见该目录 README），经 `fonts` prop 声明为
-  模板级字体；字体基址与图片基址分离（`FONT_BASE_URL`，默认站点 origin，可用 `VITE_FONT_BASE_URL` 覆盖），
-  dev server 已返回 `Access-Control-Allow-Origin: *` 供 render 服务与桌面客户端跨源取字体
+- 自定义字体联调：**字体声明跟着模板走**——只有综合示例模板在 JSON 里内嵌 `fonts`（`public/fonts/` 放
+  三款公开字体，见该目录 README），`App.vue` 的 `activeFonts` 从当前模板 JSON 读取后传给设计器；
+  其余 9 份示例不写 `fonts`，字体下拉为空、保存也不带字体声明，导入的模板自带 `fonts` 时自动生效。
+  模板里存相对路径 `/fonts/...`（传给设计器时补成 `FONT_BASE_URL` 绝对地址），字体基址与图片基址分离
+  （默认站点 origin，可用 `VITE_FONT_BASE_URL` 覆盖），dev server 已返回 `Access-Control-Allow-Origin: *`
+  供 render 服务与桌面客户端跨源取字体
 
 ## 运行
 
