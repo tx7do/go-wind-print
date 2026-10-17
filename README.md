@@ -281,6 +281,13 @@ function onLoadDefaultLayout() {
 | [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-linux-x86_64.AppImage](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/WormPrintClient-1.3.6-linux-x86_64.AppImage) | 任意 x64 发行版，免安装单文件（需 `libfuse2`） |
 | [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/SHA256SUMS.txt](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.6/SHA256SUMS.txt) | 上述安装包的 SHA-256 校验和 |
 
+下载不动或速度很慢时（GitHub 附件在国内直连常掉速，大文件容易中途断开）：
+
+- 复制上表任意一条链接，粘贴到**迅雷**、IDM、qBittorrent 等支持断点续传的下载工具新建任务即可，安装包本身没有限制来源；用浏览器另存为时若提示失败，重试同一链接通常就能续上。
+- 连 [Releases 页面](https://github.com/worm-longliu/worm-vue3-print/releases) 本身都打不开时，说明是 GitHub 访问受阻而非文件过大：换用可访问 GitHub 的网络或代理后重试，或直接按下一节[从源码构建客户端](#从源码构建客户端)自行打包（Gitee 侧的发行版只有源码包，没有安装包附件）。
+- 下载工具有时会在文件名后追加 `(1)` 等重复标记，安装前核对一下文件名即可。
+- 无论走哪条途径，装前都用 `SHA256SUMS.txt` 核对一次：校验和不一致说明文件不完整或被替换，请重新下载。
+
 下载后可与安装包放在同一目录校验完整性（Linux 用 `sha256sum -c`）：
 
 ```bash
