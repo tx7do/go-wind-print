@@ -8,7 +8,7 @@
 
 ## v1.3.6（2026-10-16）—— 简体中文
 
-自 `v1.3.5` 以来 10 次提交。**这是一个修复版本，无 API 变更、模板 JSON 无字段变更**：桌面客户端静默打印的出纸方向修正（Windows 宽幅标签被转 90°、macOS / Linux 的纸张声明此前从未真正下发），并首次提供 Linux 三类安装包。
+自 `v1.3.5` 以来 10 次提交。**这是一个修复版本，无 API 变更、模板 JSON 无字段变更**：桌面客户端静默打印的出纸方向修正（Windows 宽幅标签被转 90°、macOS / Linux 的纸张声明此前从未真正下发、横向页被纵向纸型名钉住），并首次提供 Linux 三类安装包。
 
 ### 安装与升级
 
@@ -24,11 +24,13 @@ npm install @worm-vue3-print/core@^1.3.6 @worm-vue3-print/canvas@^1.3.6
 
 - **Windows：宽幅标签被旋转 90° 出纸**。100×75 mm 这类「宽大于高」的标签经客户端静默打印时，纸上内容整体旋转 90°，而产物 PDF 本身方向正确。根因是 Windows 出纸交给 SumatraPDF，其默认 `autoRotate` 对「宽 > 高」的页面无条件加 90°，只在方向被判定为横向时才抵消回 0°；未显式声明方向时，该判定取自打印驱动（标签驱动多为纵向）。现按页面自身长宽比显式声明方向：`-print-settings "<份数>x,landscape|portrait"`，正方形页归 `portrait`（正方页带 `landscape` 会被反向旋转 90°）。
 - **macOS / Linux：纸张声明此前从未真正下发**。`printPdfFile` 组装出纸命令时按字段逐个转发参数、漏掉了 `paper`，页面尺寸到不了命令构造层，V1.3.0 起引入的 `-o media=…`（宿主指定驱动纸型 → 标准纸型匹配 → `Custom.<宽>x<高>`）只在宿主显式给出 `paperName` 时才下发。现改为原样透传全部选项。
+- **macOS / Linux：横向页只报纸型名仍被转 90°**。判据与 Windows 同源——CUPS 的 `pdftops` 按「生效介质朝向 vs 页面朝向」补 90°，而 `A4` / `Letter` 这类标准纸型名本身就是纵向介质。macOS 出纸在「页面宽 > 高且未指定驱动纸型」时额外下发 `-o orientation-requested=4`（实测 `do_rotate` 由 90 变 0），纵向页与正方页不发；该请求的实现是交换介质长宽，故 macOS 的 `Custom.` 也改按纵向序（短边×长边）声明，翻一次才落回页面真实尺寸。**Linux 反向走纸张**：cups-filters 1.28 实测把该请求实现为「给页面写 `/Rotate 270` 并交换 MediaBox」，标签机反被打歪，故 Linux 不发它，横向页也不再报纵向纸型名，改按页面真实朝向走 `Custom.<宽>x<高>`（A/B 实测：横向 A4 的 MediaBox 由 595×842 变 841.89×595.28，且不写 `/Rotate`）。
 
 ### 行为变更与影响面
 
 - **升级后同一份宽幅标签的出纸方向与 PDF 一致**。此前为规避旋转而把模板做成竖版、再由人工旋转的做法，需改回按真实出纸方向设计。
-- **macOS / Linux 出纸现在会真正声明纸张**。此前被队列默认纸张（多为纵向 A4）旋转 90° 的横向页面恢复正常。
+- **macOS / Linux 出纸现在会真正声明纸张**。此前按队列默认纸张（多为纵向 A4/Letter）处理的横向页面改用页面真实尺寸，横向 A4 与宽幅自定义纸随之正立（macOS 靠方向请求翻介质，Linux 靠按真实朝向声明 `Custom.`）。
+- **队列 PPD 不支持自定义尺寸时 `media=Custom.*` 会被静默忽略**（AirPrint / driverless 队列即如此），并回落队列默认纸张。标签类纸张请在宿主侧传驱动内已定义的 `paperName`。
 - **驱动侧仍可能反向旋转**：若驱动中标签定义的朝向与模板不一致，出纸仍可能被驱动转回去，需在驱动 / 机器设置里对齐。
 - **Windows 侧不消费 `paperName`**：该通路没有 CUPS 的纸张声明能力，只声明方向；需要指定驱动预置纸型时走 macOS / Linux。
 - 客户端协议、WebSocket 接口与宿主 SDK 均无变更。
@@ -64,7 +66,7 @@ npm install @worm-vue3-print/core@^1.3.6 @worm-vue3-print/canvas@^1.3.6
 
 ## v1.3.6 (2026-10-16) — English
 
-10 commits since `v1.3.5`. **This is a fix release: no API changes and no template JSON changes.** It corrects the output orientation of desktop silent printing (wide labels rotated 90° on Windows, and the paper declaration that never actually reached the print command on macOS / Linux) and ships Linux installers for the first time.
+10 commits since `v1.3.5`. **This is a fix release: no API changes and no template JSON changes.** It corrects the output orientation of desktop silent printing (wide labels rotated 90° on Windows, the paper declaration that never actually reached the print command on macOS / Linux, and landscape pages pinned to a portrait paper name) and ships Linux installers for the first time.
 
 ### Install / upgrade
 
@@ -78,11 +80,13 @@ Only `core` and `canvas` are published to npm. The render service, the desktop c
 
 - **Windows: wide labels came out a quarter turn off.** A 100×75 mm label printed rotated even though the generated PDF is correct in any viewer. Windows output is handed to SumatraPDF, whose default `autoRotate` unconditionally adds 90° to pages where width > height and cancels it back to 0° only when the page is judged landscape — with no orientation declared, that judgement comes from the print driver (label drivers usually report portrait). The client now declares orientation from the page's own aspect ratio: `-print-settings "<copies>x,landscape|portrait"`, with square pages counted as `portrait` (a square page tagged `landscape` gets rotated the other way).
 - **macOS / Linux: the paper declaration was never actually sent.** `printPdfFile` forwarded options field by field and dropped `paper`, so page size never reached argument construction and the `-o media=…` declaration (host driver paper name → standard-size match → `Custom.<w>x<h>`) introduced in V1.3.0 only went out when the host supplied a `paperName`. All options are now passed through unchanged.
+- **macOS / Linux: a paper name alone did not stop landscape pages from rotating.** The trigger is the same as on Windows — CUPS' `pdftops` adds 90° whenever the effective media's orientation disagrees with the page's, and standard names such as `A4` / `Letter` are portrait media by definition. On macOS the command now also sends `-o orientation-requested=4` when the page is wider than tall and no driver paper name was given (`do_rotate` measured 90 → 0); it is never sent for portrait or square pages, and since the request swaps the media's dimensions, macOS `Custom.` sizes are declared portrait-canonical (short × long) so one swap lands on the page's real size. **Linux takes the paper route instead**: cups-filters 1.28 implements that request by writing `/Rotate 270` into the page and swapping the MediaBox, which skews label output, so Linux skips it and no longer reports a portrait paper name for landscape pages, declaring `Custom.<width>x<height>` in the page's real orientation (A/B measured: MediaBox went from 595×842 to 841.89×595.28 with no `/Rotate`).
 
 ### Behavior changes
 
 - **The same wide label now prints in the orientation the PDF shows.** Templates turned sideways to work around the old behavior must go back to their real output orientation.
-- **macOS / Linux output now really declares the paper**, so landscape pages previously rotated 90° by the queue's default paper (usually portrait A4) print correctly.
+- **macOS / Linux output now really declares the paper**, so jobs that previously fell back to the queue's default paper (usually portrait A4/Letter) use the page's true size, and landscape A4 / wide custom paper now prints upright (macOS flips the media with an orientation request; Linux declares `Custom.` in the page's real orientation).
+- **Queues whose PPD has no custom-size support silently ignore `media=Custom.*`** (AirPrint and driverless queues do this) and fall back to the queue's default paper — for label stock, pass a `paperName` the driver already defines.
 - **The driver can still rotate back**: if the label definition in the driver disagrees with the template, align the driver / machine setting.
 - **`paperName` is not consumed on Windows**: that path has no CUPS paper declaration, only orientation; use macOS / Linux when a driver preset paper name is required.
 - The client protocol, the WebSocket interface and the host SDK are unchanged.

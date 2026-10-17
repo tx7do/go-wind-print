@@ -22,7 +22,12 @@ PrintEngine（串行锁，并发直接 BUSY）
 > 出纸统一走「HTML → PDF → 系统打印命令」：PDF 由 Chromium 打印管线生成，与服务端 Playwright 产物同源，
 > 纸张尺寸与背景（含水印）表现一致；`webContents.print()` 依赖打印驱动的纸张/可打印区域，已不再使用。
 > 出纸时显式向打印系统声明纸张（`lp -o media=…`：宿主指定驱动纸型 > 标准纸型匹配 > `Custom.<宽>x<高>`），
-> 避免驱动按队列默认纸张处理、把横向页旋转成纵向（产物 PDF 出现 `/Rotate 90`）。
+> 避免驱动按队列默认纸张处理、把横向页旋转成纵向。**判据三系统同源：生效介质朝向 ≠ 页面朝向即被补 90°**。
+> 标准纸型名（`A4`/`Letter`）本身是纵向介质，所以 macOS 上横向页还要补 `-o orientation-requested=4`
+> 把介质翻成横向（实测 `do_rotate` 由 90 变 0；纵向页/正方页不发，发了反被翻歪）。该请求的实现是
+> **交换介质长宽**，故 macOS 的 `Custom.` 也按纵向序（短边×长边）声明，翻一次才落回页面真实尺寸。
+> Linux 不发该请求——cups-filters 用「写 `/Rotate 270` + 交换 MediaBox」实现它，会把标签打歪，因此
+> Linux 的横向页不再报纵向纸型名，改按页面真实朝向声明 `Custom.<宽>x<高>`。
 > Windows 侧无 CUPS 的纸张声明可用，改为按页面长宽比显式声明方向（`-print-settings "<份数>x,landscape|portrait"`），
 > 抑制 SumatraPDF 的 `autoRotate` 把「宽>高」页面转 90° 出纸。
 

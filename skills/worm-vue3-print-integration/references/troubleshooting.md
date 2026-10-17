@@ -92,17 +92,20 @@ npm run build
 
 1. 现象：模板是横向（或宽幅自定义纸），浏览器预览、服务端 PDF 都正常，但桌面客户端静默出纸后纸张方向不对、内容被旋转。
 2. 先归类：core 的出纸旋转（`outputRotation`）是烤进内容流并交换 `@page`/`.print-page` 长宽的真旋转，不靠 PDF 的 `/Rotate` 标记，所以产物 PDF 永远是对的——方向不一致只可能出在出纸参数或驱动侧。
-3. macOS / Linux（`lp` + CUPS）：
-   - 根因：出纸命令未声明纸张时，CUPS 按队列默认纸张（多为纵向 A4）处理，`pdftopdf` 把横向页面旋转 90°，产物 PDF 会出现 `/Rotate 90`。
-   - 规则：必须显式下发 `-o media=…`，优先级为「宿主指定驱动纸型（`print.paperName`）→ 页面尺寸匹配标准纸型（A3/A4/A5/Letter/Legal）→ `Custom.<宽>x<高>`（单位：点，`mm × 72 / 25.4`）」，封装在 `src/main/pdf-printer.ts` 的 `resolveMediaOption`。
-   - 不要用 `orientation-requested` 纠正方向：实测该选项会让 CUPS 反向旋转（横向页变成纵向 MediaBox，或纵向页被再次旋转）；`media` 声明成页面真实尺寸即可，方向由页面本身决定。
-   - 附带坑：`printPdfFile` 曾按字段逐个转发分支参数、漏掉 `paper`，导致 `media` 声明实际从未下发。新增平台参数时必须原样透传整个 `options`（`pdf-printer.test.ts` 有转发回归用例）。
+3. macOS / Linux（`lp` + CUPS）——判据与 Windows 同源：**生效介质的朝向与页面朝向不一致，滤镜就补 90°**。
+   - 根因：出纸命令未声明纸张时，CUPS 按队列默认纸张（多为纵向 A4/Letter）处理，宽 > 高的页面被 `pdftops` 自动转向去贴纵向介质。
+   - 规则一（纸张，两端通用）：显式下发 `-o media=…`，优先级「宿主指定驱动纸型（`print.paperName`）→ 标准纸型名（A3/A4/A5/Letter/Legal）→ `Custom.<宽>x<高>`（单位：点，`mm × 72 / 25.4`，实测可带小数）」，封装在 `src/main/pdf-printer.ts` 的 `resolveMediaOption`。**标准纸型名只在「页面为纵向序」或「macOS」时使用**——纸型名本身就是纵向介质，Linux 的横向页改按页面真实朝向走 `Custom.`（实测自定义尺寸队列上 MediaBox 由 595×842 变 841.89×595.28 且不写 `/Rotate`）。
+   - 规则二（方向，**仅 macOS**）：`media=A4` 这类标准纸型名**本身就是纵向介质**，横向页只声明它仍被转 90°。macOS 侧再补 `-o orientation-requested=4`，滤镜会把介质**交换长宽**（实测 `do_rotate` 由 90 变 0），封装在 `buildCupsArgs`；因为是交换，macOS 上的 `Custom.` 也必须按**纵向序（短边×长边）**声明，翻一次才等于页面真实尺寸——按真序（横向）声明再翻会被打回纵向（实测自定义尺寸队列上 100×75 标签被翻成 212.6×283.46）。方向请求只对「宽 > 高且未指定驱动纸型」的页面下发——纵向页/正方页发了会把介质翻成横向、正立内容反被转 90°（早先「实测该选项会反向旋转」的结论就是这么来的：当时是对纵向页发了 landscape）。
+   - Linux 不发方向请求：cups-filters（1.28.17 实测）把 `orientation-requested=4` 实现为**给页面写 `/Rotate 270` 并交换 MediaBox**，标签机反被打歪；Linux 只靠 `media` 声明，`Custom.<页面真实尺寸>` 在支持自定义尺寸的队列上直接命中且内容正立。
+   - 边界：队列 PPD 不支持自定义尺寸时 `Custom.` 会被**静默忽略**并回落队列默认纸张（macOS 的 AirPrint/driverless PPD、Linux 的 `Generic PostScript Printer` 皆如此），此时 `media=A4`、`media=Custom.…`、`orientation-requested=4` 三种下发的旋转结果完全一样（实测同一份横向 A4 均被转），**只有驱动里已定义的纸型名能救**——标签场景请让宿主传 `paperName`（如驱动内的 `100x75mm` 定义）。
+   - 附带坑：`printPdfFile` 曾按字段逐个转发分支参数、漏掉 `paper`，导致 `media` 声明实际从未下发。新增平台参数时必须原样透传整个 `options`（`pdf-printer.test.ts` 有转发与分平台方向的回归用例）。
 4. Windows（SumatraPDF）：
    - 根因：SumatraPDF 默认开启 `autoRotate`，对「宽 > 高」的页面无条件加 90°（内部规范化为 270°），只有方向判定为横向时才抵消回 0°；方向判定值取自驱动 DEVMODE 的默认方向。出纸命令只传份数时，宽幅标签页会被转 90° 出纸。纸张尺寸本身不是问题——`PrintFile2` 会先按页面尺寸匹配驱动纸型（1mm 容差，不匹配则回退自定义尺寸）。
    - 规则：`-print-settings` 必须按页面长宽比显式带方向 token：宽 > 高 → `landscape`，否则 `portrait`（相等归 `portrait`——正方页带 `landscape` 会被反向旋转 90°），封装在 `buildSumatraSettings`。
    - 边界：Windows 侧不声明纸张尺寸（`paper=` 依赖驱动纸型名或 `paper=100mm x 75mm` 这类自定义语法，未在真机验证），依赖驱动内已定义同尺寸标签或 SumatraPDF 的尺寸匹配回退；需要指定驱动预置纸型时走 macOS/Linux 的 `media` 通路。
 5. 验证方法（无需真机）：
-   - CUPS：`lp -d <队列> -o media=<纸型> out.pdf` 打印后用 `pdfinfo`/`pypdf` 检查 `/Rotate` 是否为 0，`pdftoppm` 转 PNG 确认宽高比（如 A4 横向应为 1169×827）。
+   - CUPS 离线判据（不提交作业、不出纸）：macOS 用 `cupsfilter -d <队列> -m application/vnd.cups-postscript -o media=… <页>.pdf > /dev/null`，看 stderr 的 `preferredRotation=90`/`do_rotate=90`（`do_rotate=0` 即正立）与 `mediaBox.size`（介质朝向）。Linux 可把队列指向 `file:///tmp/out.ps`（需 `cups-files.conf` 里 `FileDevice Yes`）提交真实作业，取回产物核对：**除了 `pdfinfo` 的 Page size，必须看页面是否被写了 `/Rotate`**——cups-filters 是用 `/Rotate` 实现方向请求的，光看 Page size 会误判。
+   - 真机：`lp -d <队列> -o media=<纸型> out.pdf` 打印后用 `pdfinfo`/`pypdf` 检查 `/Rotate` 是否为 0，`pdftoppm` 转 PNG 确认宽高比（如 A4 横向应为 1169×827）。
    - Windows：同一份 PDF 跑两条命令对照——`SumatraPDF.exe -print-to "<打印机>" -print-settings "1x" -silent out.pdf`（复现旋转）与 `-print-settings "1x,landscape" -silent out.pdf`（应正立；若正立的是 `portrait` 则页面为纵向）。页面真实尺寸可用 SumatraPDF 打开 PDF 按 `Ctrl+D` 看 Page size。
    - 通用前提：先确认产物 PDF 自身的页面尺寸/方向正确（客户端配置勾「保留生成的 PDF」，任务记录页可取绝对路径）。
 
