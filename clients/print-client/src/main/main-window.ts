@@ -84,10 +84,10 @@ export class MainWindowManager {
     })
 
     ipcMain.handle(SETTINGS_IPC.PICK_PDF_DIR, async () => {
-      const options = {
+      const options: Electron.OpenDialogOptions = {
         title: '选择 PDF 保存目录',
         defaultPath: this.deps.getPdfDir(),
-        properties: ['openDirectory', 'createDirectory'] as const,
+        properties: ['openDirectory', 'createDirectory'],
       }
       const result = this.win
         ? await dialog.showOpenDialog(this.win, options)

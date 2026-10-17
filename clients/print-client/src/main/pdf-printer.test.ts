@@ -8,13 +8,9 @@ vi.mock('node:child_process', () => ({
     cb(null, { stdout: '', stderr: '' })
   }),
 }))
-// SumatraPDF 探测路径改为恒存在，使 win32 分支可在非 Windows 宿主上跑
-vi.mock('node:fs', () => ({ statSync: vi.fn(() => ({})) }))
-
 import { execFile } from 'node:child_process'
 import {
   buildCupsArgs,
-  buildSumatraSettings,
   printPdfFile,
   resolveMediaOption,
   PT_PER_MM,
@@ -147,24 +143,6 @@ describe('buildCupsArgs', () => {
   })
 })
 
-describe('buildSumatraSettings', () => {
-  it('份数前缀', () => {
-    expect(buildSumatraSettings({ copies: 3 })).toBe('3x')
-  })
-
-  it('按页面长宽比显式声明方向：宽>高 → landscape，否则 portrait', () => {
-    expect(buildSumatraSettings({ copies: 1, paper: { width: 100, height: 75 } })).toBe('1x,landscape')
-    expect(buildSumatraSettings({ copies: 2, paper: { width: 75, height: 100 } })).toBe('2x,portrait')
-    // 正方形归 portrait：SumatraPDF 只对「宽>高」加 90°，正方页声明 landscape 会被反向旋转
-    expect(buildSumatraSettings({ paper: { width: 100, height: 100 } })).toBe('1x,portrait')
-  })
-
-  it('页面尺寸缺失时只下发份数（交给驱动默认）', () => {
-    expect(buildSumatraSettings({ copies: 1 })).toBe('1x')
-    expect(buildSumatraSettings({ paper: { width: 0, height: 0 } })).toBe('1x')
-  })
-})
-
 describe('printPdfFile 出纸参数转发', () => {
   const REAL_PLATFORM = process.platform
   const setPlatform = (p: NodeJS.Platform): void => {
@@ -227,15 +205,11 @@ describe('printPdfFile 出纸参数转发', () => {
     ])
   })
 
-  it('Windows：方向随页面尺寸转发（否则宽幅页面被 SumatraPDF 转 90°）', async () => {
+  it('Windows：PDF 通路已随 SumatraPDF 一并移除，调用即报错且不找回外部依赖', async () => {
     setPlatform('win32')
-    await printPdfFile('/tmp/job.pdf', {
-      printerName: '标签机',
-      copies: 1,
-      paper: { width: 100, height: 75 },
-    })
-    const { args } = lastCall()
-    expect(args).toContain('-print-to')
-    expect(args[args.indexOf('-print-settings') + 1]).toBe('1x,landscape')
+    await expect(
+      printPdfFile('/tmp/job.pdf', { printerName: '标签机', paper: { width: 100, height: 75 } }),
+    ).rejects.toThrow(/Windows 不支持 PDF 出纸通路/)
+    expect(vi.mocked(execFile)).not.toHaveBeenCalled()
   })
 })

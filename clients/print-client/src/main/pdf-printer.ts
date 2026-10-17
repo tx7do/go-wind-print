@@ -1,10 +1,11 @@
-// PDF 打印工具：调用系统命令打印 PDF 文件
-// 支持 macOS (lp)、Windows (SumatraPDF)、Linux (lp)
+// PDF 打印工具（未接线的回退通路）：调用系统命令打印 PDF 文件，仅 macOS / Linux 走 `lp`。
+// Windows 侧曾借外部 SumatraPDF 出纸，2026-10-17 随「出纸统一走 Chromium 原生打印」一并移除，
+// 现在 win32 调用会直接抛错——不要为它再加回任何外部依赖。
 //
-// 已实测的坑：出纸方向的判据是「生效介质朝向 vs 页面朝向」，三个系统同源——CUPS 的
-// pdftops（macOS/Linux）与 SumatraPDF 的 autoRotate（Windows）都会给朝向不一致的页面补
-// 90°。所以纸张必须显式声明（`-o media=…`：宿主指定驱动纸型 → 标准纸型 → `Custom.<宽>x<高>`，
-// 单位：点，可带小数）；`A4/Letter` 这类纸型名本身是纵向介质，横向页只声明它挡不住旋转。
+// 已实测的坑：出纸方向的判据是「生效介质朝向 vs 页面朝向」，两个系统同源——CUPS 的 pdftops
+// （macOS/Linux）都会给朝向不一致的页面补 90°。所以纸张必须显式声明（`-o media=…`：宿主指定驱动纸型
+// → 标准纸型 → `Custom.<宽>x<高>`，单位：点，可带小数）；`A4/Letter` 这类纸型名本身是纵向介质，
+// 横向页只声明它挡不住旋转。
 // 抵消手段各系统不同：macOS 的标准纸型名（A4/Letter）本身就是纵向介质，横向页再补
 // `-o orientation-requested=4`，滤镜会把内容转贴到这张纵向介质上（实测横向 A4 正立出在 A4 纸上）；
 // `Custom.` 则两端都按页面真实朝向声明——实测 macOS（CUPS 2.3.4 + cgpdftopdf）该方向请求的实现
@@ -15,8 +16,7 @@
 // 会被静默忽略并回落队列默认纸张，此时只有驱动里已有的纸型名（`paperName`）可用。
 //
 // 各平台分支必须原样透传 options（尤其 paper）：曾按字段逐个转发，paper 被漏掉，
-// media 声明从未真正下发。Windows 无 CUPS 的纸张声明可用，方向靠 SumatraPDF 的
-// print-settings 显式声明（见 buildSumatraSettings）。
+// media 声明从未真正下发。
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { Logger } from './logger.js'
@@ -41,9 +41,9 @@ const MEDIA_TOLERANCE_MM = 2
 export interface PdfPrintOptions {
   printerName?: string
   copies?: number
-  /** 驱动纸型名（如针式打印机的预置纸型）；优先于按尺寸推断 */
+  /** 驱动纸型名（如针式打印机的预置纸型），优先于按尺寸推断 */
   paperName?: string
-  /** 页面尺寸（mm）；用于向 CUPS 声明纸张，避免横向页被旋转成纵向 */
+  /** 页面尺寸（mm）：CUPS 用它声明 `media=` */
   paper?: { width: number; height: number }
   /** 是否双面打印 */
   duplex?: boolean
@@ -111,22 +111,10 @@ export function buildCupsArgs(
   return args
 }
 
-/** 构造 SumatraPDF 打印参数（纯函数，便于单测） */
-export function buildSumatraSettings(options: PdfPrintOptions = {}): string {
-  const { copies = 1, paper } = options
-  const tokens = [`${copies}x`]
-  // SumatraPDF 默认 autoRotate：对「宽>高」的页面无条件加 90°，只有方向判定为横向时才抵消回
-  // 0°；不声明方向时该判定取驱动 DEVMODE 的默认值，宽幅标签页会被转 90° 出纸。
-  // 故按页面自身长宽比显式声明（相等归 portrait——正方页声明 landscape 会被反向旋转 90°）。
-  if (paper && paper.width > 0 && paper.height > 0) {
-    tokens.push(paper.width > paper.height ? 'landscape' : 'portrait')
-  }
-  return tokens.join(',')
-}
-
 /**
- * 打印 PDF 文件
- * 根据操作系统调用相应的系统命令
+ * 打印 PDF 文件（仅 macOS / Linux）。
+ * 本模块是**未接线的回退通路**：只有把 `print-engine.ts` 的 `ACTIVE_PRINT_ROUTE` 改成 `'pdf'`
+ * 才会走到这里；当前通路按模板尺寸向驱动显式声明纸张，见 html-printer.ts。
  */
 export async function printPdfFile(
   pdfPath: string,
@@ -141,7 +129,8 @@ export async function printPdfFile(
     if (platform === 'darwin') {
       await printOnMac(pdfPath, options)
     } else if (platform === 'win32') {
-      await printOnWindows(pdfPath, options)
+      // SumatraPDF 通路已随「出纸统一走 Chromium 原生打印」移除，不再引入任何外部依赖
+      throw new Error('Windows 不支持 PDF 出纸通路，请保持 ACTIVE_PRINT_ROUTE 为 html（默认），或改用驱动/队列首选项定纸型')
     } else if (platform === 'linux') {
       await printOnLinux(pdfPath, options)
     } else {
@@ -160,53 +149,9 @@ async function printOnMac(
   pdfPath: string,
   options: PdfPrintOptions,
 ): Promise<void> {
-  await execFileAsync('lp', buildCupsArgs(pdfPath, options, 'darwin'), { timeout: 30000 })
-}
-
-/** Windows: 使用 SumatraPDF 打印（需要预装） */
-async function printOnWindows(
-  pdfPath: string,
-  options: PdfPrintOptions,
-): Promise<void> {
-  const { printerName } = options
-
-  // SumatraPDF 路径（常见安装位置）
-  const sumatraPaths = [
-    'C:\\Program Files\\SumatraPDF\\SumatraPDF.exe',
-    'C:\\Program Files (x86)\\SumatraPDF\\SumatraPDF.exe',
-    process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\SumatraPDF\\SumatraPDF.exe` : '',
-  ].filter(Boolean)
-
-  let sumatraPath = ''
-  for (const p of sumatraPaths) {
-    try {
-      const { statSync } = await import('node:fs')
-      statSync(p)
-      sumatraPath = p
-      break
-    } catch {
-      // 继续尝试下一个路径
-    }
-  }
-
-  if (!sumatraPath) {
-    throw new Error(
-      '未找到 SumatraPDF，请安装 SumatraPDF 或使用其他 PDF 打印方案。'
-      + '下载地址: https://www.sumatrapdfreader.org/',
-    )
-  }
-
-  const args = ['-print-to']
-  if (printerName) {
-    args.push(printerName)
-  } else {
-    args.push('default')
-  }
-  args.push('-print-settings', buildSumatraSettings(options))
-  args.push('-silent')
-  args.push(pdfPath)
-
-  await execFileAsync(sumatraPath, args, { timeout: 60000 })
+  const args = buildCupsArgs(pdfPath, options, 'darwin')
+  options.logger?.info('lp 出纸参数', { printerName: options.printerName, options: args.slice(0, -1) })
+  await execFileAsync('lp', args, { timeout: 30000 })
 }
 
 /** Linux: 使用 lp 命令打印 */
@@ -214,5 +159,7 @@ async function printOnLinux(
   pdfPath: string,
   options: PdfPrintOptions,
 ): Promise<void> {
-  await execFileAsync('lp', buildCupsArgs(pdfPath, options, 'linux'), { timeout: 30000 })
+  const args = buildCupsArgs(pdfPath, options, 'linux')
+  options.logger?.info('lp 出纸参数', { printerName: options.printerName, options: args.slice(0, -1) })
+  await execFileAsync('lp', args, { timeout: 30000 })
 }

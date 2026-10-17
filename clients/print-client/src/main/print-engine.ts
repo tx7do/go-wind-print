@@ -1,5 +1,6 @@
-// 打印引擎：串行执行「校验目标打印机 →（core 管线渲染 / 直取预渲染 HTML）→ 生成 PDF → 打印 PDF → 记录」。
-// 渲染与出图规格全部来自 core；本文件只做宿主装配、串行控制、落盘与系统打印。
+// 打印引擎：串行执行「校验目标打印机 →（core 管线渲染 / 直取预渲染 HTML）→ 出纸 → 记录」。
+// 出纸统一走 HTML（Chromium 原生打印管线）；PDF 通路（系统命令）保留但不接线，见 ACTIVE_PRINT_ROUTE。
+// 渲染与出图规格全部来自 core；本文件只做宿主装配、串行控制、落盘与路由分发。
 import { randomUUID } from 'node:crypto'
 import { dirname } from 'node:path'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -9,6 +10,7 @@ import {
   micrometersToMillimeters,
   millimetersToMicrometers,
   paperViewportPx,
+  prepareDocument,
   renderPdf,
 } from '@worm-vue3-print/core'
 import { loadExecutorBundle } from '@worm-vue3-print/core/node'
@@ -30,13 +32,30 @@ import {
   type PrintSubmitSpec,
 } from './request-validation.js'
 import { printPdfFile } from './pdf-printer.js'
+import { buildWebPrintOptions, printHtmlDocument } from './html-printer.js'
 import { resolvePdfPath, shouldKeepPdf, type PdfOutputPolicy } from './pdf-output.js'
+
+/**
+ * 出纸路由：
+ * - `html`（当前接线）：最终 HTML 直接进 Chromium 原生打印管线（webContents.print），与浏览器打印
+ *   同源，纸张按 core 算出的 paperMm 显式声明；开启「保留生成的 PDF」时同步产出配对 PDF 供比对。
+ * - `pdf`：core 渲染 → printToPDF → 系统命令出纸，仅 macOS / Linux（Windows 的 SumatraPDF 通路已移除）。
+ */
+export type PrintRoute = 'pdf' | 'html'
+
+/**
+ * 当前接线的出纸路由。PDF 通路的实现（pdf-printer）保留着，要回退只需把这里改成 'pdf'——
+ * 差异仅在分发处，产物与记录口径相同。
+ */
+const ACTIVE_PRINT_ROUTE: PrintRoute = 'html'
 
 /** PDF 生成预算：正常模板在 2s 内完成，超过即视为异常并释放串行锁 */
 const PDF_GENERATION_TIMEOUT_MS = 30_000
 
-interface ProducedPdf {
-  pdf: Uint8Array
+/** 一次任务的渲染产物：HTML 始终有，PDF 仅在出纸路由或验证件策略需要时才有 */
+interface Produced {
+  html: string
+  pdf?: Uint8Array
   paperMm: { width: number; height: number }
   heightSource: 'config' | 'derived'
   pageCount?: number
@@ -92,7 +111,7 @@ export class PrintEngine {
       return this.runJob({
         name: readTemplateName(spec.templateJson, templateName),
         print,
-        produce: () => this.produceFromTemplate(spec, print as PrintOptions),
+        produce: needPdf => this.produceFromTemplate(spec, print as PrintOptions, needPdf),
       })
     })
   }
@@ -104,13 +123,17 @@ export class PrintEngine {
       return this.runJob({
         name: job.templateName || '未命名模板',
         print: job.print,
-        produce: () => this.produceFromHtml(job),
+        produce: needPdf => this.produceFromHtml(job, needPdf),
       })
     })
   }
 
   /** 模板渲染 + 出图：一个 driver 会话内完成测量、分页、连续纸探针与 PDF */
-  private async produceFromTemplate(spec: PrintSubmitSpec, print: PrintOptions): Promise<ProducedPdf> {
+  private async produceFromTemplate(
+    spec: PrintSubmitSpec,
+    print: PrintOptions,
+    needPdf: boolean,
+  ): Promise<Produced> {
     const job: PrintJob = {
       templateJson: spec.templateJson as unknown as PrintTemplateData,
       printData: spec.printData,
@@ -120,8 +143,12 @@ export class PrintEngine {
       paperOverride: toPaperOverride(print.paperSize),
       timeoutMs: PDF_GENERATION_TIMEOUT_MS,
     }
-    const { pdf, prepared } = await renderPdf(job, this.deps.runtime)
+    // HTML 路由且不需要验证件时停在准备阶段，省掉一次 printToPDF
+    const { pdf, prepared } = needPdf
+      ? await renderPdf(job, this.deps.runtime)
+      : { pdf: undefined, prepared: await prepareDocument(job, this.deps.runtime) }
     return {
+      html: prepared.html,
       pdf,
       paperMm: prepared.paperMm,
       heightSource: prepared.heightSource,
@@ -130,16 +157,21 @@ export class PrintEngine {
   }
 
   /** 预渲染 HTML 直提交：不跑管线，只复用 core 的出图规格与超时封装 */
-  private async produceFromHtml(job: HtmlPrintJob): Promise<ProducedPdf> {
+  private async produceFromHtml(job: HtmlPrintJob, needPdf: boolean): Promise<Produced> {
+    const heightSource: Produced['heightSource'] = job.continuous ? 'derived' : 'config'
+    if (!needPdf) {
+      return { html: job.html, paperMm: job.paperMm, heightSource, pageCount: job.pageCount }
+    }
     const spec = buildPdfTargetSpec(job.paperMm)
     const pdf = await this.deps.runtime.withSession(
       { timeoutMs: PDF_GENERATION_TIMEOUT_MS },
       session => session.toPdf(job.html, spec, paperViewportPx(job.paperMm)),
     )
     return {
+      html: job.html,
       pdf,
       paperMm: job.paperMm,
-      heightSource: job.continuous ? 'derived' : 'config',
+      heightSource,
       pageCount: job.pageCount,
     }
   }
@@ -147,12 +179,15 @@ export class PrintEngine {
   private async runJob(input: {
     name: string
     print: PrintOptions | HtmlPrintOptions
-    produce: () => Promise<ProducedPdf>
+    produce: (needPdf: boolean) => Promise<Produced>
   }): Promise<{ jobId: string }> {
     const { printerService, history, logger } = this.deps
     const jobId = randomUUID()
+    const route = ACTIVE_PRINT_ROUTE
     const policy: PdfOutputPolicy = this.deps.pdfOutput?.() ?? { keep: false, dir: '' }
     const keepPdf = shouldKeepPdf(policy)
+    // PDF 路由必须出图；HTML 路由只在需要验证件时出图
+    const needPdf = route === 'pdf' || keepPdf
     let pdfPath = ''
     let paperMicrometers = { width: 0, height: 0 }
 
@@ -161,42 +196,53 @@ export class PrintEngine {
     const settings = buildPrintJobSettings(printOptions)
 
     try {
-      logger.info('开始打印', { jobId, template: input.name, printer: target.name })
-      const produced = await input.produce()
+      logger.info('开始打印', { jobId, template: input.name, printer: target.name, route })
+      const produced = await input.produce(needPdf)
       paperMicrometers = {
         width: millimetersToMicrometers(produced.paperMm.width),
         height: millimetersToMicrometers(produced.paperMm.height),
       }
-      pdfPath = this.savePdf(jobId, Buffer.from(produced.pdf), policy)
-      logger.info('PDF 生成完成', {
+      if (produced.pdf) pdfPath = this.savePdf(jobId, Buffer.from(produced.pdf), policy)
+      logger.info('渲染完成', {
         jobId,
+        route,
         pdfPath,
-        size: produced.pdf.length,
+        size: produced.pdf?.length,
         keep: keepPdf,
         paper: produced.paperMm,
         heightSource: produced.heightSource,
         pages: produced.pageCount,
       })
 
-      // 出纸：显式声明纸张，避免驱动按队列默认纸张把横向页旋转成纵向
-      await printPdfFile(pdfPath, {
-        printerName: target.name,
-        copies: settings.copies,
-        paperName: settings.paperName,
-        paper: produced.paperMm,
-        logger,
-      })
+      if (route === 'html') {
+        await printHtmlDocument(
+          produced.html,
+          buildWebPrintOptions(printOptions, produced.paperMm),
+          logger,
+        )
+      } else {
+        // 出纸：显式声明纸张，避免驱动按队列默认纸张把横向页旋转成纵向
+        if (!produced.pdf) throw new ProtocolFailure('PRINT_FAILED', 'PDF 路由未产出 PDF')
+        await printPdfFile(pdfPath, {
+          printerName: target.name,
+          copies: settings.copies,
+          paperName: settings.paperName,
+          paper: produced.paperMm,
+          logger,
+        })
+      }
 
       const record: JobRecord = {
         jobId,
         ts: new Date().toISOString(),
         templateName: input.name,
         printerName: target.name,
+        printRoute: route,
         copies: settings.copies,
         paperMicrometers,
         paperHeightSource: produced.heightSource,
         outcome: 'success',
-        ...(keepPdf ? { pdfPath } : {}),
+        ...(keepPdf && pdfPath ? { pdfPath } : {}),
       }
       history.append(record)
       this.emitSettled(record)
@@ -210,6 +256,7 @@ export class PrintEngine {
         ts: new Date().toISOString(),
         templateName: input.name,
         printerName: target?.name ?? printOptions.printerName ?? '',
+        printRoute: route,
         copies: settings.copies,
         paperMicrometers,
         paperHeightSource: 'config',

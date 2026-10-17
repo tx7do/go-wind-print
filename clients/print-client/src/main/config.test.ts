@@ -58,6 +58,12 @@ describe('parseConfig', () => {
     expect(bad.keepGeneratedPdf).toBe(false)
     expect(bad.pdfOutputDir).toBe('')
   })
+
+  it('出纸方式不再是配置项：旧文件里的 printRoute 被忽略且不落回', () => {
+    const parsed = parseConfig({ printRoute: 'html', logLevel: 'info' })
+    expect('printRoute' in parsed).toBe(false)
+    expect(parsed.logLevel).toBe('info')
+  })
 })
 
 describe('generatePairingToken', () => {

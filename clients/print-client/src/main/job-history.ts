@@ -1,6 +1,7 @@
 // 任务记录：userData/jobs.jsonl，每行一条 JSON，环形保留最新 limit 条。
 import { appendFileSync, existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
+import type { PrintRoute } from './print-engine.js'
 
 export type JobOutcome = 'success' | 'failed'
 
@@ -9,6 +10,8 @@ export interface JobRecord {
   ts: string
   templateName: string
   printerName: string
+  /** 本次出纸走的路由；旧记录无此字段，按 'pdf' 理解 */
+  printRoute?: PrintRoute
   copies: number
   paperMicrometers: { width: number; height: number }
   /** 纸高来源：config=任务显式指定，derived=按渲染内容高度推导 */

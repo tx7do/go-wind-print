@@ -1,17 +1,27 @@
-// 打印引擎落盘行为：开启「保留生成的 PDF」时不删除，并写入任务记录
+// 打印引擎落盘行为与出纸分发：出纸固定走 Chromium 原生打印（HTML），PDF 通路的系统命令不被接线；
+// 「保留生成的 PDF」开启时才产出配对验证件。
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { JobRecord } from './job-history.js'
+import { buildWebPrintOptions } from './html-printer.js'
 
-// 出纸命令替换为桩，避免单测真的调用 lp
+// 系统命令出纸已被引擎断开，桩掉它是为了让「误接线」在单测里当场变红而不是打出真纸
 vi.mock('./pdf-printer.js', () => ({
   printPdfFile: vi.fn(async () => undefined),
 }))
 
+// 只桩掉真正开窗口打印那一步，参数构造仍走真实实现
+vi.mock('./html-printer.js', async importOriginal => {
+  const actual = await importOriginal<typeof import('./html-printer.js')>()
+  return { ...actual, printHtmlDocument: vi.fn(async () => undefined) }
+})
+
 const { PrintEngine } = await import('./print-engine.js')
 const { JobHistoryStore } = await import('./job-history.js')
+const { printPdfFile } = await import('./pdf-printer.js')
+const { printHtmlDocument } = await import('./html-printer.js')
 
 let workDir: string
 
@@ -20,6 +30,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   rmSync(workDir, { recursive: true, force: true })
+  vi.clearAllMocks()
 })
 
 function createEngine(policy: { keep: boolean; dir: string }) {
@@ -59,7 +70,7 @@ describe('PrintEngine 生成 PDF 的落盘策略', () => {
     const { jobId } = await engine.submitHtml(payload)
 
     expect(records).toHaveLength(1)
-    expect(records[0].pdfPath).toBeUndefined()
+    expect(records[0]?.pdfPath).toBeUndefined()
     // 临时目录中不应残留本次任务的 PDF
     const tmpPath = join(tmpdir(), 'worm-print-client-pdf', `${jobId}.pdf`)
     expect(existsSync(tmpPath)).toBe(false)
@@ -73,7 +84,54 @@ describe('PrintEngine 生成 PDF 的落盘策略', () => {
     const kept = join(dir, `${jobId}.pdf`)
     expect(existsSync(kept)).toBe(true)
     expect(readFileSync(kept).toString()).toContain('%PDF')
-    expect(records[0].pdfPath).toBe(kept)
-    expect(history.list()[0].pdfPath).toBe(kept)
+    expect(records[0]?.pdfPath).toBe(kept)
+    expect(history.list()[0]?.pdfPath).toBe(kept)
+  })
+})
+
+describe('PrintEngine 出纸分发', () => {
+  it('出纸只走 Chromium 原生打印，并按 paperMm 声明微米纸张；系统命令不被调用', async () => {
+    const dir = join(workDir, 'pdf')
+    const { engine, records } = createEngine({ keep: false, dir })
+    const { jobId } = await engine.submitHtml(payload)
+
+    expect(printHtmlDocument).toHaveBeenCalledTimes(1)
+    const [html, options] = (printHtmlDocument as ReturnType<typeof vi.fn>).mock.calls[0]!
+    expect(html).toContain('<body>test</body>')
+    expect(options).toEqual(buildWebPrintOptions(payload.print, payload.paperMm))
+    expect(printPdfFile).not.toHaveBeenCalled()
+    expect(existsSync(join(dir, `${jobId}.pdf`))).toBe(false)
+    expect(records[0]?.pdfPath).toBeUndefined()
+    expect(records[0]?.printRoute).toBe('html')
+  })
+
+  it('未开启保留时不出图：渲染只到准备阶段，记录仍带纸张与页数', async () => {
+    const { engine, records } = createEngine({ keep: false, dir: join(workDir, 'pdf') })
+    await engine.submitHtml(payload)
+
+    expect(records[0]?.paperMicrometers).toEqual({ width: 210000, height: 297000 })
+    expect(records[0]?.outcome).toBe('success')
+  })
+
+  it('开启保留时产出配对验证件：出纸走 HTML，PDF 仅落盘供比对', async () => {
+    const dir = join(workDir, 'pdf')
+    const { engine, records } = createEngine({ keep: true, dir })
+    const { jobId } = await engine.submitHtml(payload)
+
+    const kept = join(dir, `${jobId}.pdf`)
+    expect(readFileSync(kept).toString()).toContain('%PDF')
+    expect(printHtmlDocument).toHaveBeenCalledTimes(1)
+    expect(printPdfFile).not.toHaveBeenCalled()
+    expect(records[0]?.pdfPath).toBe(kept)
+  })
+
+  it('出纸失败：记录失败原因与路由', async () => {
+    ;(printHtmlDocument as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('驱动无响应'))
+    const { engine, records } = createEngine({ keep: false, dir: join(workDir, 'pdf') })
+    await expect(engine.submitHtml(payload)).rejects.toThrow('驱动无响应')
+
+    expect(records[0]?.outcome).toBe('failed')
+    expect(records[0]?.errorMessage).toContain('驱动无响应')
+    expect(records[0]?.printRoute).toBe('html')
   })
 })

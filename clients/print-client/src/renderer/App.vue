@@ -146,7 +146,7 @@ function fmtTime(iso: string): string {
       <div class="row">
         <label>保留生成的 PDF</label>
         <input type="checkbox" v-model="config.keepGeneratedPdf" />
-        <span class="muted">排查用：保留每次打印生成的 PDF（关闭时打印完即删）</span>
+        <span class="muted">排查用：保留每次打印生成的 PDF 作为与出纸件比对的参考件（关闭时打印完即删）</span>
       </div>
       <template v-if="config.keepGeneratedPdf">
         <div class="row row-stack">

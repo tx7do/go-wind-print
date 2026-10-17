@@ -16,23 +16,37 @@ PrintEngine（串行锁，并发直接 BUSY）
    │     ▼ 装配 core 运行时 + Electron driver
    │   隐藏窗口承载模板 HTML（沙箱 WebPreferences，注入 core DOM 执行器）
    │     两遍渲染：测量 pass → 分页（连续纸探针推导高度）→ 最终 HTML
-   └─ 打印窗口 printToPDF（纸张微米→英寸、保留背景/零边距）→ 系统命令打印 PDF → 任务记录/日志
+   └─ 出纸（固定走 Chromium 原生打印）
+         最终 HTML → webContents.print（纸张按 core 的 paperMm 以微米声明、边距 none）
+      → 任务记录/日志
 ```
 
-> 出纸统一走「HTML → PDF → 系统打印命令」：PDF 由 Chromium 打印管线生成，与服务端 Playwright 产物同源，
-> 纸张尺寸与背景（含水印）表现一致；`webContents.print()` 依赖打印驱动的纸张/可打印区域，已不再使用。
-> 出纸时显式向打印系统声明纸张（`lp -o media=…`：宿主指定驱动纸型 > 标准纸型匹配 > `Custom.<宽>x<高>`），
-> 避免驱动按队列默认纸张处理、把横向页旋转成纵向。**判据三系统同源：生效介质朝向 ≠ 页面朝向即被补 90°**。
+> **出纸走「最终 HTML → Chromium 原生打印管线」**（`webContents.print({ silent: true })`），与浏览器 `window.print()`
+> 同源：版面几何来自 HTML 的 `@page`，纸张按 core 算出的 `paperMm` 以**微米**显式声明（`pageSize`），边距恒为 `none`，
+> 出纸前把 `deviceName/pageSize/copies/landscape` 落日志（`Chromium 原生打印参数`）。
+> 三端都不再依赖外部命令：Windows 不需要 SumatraPDF，macOS / Linux 也不调 `lp`。
+> 边界：声明自定义纸张后，校验由**驱动**做——实测 Adobe PDF 接受 60×40（回执保留 256 自定义），
+> `Microsoft Print to PDF` 回滚 A4，标签机 Peweglow SU7 把自定义夹回自己的表单 273（80×60）。
+> 驱动不接受时以驱动行为为准，要精确纸型请在驱动/队列首选项里定好纸型。
+> `paperName`（驱动内纸型名）与 `margins` 覆盖项在当前出纸通路上**不被消费**（纸型只按尺寸声明，边距由 HTML 自控）。
+> 任务记录里的 `printRoute` 是这一路的留痕（旧记录没有该字段，按 `pdf` 理解）。
+
+> **PDF 通路保留但不接线**：`pdf-printer.ts`（`printToPDF` → 系统命令）与 Windows 侧的后端探测、一键安装都在，
+> 把 `print-engine.ts` 的 `ACTIVE_PRINT_ROUTE` 改成 `'pdf'` 即切回（产物、串行锁、记录口径都不变）。
+> 那条通路上的纸张/方向口径见下一节，真机若发现 Chromium 把纸型夹回，可用它做对照。
+
+> **PDF 通路（未接线，仅 macOS / Linux）的口径**：PDF 由 Chromium 打印管线生成，与服务端 Playwright 产物同源，纸张尺寸与背景
+> （含水印）表现一致；出纸时显式向打印系统声明纸张（`lp -o media=…`：宿主指定驱动纸型 > 标准纸型匹配 >
+> `Custom.<宽>x<高>`），避免驱动按队列默认纸张处理、把横向页旋转成纵向。**判据两端同源：生效介质朝向 ≠ 页面朝向即被补 90°**。
 > 标准纸型名（`A4`/`Letter`）本身是纵向介质，所以 macOS 上横向页还要补 `-o orientation-requested=4`。
 > 该请求的实现是「按声明介质的朝向，把内容转过去贴它」——实测横向 A4 落盘介质仍是 595×842 的纵向纸、
 > 内容带 90° 矩阵，即在一张纵向纸上正立出横向（纵向页/正方页不发，发了反被翻歪）。
-> `Custom.` 则**三端一律按页面真实朝向（宽×高）声明，且不再补方向请求**：实测 macOS（CUPS 2.3.4 +
+> `Custom.` 则**两端一律按页面真实朝向（宽×高）声明，且不再补方向请求**：实测 macOS（CUPS 2.3.4 +
 > `cgpdftopdf`）把 100×75 标签按纵向序（212.6×283.46）声明再补方向，落盘介质就真成了 212×283pt 的
 > 纵向页、内容被补 90°，等于要求标签机换成一张并不存在的纵向纸。Linux 同样不发方向请求——
 > cups-filters 用「写 `/Rotate 270` + 交换 MediaBox」实现它，会把标签打歪，因此横向页也不再报纵向纸型名，
 > 按页面真实朝向声明 `Custom.<宽>x<高>`。
-> Windows 侧无 CUPS 的纸张声明可用，改为按页面长宽比显式声明方向（`-print-settings "<份数>x,landscape|portrait"`），
-> 抑制 SumatraPDF 的 `autoRotate` 把「宽>高」页面转 90° 出纸。
+> Windows 曾在这条通路上借外部 SumatraPDF 出纸，2026-10-17 随依赖一并移除，`printPdfFile` 在 win32 直接报错。
 
 ## 目录结构
 
@@ -208,12 +222,22 @@ npm run pack:client:dir
 
 其中 `config.json`（配置）、`jobs.jsonl`（最近 500 条任务）、`logs/client.log`（分级日志）。
 
+### 出纸通路
+
+出纸固定走**最终 HTML → Chromium 原生打印**（`webContents.print({ silent: true })`），与浏览器打印同源：纸张按 core
+算出的 `paperMm` 以**微米**显式声明，边距恒 `none`，日志行 `Chromium 原生打印参数` 记录实际下发的
+`deviceName/pageSize/copies/landscape`。三端都不依赖外部命令，界面上也**没有出纸方式开关**。
+
+需要回到「HTML → `printToPDF` → 系统命令」那条通路时（仅 macOS / Linux），把 `src/main/print-engine.ts` 的
+`ACTIVE_PRINT_ROUTE` 改为 `'pdf'` 并重新构建——分发处只有一个常量，产物、串行锁与任务记录口径都不变。
+Windows 的外部 SumatraPDF 通路已随依赖移除，`printPdfFile` 在 win32 直接报错，不再提供任何命令行出纸方案。
+
 ### 排查用：保留生成的 PDF
 
-出纸链路是「HTML → printToPDF → 系统命令打印 PDF」。默认生成的 PDF 落在系统临时目录、
-打印完成（或失败）后即删除；需要在「PDF 生成」与「打印机/驱动」之间定位问题时，可在配置窗口
-勾选**保留生成的 PDF**（`config.json` 的 `keepGeneratedPdf`），并可指定保存目录
-（`pdfOutputDir`，留空为 `userData/pdf`）。
+默认不落盘任何 PDF（渲染停在准备阶段）；需要在「渲染产物」与「打印机/驱动」之间定位问题时，在配置窗口勾选
+**保留生成的 PDF**（`config.json` 的 `keepGeneratedPdf`），可指定保存目录（`pdfOutputDir`，留空为 `userData/pdf`）。
+勾选后每次打印额外产出同一份 `printToPDF` 结果作为与出纸件逐页比对的**参考件**——注意 HTML 通路出纸与 `printToPDF`
+是同一份 HTML 的两条绘制路径，参考件正确不代表纸上必正确。
 
 - 保留后每份 PDF 以 `jobId` 命名，任务记录（配置窗口「任务记录」页）会显示其绝对路径；
   配置项旁提供「打开目录」按钮。
@@ -224,18 +248,24 @@ npm run pack:client:dir
 ## 平台注意
 
 - macOS：未签名应用首次需右键 → 打开；命令行启动可能出现「Unable to set login item」提示，为系统自启权限限制，不影响打印。
-- Linux：依赖 CUPS（出纸走 `lp`）与 Electron 所需系统库。deb/rpm 已声明这些依赖，用包管理器安装即自动带入；AppImage 免安装但需 `libfuse2`（只提供 fuse3 的发行版用 `--appimage-extract-and-run`）。缺库时按启动报错补装。
-- 针式打印机：优先使用驱动预置纸型 `paperName`（macOS / Linux 通路；Windows 侧不消费该参数）。
+- Windows：**出纸没有任何外部依赖**（走 Chromium 原生打印）。曾用于命令行出纸的外部 SumatraPDF 已连同探测、告警与一键安装整体移除（不再有 `print-backend.ts` / `sumatra-installer.ts`，`ACTIVE_PRINT_ROUTE='pdf'` 在 win32 会直接报错），设置页也不再显示出纸后端状态。
+  - 纸型由驱动校验：HTML 通路会按模板尺寸显式声明自定义纸张，驱动不接受时以驱动的处置为准——实测 `Microsoft Print to PDF` 回滚 A4、标签机 Peweglow SU7 夹回自己的表单 273（80×60）。要精确纸型请在驱动/队列首选项里定好；`paperName` 在当前通路不被消费。
+  - 虚拟打印机（`Microsoft Print to PDF`、「导出为 WPS PDF」这类落 PDF 文件的队列）要人工给输出文件名，静默链路下行为不确定：同一台 `Microsoft Print to PDF`，本机会出现一次成功落盘、一次非零码退出回 `PRINT_FAILED`。真机验证请用物理打印机；只想拿尺寸正确的成品，用「保留生成的 PDF」那份参考件更可靠。
+- Linux：依赖 CUPS 与 Electron 所需系统库（出纸由 Chromium 经 CUPS 完成，不再直接调 `lp`）。deb/rpm 已声明这些依赖，用包管理器安装即自动带入；AppImage 免安装但需 `libfuse2`（只提供 fuse3 的发行版用 `--appimage-extract-and-run`）。缺库时按启动报错补装。
+- 针式打印机：驱动预置纸型 `paperName` 在当前出纸通路**不被消费**（HTML 通路只按尺寸声明纸张）。要按驱动里的纸型出纸，请在驱动/队列首选项里把默认纸型设为目标纸型；`-o media=<名称>` 那条通路只在 macOS / Linux 保留。
 - 字体：模板使用的字体需在客户机已安装，否则回退字体可能改变测量高度。
 
 ## 真机验证清单
 
-自动化测试覆盖协议/编解码/校验/串行锁/连续纸分页与 CSS/纸高组合函数/安全纯函数/WS 回环；以下需现场确认：
+自动化测试覆盖协议/编解码/校验/串行锁/连续纸分页与 CSS/纸高组合函数/安全纯函数/WS 回环/CUPS 与 Chromium 出纸参数构造；以下需现场确认：
 
 - [x] macOS：启动、托盘、回环 hello、打印机枚举（本机已验证，`HP_OfficeJet_Pro_8020_series`）。
 - [ ] macOS：A4 测试页出纸（含 `{printDate}` 替换）、指定打印机/份数、任务记录与日志实时刷新。
 - [ ] macOS：安全开关开/关两路径（无 token 拒绝、带 token 成功、白名单）。
-- [ ] Windows 10/11：绿色目录启动、默认打印机、中文打印机名、针式 `paperName`。
+- [ ] **三端 HTML 出纸真机复测**：自定义纸型（标签 60×40 / 100×75）与横向页方向是否落对；这条通路的纸型由 Chromium 声明、驱动校验，不再经过 `lp` 的 `media=` / `orientation-requested` 口径，需要按队列逐个确认（尤其 macOS CUPS 与 Linux CUPS 各一次）。
+- [ ] Windows 10/11：绿色目录启动、默认打印机、中文打印机名；针式纸型走驱动首选项（`paperName` 在当前通路不被消费）。
+- [ ] Windows：HTML 出纸与浏览器 `window.print()` 逐页比对纸型；驱动夹回/回滚时（`Microsoft Print to PDF` 回 A4、Peweglow SU7 夹回 273）改用驱动首选项定纸型——Windows 已无命令行出纸通路可做对照。
+- [ ] 回退 PDF 通路时：确认 Windows 侧仍不发任何纸张参数（`-print-settings` 只有份数 + 方向），纸型取打印机默认表单。
 - [ ] Linux（Ubuntu 桌面）：deb 安装后启动、托盘、CUPS 打印；rpm 与 AppImage 各至少一次启动验证（含缺库报错口径）。
 - [ ] 连续纸 58/80mm：探针推导高度出纸，检查末尾留白/走纸公差；不满足时显式 `paperSize.height` 覆盖。
 - [ ] 脱机/缺纸：返回 `PRINTER_OFFLINE`/`PRINT_FAILED`，记录可查、锁释放可再次打印。
