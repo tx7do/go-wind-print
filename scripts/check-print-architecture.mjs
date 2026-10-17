@@ -8,6 +8,7 @@ const ALLOW = [
   /client\/src\/main\/driver-electron\.ts$/,
   /render\/src\/driver-playwright\.ts$/,
   /client\/src\/main\/pdf-printer\.ts$/, // 出纸命令：唯一消费者，属平台适配
+  /client\/src\/main\/html-printer\.ts$/, // Chromium 原生打印参数：唯一消费者，属平台适配
   /\.test\.ts$/,
 ]
 const FORBIDDEN = [
