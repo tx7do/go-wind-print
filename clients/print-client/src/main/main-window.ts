@@ -12,6 +12,7 @@ import type { JobHistoryStore, JobRecord } from './job-history.js'
 import type { PrinterService } from './printer-service.js'
 import type { PrintEngine } from './print-engine.js'
 import { TEST_TEMPLATE } from './test-template.js'
+import { brandIcon } from './app-icon.js'
 
 export interface MainWindowDeps {
   configStore: ConfigStore
@@ -129,6 +130,7 @@ export class MainWindowManager {
       minWidth: 720,
       minHeight: 520,
       title: 'worm-vue3-print 打印客户端设置',
+      icon: brandIcon(256),
       webPreferences: {
         preload: join(__dirname, '../preload/index.cjs'),
         contextIsolation: true,

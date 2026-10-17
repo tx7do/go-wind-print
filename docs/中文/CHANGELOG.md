@@ -2,6 +2,23 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## 未发布
+
+### 新增
+
+- 桌面客户端出纸通路：**HTML 直打**。core 产出的最终 HTML 直接交给 `webContents.print({ silent: true })`，与浏览器 `window.print()` 同源：纸张按渲染管线算出的 `paperMm` 以**微米**显式声明，边距恒 `none`，出纸前把 `deviceName/pageSize/copies/landscape` 落日志（`Chromium 原生打印参数`）。三端都不再依赖外部命令。勾选「保留生成的 PDF」时才额外产出同一份 `printToPDF` 结果作为比对**参考件**（不勾选则渲染停在准备阶段，省一次出图）；任务记录新增 `printRoute` 留痕，旧记录按 `pdf` 理解。
+- 桌面客户端窗口与托盘图标改用与安装包同源的 `build/icon.png`（该图随之进 asar，安装包约 +1 MB），任务栏、Alt-Tab 与快捷方式图形一致；macOS 托盘仍用单色模板图以适配菜单栏深浅色。
+
+### 变更（破坏性）
+
+- 桌面客户端**取消「出纸方式」配置项**：`config.json` 不再接受 `printRoute`（旧文件里的该键被忽略），出纸固定走 HTML；需要回退到「HTML → `printToPDF` → 系统命令」时改 `print-engine.ts` 的 `ACTIVE_PRINT_ROUTE` 并重新构建，且只对 macOS / Linux 有效。
+- 桌面客户端在 **Windows / Linux 不再显示 File/Edit/View/Window 应用菜单**（`Menu.setApplicationMenu(null)`，文本框的 Ctrl+C/V 由 Chromium 自身处理）；macOS 保留默认菜单。
+
+### 移除（破坏性）
+
+- 桌面客户端 Windows 侧的 **SumatraPDF 出纸通路整体移除**：`print-backend.ts`（三处安装位置探测）、`sumatra-installer.ts`（官方便携版下载 + sha256 校验 + 一键安装）、设置页的出纸后端状态条与 `worm:settings:install-print-backend` IPC 均不再存在，`printPdfFile` 在 win32 直接报错。此前该通路的口径（只发份数与方向、不发任何纸张参数）随代码删除，Windows 不再需要安装外部工具。
+- 随之失效的参数口径：`paperName`（驱动纸型名）与 `margins` 在当前出纸通路**不被消费**（协议保留以兼容）。要按驱动纸型出纸请设驱动/队列首选项；`-o media=<名称>` 那条通路只在 macOS / Linux 保留。
+
 ## V1.3.6(2026-10-16)
 
 ### 新增

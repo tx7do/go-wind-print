@@ -1,5 +1,5 @@
 // 应用入口：单实例 → 加载配置/日志 → 渲染池 → 打印引擎 → 回环 WS 服务 → 托盘驻留。
-import { app } from 'electron'
+import { app, Menu } from 'electron'
 import { join } from 'node:path'
 import { APP_ID } from '@worm-vue3-print/core/client'
 import { ConfigStore, generatePairingToken } from './config.js'
@@ -32,6 +32,10 @@ if (!gotLock) {
   app
     .whenReady()
     .then(async () => {
+      // 驻留托盘的应用不需要 File/Edit/View/Window 菜单栏；macOS 保留默认菜单——
+      // 应用菜单是 mac 的退出/隐藏与标准快捷键入口，去掉后不合平台惯例。
+      if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
+
       const userData = app.getPath('userData')
       const configStore = new ConfigStore(join(userData, 'config.json'))
       configStore.load()

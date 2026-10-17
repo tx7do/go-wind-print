@@ -96,7 +96,9 @@ npm run pack:client:release  # 额外生成 SHA256SUMS.txt 并打印发行版附
 | `SHA256SUMS.txt` | 上述安装包的校验和清单，与安装包一起上传 |
 | `*-mac-*.zip`、`*.blockmap` | electron-updater 差量更新用；本客户端未接自动更新，**不要挂进发行版** |
 
-图标：`build/icon.png`（1024 圆角 RGBA）是唯一入库的源图，electron-builder 会就地派生 macOS 的 `icon.icns` 与 Windows 的 `.ico`，仓库不保存派生产物。
+图标：`build/icon.png`（1024 圆角 RGBA）是唯一入库的源图，electron-builder 会就地派生 macOS 的 `icon.icns` 与 Windows 的 `.ico`，仓库不保存派生产物。同一张图也供运行时使用（`src/main/app-icon.ts` 从 `out/main → ../../build` 解析，实测 `nativeImage` 能直接读 asar 内的该文件）：设置窗口与 Windows / Linux 的托盘都用它，保证任务栏、快捷方式与安装包图形一致；macOS 托盘仍用 `tray-icon.ts` 现绘的 16px 单色模板图，好让菜单栏随深色/浅色自动反相。因此该图已进 `files`（asar 增加约 1 MB）。
+
+> **应用菜单栏**：Windows / Linux 启动时 `Menu.setApplicationMenu(null)`，不显示 File/Edit/View/Window（本应用是托盘驻留型，菜单项无实际用途；文本框的 Ctrl+C/V 由 Chromium 自身处理，不依赖菜单）；macOS 保留默认菜单（应用菜单承载退出与标准快捷键，去掉不合平台惯例）。
 
 > **代码签名**：本机无 Developer ID / Windows 签名证书，产物**未经 Developer ID 签名、未经公证**。Electron 官方预编译二进制自带的 ad-hoc（linker-signed）签名保留在主程序、Helper 与 `Electron Framework` 上，因此 arm64 包满足 Apple Silicon「至少 ad-hoc」的执行前提；缺的是 bundle 级资源封印（`codesign --verify --deep --strict` 会报 `code has no resources but signature indicates they must be present`），后果只体现在 Gatekeeper 拦截提示上。分发时用户首次打开需要绕过：
 >
