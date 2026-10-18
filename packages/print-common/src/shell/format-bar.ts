@@ -119,7 +119,7 @@ export function renderFormatBar(ctx: FormatCtx) {
   ]
 
   return h('div', { class: 'format-toolbar' }, [
-    h('div', { class: 'ft-group' }, [
+    h('div', { class: 'tb-ou ft-group', dataset: { unit: 'painter' } }, [
       h('button', {
         type: 'button',
         class: `ft-btn${f.painterActive ? ' on' : ''}`,
@@ -135,7 +135,7 @@ export function renderFormatBar(ctx: FormatCtx) {
         html: iconSvg('Paintbrush'),
       }),
     ]),
-    h('div', { class: 'ft-group' }, [
+    h('div', { class: 'tb-ou ft-group', dataset: { unit: 'font' } }, [
       h('div', { class: 'ft-font' }, [renderFontSelect({
         id: 'ft-font',
         state: ctx.state,
@@ -156,7 +156,7 @@ export function renderFormatBar(ctx: FormatCtx) {
         }),
       ]),
     ]),
-    h('div', { class: 'ft-group' }, [
+    h('div', { class: 'tb-ou ft-group', dataset: { unit: 'style' } }, [
       ...([
         ['bold', 'Bold', '加粗', () => f.toggleBold()],
         ['underline', 'Underline', '下划线', () => f.toggleUnderline()],
@@ -170,7 +170,7 @@ export function renderFormatBar(ctx: FormatCtx) {
         html: iconSvg(icon),
       })),
     ]),
-    h('div', { class: 'ft-group' }, [
+    h('div', { class: 'tb-ou ft-group', dataset: { unit: 'color' } }, [
       h('span', {
         class: `ft-color-btn${fontDisabled ? ' dim' : ''}`,
         title: `字体颜色${fontDisabled ? '（需选中或混选文本元素）' : ''}`,
@@ -180,7 +180,7 @@ export function renderFormatBar(ctx: FormatCtx) {
         h('span', { class: 'ft-glyph', html: iconSvg('PaintBucket', 14) }),
       ]),
     ]),
-    h('div', { class: 'ft-group' }, [
+    h('div', { class: 'tb-ou ft-group', dataset: { unit: 'align' } }, [
       dropdown(ctx, 'align', {
         icon: ALIGN_ICON[String(values.textAlign)] ?? 'TextAlignStart',
         text: '对齐',
@@ -190,7 +190,7 @@ export function renderFormatBar(ctx: FormatCtx) {
         testId: 'align-dd',
       }, alignPanel),
     ]),
-    h('div', { class: 'ft-group' }, [
+    h('div', { class: 'tb-ou ft-group', dataset: { unit: 'border' } }, [
       dropdown(ctx, 'border', {
         icon: 'Grid3x3',
         text: '边框',

@@ -19,6 +19,7 @@ export * from '../render/element-border.js'
 // ─── 通用工具 ───
 export * from './utils/units.js'
 export * from './utils/scale.js'
+export * from './utils/toolbar-overflow.js'
 export * from './utils/migrate.js'
 export * from './utils/default-config.js'
 export * from './utils/table-matrix.js'

@@ -3,6 +3,7 @@
 //  .tb-spacer / .tb-menu / .tb-menu-label / .tb-menu-grid / .tb-menu-row / .btn-primary|secondary）。
 import { h } from '../core/h'
 import { dropdown, tbIconBtn } from './controls'
+import { renderMoreGroup } from './toolbar-overflow'
 import type { ShellCtx } from './controls'
 
 export function renderToolbar(ctx: ShellCtx, formatSection: unknown) {
@@ -62,7 +63,7 @@ export function renderToolbar(ctx: ShellCtx, formatSection: unknown) {
   }
 
   return h('div', { class: 'designer-toolbar' }, [
-    h('div', { class: 'tb-group' }, [
+    h('div', { class: 'tb-group tb-brand' }, [
       h('span', {
         class: 'tb-mark',
         'aria-hidden': 'true',
@@ -78,17 +79,17 @@ export function renderToolbar(ctx: ShellCtx, formatSection: unknown) {
       tbIconBtn(ctx, 'Redo2', 'redo', { tip: '重做', disabled: !s.canRedo }),
     ]),
     formatSection,
-    h('div', { class: 'tb-group' }, [
+    h('div', { class: 'tb-ou tb-group', dataset: { unit: 'arrange-view' } }, [
       dropdown(ctx, 'arrange', { icon: 'Layers', text: '排列', tip: '排列', testId: 'arrange-dd' }, arrangePanel),
       dropdown(ctx, 'view', { icon: 'Eye', text: '视图', tip: '视图', testId: 'view-dd' }, viewPanel),
     ]),
-    h('div', { class: 'tb-group' }, [
+    h('div', { class: 'tb-ou tb-group', dataset: { unit: 'zoom' } }, [
       tbIconBtn(ctx, 'Maximize', 'fit-window', { tip: '适应窗口' }),
       tbIconBtn(ctx, 'ZoomOut', 'zoom', { arg: -10, tip: '缩小' }),
       h('span', { class: 'tb-zoom', text: `${s.scale}%` }),
       tbIconBtn(ctx, 'ZoomIn', 'zoom', { arg: 10, tip: '放大' }),
     ]),
-    h('div', { class: 'tb-group' }, [
+    h('div', { class: 'tb-ou tb-group', dataset: { unit: 'clipboard' } }, [
       tbIconBtn(ctx, 'Copy', 'copy', {
         tip: clipboardDisabled ? '复制 (Ctrl+C)，需选中元素' : '复制 (Ctrl+C)',
         disabled: clipboardDisabled, test: 'copy',
@@ -103,6 +104,7 @@ export function renderToolbar(ctx: ShellCtx, formatSection: unknown) {
         disabled: clipboardDisabled, danger: true, test: 'delete',
       }),
     ]),
+    renderMoreGroup(ctx),
     h('div', { class: 'tb-spacer' }),
     ctx.showHelp ? h('div', { class: 'tb-group' }, [
       h('button', {

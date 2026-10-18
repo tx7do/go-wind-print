@@ -15,6 +15,11 @@ export interface ShellState {
   propCollapsed: boolean
   /** 打开的下拉面板 id（同一时刻只允许一个） */
   openDd: string | null
+  /**
+   * 「更多」收纳面板的开关。与 openDd 分持：面板内还嵌着对齐/边框等下拉，
+   * 共用一个开关键会让内层下拉一打开就把外层「更多」顶掉（canvas 是每个实例独立 open）。
+   */
+  openMore?: boolean
   /** 字段搜索关键字（仅影响左栏字段树） */
   fieldSearch?: string
   /** 折叠的字段分组 key */

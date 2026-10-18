@@ -1,7 +1,7 @@
 <template>
-  <div class="designer-toolbar">
+  <div ref="rootRef" class="designer-toolbar" :class="{ 'is-tight': overflow.overflowRemains.value }">
     <!-- 文件 -->
-    <div class="tb-group">
+    <div class="tb-group tb-brand">
       <span class="tb-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="5" y="3" width="14" height="18" rx="2.5" />
@@ -23,7 +23,8 @@
     <!-- 格式化区段（默认 slot 注入 FormatToolbar：字体/样式/对齐/边框） -->
     <slot />
     <!-- 排列下拉：对齐分布/层级/组合常驻，无对应选中时置灰 -->
-    <div class="tb-group">
+    <Teleport :to="overflow.slotEl('arrange-view')" :disabled="!overflow.moved('arrange-view')">
+      <div v-overflow-unit="{ id: 'arrange-view', order: 4, label: '排列 / 视图' }" class="tb-ou tb-group">
       <ToolbarDropdown test-id="arrange-dd" tip="排列">
         <template #trigger>
           <Layers :size="15" />
@@ -76,20 +77,27 @@
           </button>
         </div>
       </ToolbarDropdown>
-    </div>
+      </div>
+    </Teleport>
     <!-- 缩放 -->
-    <div class="tb-group">
+    <Teleport :to="overflow.slotEl('zoom')" :disabled="!overflow.moved('zoom')">
+      <div v-overflow-unit="{ id: 'zoom', order: 3, label: '缩放' }" class="tb-ou tb-group">
       <button class="tb-btn tb-icon" @click="$emit('fit-window')" data-tip="适应窗口"><Maximize :size="15" /></button>
       <button class="tb-btn tb-icon" @click="$emit('zoom', -10)" data-tip="缩小"><ZoomOut :size="15" /></button>
       <span class="tb-zoom">{{ scale }}%</span>
       <button class="tb-btn tb-icon" @click="$emit('zoom', 10)" data-tip="放大"><ZoomIn :size="15" /></button>
-    </div>
+      </div>
+    </Teleport>
     <!-- 剪贴板：元素上下文可用，其余置灰 -->
-    <div class="tb-group">
+    <Teleport :to="overflow.slotEl('clipboard')" :disabled="!overflow.moved('clipboard')">
+      <div v-overflow-unit="{ id: 'clipboard', order: 1, label: '剪贴板' }" class="tb-ou tb-group">
       <button class="tb-btn tb-icon" data-test="copy" :disabled="clipboardDisabled" @click="$emit('copy')" :data-tip="clipboardDisabled ? '复制 (Ctrl+C)，需选中元素' : '复制 (Ctrl+C)'"><Copy :size="15" /></button>
       <button class="tb-btn tb-icon" data-test="paste" :disabled="clipboardDisabled || !hasClipboard" @click="$emit('paste')" :data-tip="pasteTip"><ClipboardPaste :size="15" /></button>
       <button class="tb-btn tb-icon danger" data-test="delete" :disabled="clipboardDisabled" @click="$emit('delete')" :data-tip="clipboardDisabled ? '删除 (Delete)，需选中元素' : '删除 (Delete)'"><Trash2 :size="15" /></button>
-    </div>
+      </div>
+    </Teleport>
+    <!-- 收纳入口：仅在确有单元被收起时可见，面板常驻以承载各单元落位槽 -->
+    <ToolbarMore />
     <div class="tb-spacer" />
     <div class="tb-group" v-if="showHelp">
       <HelpButton @click="$emit('help')" />
@@ -102,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   Undo2,
   Redo2,
@@ -131,6 +139,14 @@ import {
 } from 'lucide-vue-next'
 import HelpButton from './HelpButton.vue'
 import ToolbarDropdown from './ToolbarDropdown.vue'
+import ToolbarMore from './ToolbarMore.vue'
+import { createOverflowUnitDirective, provideToolbarOverflow } from '../composables/useToolbarOverflow'
+
+/** 收纳上下文：本组件创建并 provide，格式化区段（slot 注入）内的单元 inject 同一份 */
+const overflow = provideToolbarOverflow()
+const vOverflowUnit = createOverflowUnitDirective(overflow)
+const rootRef = ref<HTMLElement | null>(null)
+onMounted(() => overflow.attachRoot(rootRef.value))
 
 const scale = defineModel<number>('scale', { default: 100 })
 
@@ -199,6 +215,37 @@ defineEmits<{
   position: relative;
   z-index: 100;
 }
+/* 收纳单元与其内文本一律不参与压缩：压缩会让 offsetWidth 小于自然宽，收纳判定随之失真 */
+.tb-ou {
+  flex-shrink: 0;
+}
+/* 自然宽基准须能被 scrollWidth 观测：只要还有子项能压缩，容器就永不溢出，
+   scrollWidth 恒等于 clientWidth，判定会误读为「放得下」。故行内子项一律禁止压缩，
+   仅品牌区（.tb-brand）保留可收缩，作为收纳用尽后的省略号兜底对象。 */
+.designer-toolbar > * {
+  flex-shrink: 0;
+}
+.designer-toolbar > .tb-brand {
+  flex-shrink: 1;
+  min-width: 0;
+}
+.tb-title,
+.tb-title-name,
+.tb-title-sub,
+.tb-btn-text,
+.tb-zoom {
+  white-space: nowrap;
+}
+/* 全部可收项都收进「更多」后仍放不下：品牌区改为省略号截断，兜住最后一档溢出 */
+.designer-toolbar.is-tight .tb-title {
+  min-width: 0;
+  overflow: hidden;
+}
+.designer-toolbar.is-tight .tb-title-name,
+.designer-toolbar.is-tight .tb-title-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .tb-group {
   display: flex;
   align-items: center;
@@ -262,11 +309,12 @@ defineEmits<{
   font-size: 15px;
   line-height: 1;
 }
-/* 顶部栏所有带 data-tip 的按钮统一提示（含置灰态，便于看到禁用原因） */
-.designer-toolbar [data-tip] {
+/* 顶部栏所有带 data-tip 的按钮统一提示（含置灰态，便于看到禁用原因）。
+   选择器不挂 .designer-toolbar 祖先：单元被收纳时会 Teleport 出该子树，祖先式写法会让提示失效。 */
+[data-tip] {
   position: relative;
 }
-.designer-toolbar [data-tip]::after {
+[data-tip]::after {
   content: attr(data-tip);
   position: absolute;
   bottom: -32px;
@@ -283,7 +331,7 @@ defineEmits<{
   transition: opacity .15s ease;
   z-index: 100;
 }
-.designer-toolbar [data-tip]:hover::after {
+[data-tip]:hover::after {
   opacity: 1;
 }
 .tb-mark {

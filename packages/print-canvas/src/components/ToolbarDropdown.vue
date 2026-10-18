@@ -9,7 +9,11 @@
       <slot name="trigger" />
       <ChevronDown :size="12" class="tb-dd-arrow" :class="{ up: open }" />
     </button>
-    <div v-if="open" class="tb-dd-panel" :class="panelClass"><slot /></div>
+    <div
+      v-if="keepMounted || open"
+      class="tb-dd-panel"
+      :class="[panelClass, { 'is-hidden': keepMounted && !open }]"
+    ><slot /></div>
   </div>
 </template>
 
@@ -23,9 +27,12 @@ const props = withDefaults(defineProps<{
   testId?: string
   tip?: string
   panelClass?: string
+  /** 面板常驻 DOM（仅靠样式显隐）：供「更多」承载 Teleport 落位槽 */
+  keepMounted?: boolean
 }>(), {
   disabled: false,
   testId: 'dd-trigger',
+  keepMounted: false,
 })
 
 const open = ref(false)
@@ -113,5 +120,9 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocPointerDown))
   border-radius: 8px;
   box-shadow: var(--pd-shadow-md, 0 2px 8px rgba(23, 32, 60, .06), 0 10px 28px rgba(23, 32, 60, .07));
   z-index: 200;
+}
+/* 常驻面板收起时仅隐藏：Teleport 落位槽须持续存在于 DOM，不能卸载 */
+.tb-dd-panel.is-hidden {
+  display: none;
 }
 </style>

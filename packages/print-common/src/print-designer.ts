@@ -29,6 +29,7 @@ import { applyPropertySearch } from './shell/property-search'
 import { isExpressionText } from './shell/watermark'
 import { writeBindingValue } from './shell/binding'
 import { renderToolbar } from './shell/toolbar'
+import { applyToolbarOverflow } from './shell/toolbar-overflow'
 import type { ShellCtx, ShellState } from './shell/controls'
 import { drawRuler } from './shell/ruler'
 import type { RulerGeom } from './shell/ruler'
@@ -94,7 +95,7 @@ export class PrintDesignerElement extends HTMLElement {
   private unsub: (() => void) | null = null
   private state: ShellState = {
     leftTab: 'elements', leftCollapsed: false, propTab: 'page', propCollapsed: false,
-    openDd: null, collapsedGroups: new Set(), renamingPage: null,
+    openDd: null, openMore: false, collapsedGroups: new Set(), renamingPage: null,
   }
   private geom: RulerGeom = { originX: 0, originY: 0, viewW: 0, viewH: 0, paperScale: 1 }
   /** 接管全局快捷键的实例（同页多设计器时最后一个交互者），见 bindKeys */
@@ -102,6 +103,8 @@ export class PrintDesignerElement extends HTMLElement {
   private docKeydown: ((ev: Event) => void) | null = null
   private ro: ResizeObserver | null = null
   private roArea: HTMLElement | null = null
+  /** 工具栏收纳的尺寸驱动源：容器宽度变化不触发重绘，需观察器重跑后置遍 */
+  private toolbarRo: ResizeObserver | null = null
   private scrollPos = { x: 0, y: 0 }
   private marquee = { visible: false, x: 0, y: 0, w: 0, h: 0 }
   private menu = { visible: false, x: 0, y: 0, flipX: 0, flipY: 0, targetId: null as string | null }
@@ -224,6 +227,8 @@ export class PrintDesignerElement extends HTMLElement {
     this.ro?.disconnect()
     this.ro = null
     this.roArea = null
+    this.toolbarRo?.disconnect()
+    this.toolbarRo = null
     if (PrintDesignerElement.active === this) PrintDesignerElement.active = null
     abortTableColResize()
     // 帮助弹窗的 document 级 Esc 监听随卸载一起摘除
@@ -483,6 +488,12 @@ export class PrintDesignerElement extends HTMLElement {
       renderPropertyPanel(ctx),
     ]), shell)
     render(renderStatusBar(ctx), shell)
+    // 收纳后置遍：整树重建后单元都回到内联态，按 core 的同一判定重新搬运
+    applyToolbarOverflow(shell)
+    if (!this.toolbarRo && typeof ResizeObserver !== 'undefined') {
+      this.toolbarRo = new ResizeObserver(() => applyToolbarOverflow(shell))
+      this.toolbarRo.observe(shell)
+    }
     // 表格右键菜单每帧出图（不可见时返回 ''，但会登记状态引用供 table.ts 改写）
     const tableMenuNode = renderTableContextMenu(this.store, (a, b) => this.fire(a, b), this.tableMenu)
     if (tableMenuNode) render(tableMenuNode, shell)
@@ -706,6 +717,7 @@ export class PrintDesignerElement extends HTMLElement {
     if (!isBg) return
     this.menu.visible = false
     if (this.state.openDd) { this.state.openDd = null; this.repaint() }
+    if (this.state.openMore) { this.state.openMore = false; this.repaint() }
     if (ev.button === 0) {
       this.store.clearSelection()
       this.startMarquee(ev)
@@ -1135,6 +1147,7 @@ export class PrintDesignerElement extends HTMLElement {
       const path = ev.composedPath() as EventTarget[]
       const inDd = path.some(n => (n as HTMLElement).classList?.contains('tb-dd'))
       if (this.state.openDd && !inDd) { this.state.openDd = null; this.repaint() }
+      if (this.state.openMore && !inDd) { this.state.openMore = false; this.repaint() }
       const inMenu = path.some(n => (n as HTMLElement).classList?.contains('context-menu'))
       if (this.menu.visible && !inMenu) { this.menu.visible = false; this.repaint() }
     })

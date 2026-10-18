@@ -2,7 +2,8 @@
 <template>
   <div class="format-toolbar">
     <!-- 格式刷：单击刷一次、双击连续刷、再点或 Esc 退出（仿 Word） -->
-    <div class="ft-group">
+    <Teleport :to="overflow.slotEl('painter')" :disabled="!overflow.moved('painter')">
+      <div v-overflow-unit="{ id: 'painter', order: 2, label: '格式刷' }" class="tb-ou ft-group">
       <button
         type="button" class="ft-btn" data-test="format-painter"
         :class="{ on: painterActive }" :disabled="painterDisabled" :data-tip="painterTip"
@@ -10,9 +11,11 @@
       >
         <Paintbrush :size="15" />
       </button>
-    </div>
+      </div>
+    </Teleport>
     <!-- 字体组 -->
-    <div class="ft-group">
+    <Teleport :to="overflow.slotEl('font')" :disabled="!overflow.moved('font')">
+      <div v-overflow-unit="{ id: 'font', order: 9, label: '字体与字号' }" class="tb-ou ft-group">
       <div class="ft-font">
         <FontSelect
           :model-value="fontFamilyDisplay"
@@ -31,9 +34,11 @@
           @update:model-value="v => format.applyStyle({ fontSize: v })"
         />
       </div>
-    </div>
+      </div>
+    </Teleport>
     <!-- 文字样式组 -->
-    <div class="ft-group">
+    <Teleport :to="overflow.slotEl('style')" :disabled="!overflow.moved('style')">
+      <div v-overflow-unit="{ id: 'style', order: 8, label: '文字样式' }" class="tb-ou ft-group">
       <button type="button" class="ft-btn" data-test="bold" :class="{ on: boldOn }" :disabled="fontDisabled" :data-tip="fontDisabled ? '加粗（需选中文本元素或单元格）' : '加粗'" @click="format.toggleBold()">
         <Bold :size="15" />
       </button>
@@ -43,9 +48,11 @@
       <button type="button" class="ft-btn" data-test="strike" :class="{ on: values.strike === true }" :disabled="decoDisabled" :data-tip="decoTip('删除线')" @click="format.toggleStrike()">
         <Strikethrough :size="15" />
       </button>
-    </div>
+      </div>
+    </Teleport>
     <!-- 颜色组 -->
-    <div class="ft-group">
+    <Teleport :to="overflow.slotEl('color')" :disabled="!overflow.moved('color')">
+      <div v-overflow-unit="{ id: 'color', order: 6, label: '颜色' }" class="tb-ou ft-group">
       <span class="ft-color-btn" :class="{ dim: fontDisabled }" :title="`字体颜色${fontDisabled ? '（需选中或混选文本元素）' : ''}`">
         <PresetColorPicker
           :model-value="textColor"
@@ -60,9 +67,11 @@
         />
         <span class="ft-glyph"><PaintBucket :size="14" /></span>
       </span>
-    </div>
+      </div>
+    </Teleport>
     <!-- 对齐下拉：文字水平对齐 + 垂直对齐收进菜单，触发钮显示当前水平对齐 -->
-    <div class="ft-group">
+    <Teleport :to="overflow.slotEl('align')" :disabled="!overflow.moved('align')">
+      <div v-overflow-unit="{ id: 'align', order: 7, label: '对齐' }" class="tb-ou ft-group">
       <ToolbarDropdown test-id="align-dd" :tip="alignTip" :disabled="fontDisabled">
         <template #trigger>
           <component :is="alignIcon" :size="15" />
@@ -93,9 +102,11 @@
           </div>
         </div>
       </ToolbarDropdown>
-    </div>
+      </div>
+    </Teleport>
     <!-- 边框下拉（WPS 式面板） -->
-    <div class="ft-group">
+    <Teleport :to="overflow.slotEl('border')" :disabled="!overflow.moved('border')">
+      <div v-overflow-unit="{ id: 'border', order: 5, label: '边框' }" class="tb-ou ft-group">
       <ToolbarDropdown test-id="border" :tip="borderTip" :disabled="borderDisabled">
         <template #trigger>
           <Grid3x3 :size="15" />
@@ -174,7 +185,8 @@
           </div>
         </div>
       </ToolbarDropdown>
-    </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -190,6 +202,11 @@ import type { FormatToolbar } from '../composables/useFormatToolbar'
 import { MIXED } from '../composables/useFormatToolbar'
 import type { FormatPainter } from '../composables/useFormatPainter'
 import FontSelect from './property/FontSelect.vue'
+import { createOverflowUnitDirective, emptyToolbarOverflow, useToolbarOverflow } from '../composables/useToolbarOverflow'
+
+/** 收纳上下文由 DesignerToolbar provide；单独挂载（组件级单测）时退化为恒内联 */
+const overflow = useToolbarOverflow() ?? emptyToolbarOverflow()
+const vOverflowUnit = createOverflowUnitDirective(overflow)
 import StepperInput from './property/StepperInput.vue'
 import PresetColorPicker from './PresetColorPicker.vue'
 import ToolbarDropdown from './ToolbarDropdown.vue'
@@ -301,6 +318,8 @@ function onEdge(side: BorderSide) {
   display: flex;
   align-items: center;
   gap: 2px;
+  /* 压缩会让各组自然宽度失真，收纳判定随之漂移：宁可行内溢出，交由工具栏收纳机制处理 */
+  flex-shrink: 0;
   min-width: 0;
 }
 .ft-group {
@@ -308,6 +327,7 @@ function onEdge(side: BorderSide) {
   align-items: center;
   gap: 2px;
   padding: 0 8px;
+  flex-shrink: 0;
 }
 .ft-group + .ft-group {
   border-left: 1px solid var(--pd-border-soft, #e9ecf2);
