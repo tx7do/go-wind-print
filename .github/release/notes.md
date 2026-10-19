@@ -1,4 +1,4 @@
-## v1.3.6（2026-10-16） · Release Notes
+## v1.3.7（2026-10-19） · Release Notes
 
 语言导航：**[简体中文](#简体中文)** ｜ **[English](#english)**
 
@@ -6,124 +6,158 @@
 
 <a id="简体中文"></a>
 
-## v1.3.6（2026-10-16）—— 简体中文
+## v1.3.7（2026-10-19）—— 简体中文
 
-自 `v1.3.5` 以来 11 次提交。**这是一个修复版本，无 API 变更、模板 JSON 无字段变更**：桌面客户端静默打印的出纸方向修正（Windows 宽幅标签被转 90°、macOS / Linux 的纸张声明此前从未真正下发、横向页被纵向纸型名钉住），并首次提供 Linux 三类安装包。
+自 `v1.3.6` 以来 17 次提交。四条主干：**补齐中文排版四项缺口**（两端对齐、单元格两端对齐、首行缩进、图片裁剪锚点，来自 [GitHub issue #4](https://github.com/worm-longliu/worm-vue3-print/issues/4)）；**设计器与示例顶栏改为自适应收纳**（窄视口不再把文字逐字折行压到画布上，同一 issue）；**二维码等比铺满并由新属性 `qrQuietZone` 统一静区**（来自 [Gitee issue #IKN95F](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)）；**桌面客户端出纸换成 HTML 直打**，并**修复了「含条码/二维码的模板一律打不出来」这一自 1.3.5 起的阻塞缺陷**。
 
 ### 安装与升级
 
 ```bash
-npm install @worm-vue3-print/core@^1.3.6 @worm-vue3-print/canvas@^1.3.6
+npm install @worm-vue3-print/core@^1.3.7 @worm-vue3-print/canvas@^1.3.7
 ```
 
 发布到 npm 的仍然只有 `core`（渲染引擎与表达式系统）与 `canvas`（Vue 3 设计器）两个包。渲染服务 `services/print-render`、桌面客户端 `clients/print-client` 与实验性的 `packages/print-common` 在仓库内维护，不发布 npm。
 
-未使用桌面客户端静默打印的项目，本版本没有可见变化。
+> ⚠️ **排版口径住在「渲染端」而不是模板里**：客户端与渲染服务各自打包一份 `core`。1.3.7 模板里的 `textAlign / align: 'justify'`、`longTextIndent`、`objectPosition`、`qrQuietZone` 交给 **1.3.6 及更早**的客户端或渲染服务出纸时会**静默降级**（单行不撑满、缩进不生效、锚点与静区丢失）。宿主 npm 包、`print-render` 服务、桌面客户端安装包三者要一起升到 1.3.7 才谈得上一致。
 
-### 修复（桌面客户端出纸方向）
+### 新增
 
-- **Windows：宽幅标签被旋转 90° 出纸**。100×75 mm 这类「宽大于高」的标签经客户端静默打印时，纸上内容整体旋转 90°，而产物 PDF 本身方向正确。根因是 Windows 出纸交给 SumatraPDF，其默认 `autoRotate` 对「宽 > 高」的页面无条件加 90°，只在方向被判定为横向时才抵消回 0°；未显式声明方向时，该判定取自打印驱动（标签驱动多为纵向）。现按页面自身长宽比显式声明方向：`-print-settings "<份数>x,landscape|portrait"`，正方形页归 `portrait`（正方页带 `landscape` 会被反向旋转 90°）。
-- **macOS / Linux：纸张声明此前从未真正下发**。`printPdfFile` 组装出纸命令时按字段逐个转发参数、漏掉了 `paper`，页面尺寸到不了命令构造层，V1.3.0 起引入的 `-o media=…`（宿主指定驱动纸型 → 标准纸型匹配 → `Custom.<宽>x<高>`）只在宿主显式给出 `paperName` 时才下发。现改为原样透传全部选项。
-- **macOS / Linux：横向页只报纸型名仍被转 90°**。判据与 Windows 同源——CUPS 的 `pdftops` 按「生效介质朝向 vs 页面朝向」补 90°，而 `A4` / `Letter` 这类标准纸型名本身就是纵向介质。macOS 出纸在「页面宽 > 高且未指定驱动纸型」时额外下发 `-o orientation-requested=4`（实测 `do_rotate` 由 90 变 0），纵向页与正方页不发；该请求的实现是交换介质长宽，故 macOS 的 `Custom.` 也改按纵向序（短边×长边）声明，翻一次才落回页面真实尺寸。**Linux 反向走纸张**：cups-filters 1.28 实测把该请求实现为「给页面写 `/Rotate 270` 并交换 MediaBox」，标签机反被打歪，故 Linux 不发它，横向页也不再报纵向纸型名，改按页面真实朝向走 `Custom.<宽>x<高>`（A/B 实测：横向 A4 的 MediaBox 由 595×842 变 841.89×595.28，且不写 `/Rotate`）。
+- **文本两端对齐** `justify`（[GitHub issue #4](https://github.com/worm-longliu/worm-vue3-print/issues/4)）：`TextAlign` 增档，属性台「对齐」加第 4 档「两端」，格式工具栏对齐面板加第 4 格（canvas 与 print-common 同图标）。出图端两处必修：与垂直对齐组合时把 flex 主轴改成纵向（横向 flex 的匿名文本项拉不伸，否则静默回落左对齐），以及随 `text-align:justify` 成对输出 `text-align-last:justify`（CSS 永不拉伸段落末行，而文本元素通常只有一行、那一行就是末行）。语义按打印设计器同行取「撑满行宽，含末行」，与 Word 的「两端对齐」有别。真实设计器实测：元素盒 349px 而单行行盒 140px → 改后撑满 349px。
+- **表格单元格两端对齐**：属性台「水平对齐」补第 4 档「两端」。此前格式工具栏在单元格上下文已能写入 `align:'justify'`，但属性台看不到也点不到，且出纸只写 `text-align:justify`——实测 83px 表头格里内容仍停在 48px。现 core `matrixCellStyle()` 与两宿主同策成对输出，同一格行盒 48px → 撑满内容宽 73px。缺省仍走 `left`/`center`，存量模板零变化。
+- **长文本首行缩进** `longTextIndent` 真正落纸：以 **em** 输出（随字号走，`textFit='shrink'` 缩小字号后缩进同步变窄），与 Word/WPS「首行缩进 2 字符」同形态；属性台「外观」组补「首行缩进 (字符)」入口。仅 `longText` 元素消费。
+- **图片裁剪锚点** `objectPosition`：独立图片与单元格图片输出 `object-position`（如 `center 20%`，证件照保住头顶）；属性台为 image 新增「缩放模式」与「裁剪锚点」，单元格面板补「裁剪锚点」（仅图片单元格）。含 `;`、引号、`url()` 等非法字符的值整条丢弃。顺带修掉独立 image 的 `fit` 在出纸端被写死 `contain` 的老问题。
+- **设计器顶部工具栏自适应收纳**：宽度不足时按固定优先级链（剪贴板 → 格式刷 → 缩放 → 排列/视图 → 边框 → 颜色 → 对齐 → 文字样式 → 字体与字号）把按钮组收进「更多」下拉，面板内保留分组标题与图标网格；全收完仍放不下才让品牌区文字走省略号。判定 `resolveToolbarOverflow` 落在 `@worm-vue3-print/core/designer`，两套宿主共用同一链序；canvas 侧用 `Teleport` 搬运，组件实例不重挂载，因此「边框」面板里选好的线型/粗细/颜色在窗口反复缩放后存活。该机制同时提升为 canvas 公开 API（`provideToolbarOverflow` / `useToolbarOverflow` / `emptyToolbarOverflow` / `createOverflowUnitDirective` / `TOOLBAR_OVERFLOW`），宿主自己的工具栏可复用。
+- **demo 与 demo-common 四个子 demo 的顶栏接入同一套收纳**（同一 issue 拆解项 T-10）。
+- **二维码静区可配**（[Gitee issue #IKN95F](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)）：新增属性台「静区 (模块)」（二维码**元素**与**表格单元格**都可设，范围 0~8，**缺省 0**），且出图补 `width/height:100%` 使码面**等比铺满**元素框；设计态四处实现改用 core 的同一份 SVG，此前「预览 1 模块 / common 预览 0 模块 / 出纸固定 4 模块」三处各说各话的局面结束。0 即不留白边、扫码所需静区由框外白纸承担；要 ISO/IEC 18004 推荐合规静区时显式填 4。**注意**：因出纸此前固定 4 模块，既有模板的码面占框比例由 72.4% 变为 100%。
+- **桌面客户端出纸通路：HTML 直打**。core 产出的最终 HTML 直接交给 `webContents.print({ silent: true })`，与浏览器 `window.print()` 同源：纸张按渲染管线算出的 `paperMm` 以**微米**显式声明，边距恒 `none`，出纸前把 `deviceName/pageSize/copies/landscape` 落日志。macOS 实测落盘介质精确等于声明值，比 PDF 通路 `printToPDF` 的取整结果更准。
+- 客户端窗口与托盘图标改用与安装包同源的 `build/icon.png`（安装包约 +1 MB）；Windows / Linux 不再显示 File/Edit/View/Window 应用菜单（macOS 保留默认菜单）。
 
-> ⚠️ **口径更正（发布时追加）**：上条「该请求的实现是交换介质长宽，故 macOS 的 `Custom.` 按纵向序（短边×长边）声明」已被后续实测推翻——直接收 PDF 的队列（driverless / `_ib`）走 `cgpdftopdf`，该请求的语义是「按声明介质的朝向把内容转过去贴它」，并不交换介质；按纵向序声明物理横向的标签会把介质钉成纵向。`v1.3.6` tag 的代码仍是纵向序版本，修正登记在未发布段。
+### 变更（破坏性）
+
+- 桌面客户端**取消「出纸方式」配置项**：`config.json` 不再接受 `printRoute`（旧文件里该键被忽略），出纸固定走 HTML。需要回退「HTML → `printToPDF` → 系统命令」时改 `print-engine.ts` 的 `ACTIVE_PRINT_ROUTE` 并重新构建，且只对 macOS / Linux 有效。
+- 移除 Windows 侧的 **SumatraPDF 出纸通路**及其安装探测/下载/一键安装与设置页状态条，`printPdfFile` 在 win32 直接报错；Windows 不再需要安装外部工具。
+- 随之失效的参数口径：`paperName`（驱动纸型名）与 `margins` 在当前出纸通路**不被消费**（协议保留以兼容）。
+- 移除从未被消费的可选字段 `lHeight` 与 `leftSpaceRemoved`：全仓零消费，模板里残留同名键被忽略，渲染行为零变化。
+
+### 修复
+
+- **桌面客户端：含条码或二维码的模板此前一张都打不出来**，任务固定以 `PRINT_FAILED：码值渲染超过 ~30000ms` 结束（无码模板不受影响）。渲染管线要先在页面里生成码值 SVG、再把它填进 HTML 做测量，即码值阶段早于任何一次 `setContent`；而客户端的 Electron driver 在窗口从未提交过任何文档时就调 `webContents.executeJavaScript`——Electron 会把脚本排队等一次文档提交，隐藏窗口永不提交，调用于是静默挂死。现 driver 在首次注入执行器前先载入一个空白文档。实测（本机 PDFwriter 虚拟队列）：出厂面单模板（条码 + 二维码、自定义纸 100×150 mm）由超时失败变为 **2.4 s 出纸**，落盘介质精确 100.00×150.00 mm、`/Rotate=0`；单条码 1.5 s、单二维码（静区 4）1.5 s、含两端对齐/缩进/裁剪锚点/双二维码的排版探针模板 1.9–2.3 s。**该缺陷自 1.3.5 起即存在**（同机已装的 1.3.5 客户端跑同一模板同样超时），非 V1.3.7 引入，随本版安装包一并修复。
+- **macOS 回退通路：横向标签被打成纵向**。此前把 `Custom.` 按纵向序（短边×长边）声明的结论有误——直接收 PDF 的队列走 `cgpdftopdf`，其方向请求语义是「按你声明的介质朝向把内容转过去贴它」，并不交换介质。现 `Custom.` 与 Linux 统一按页面真实朝向声明，macOS 不再为它补方向请求；方向请求只保留给「命中标准纸型名的横向页」。
+- **设计器顶部工具栏不再折行压画**（[GitHub issue #4 评论 1](https://github.com/worm-longliu/worm-vue3-print/issues/4)）：触发点比反馈更靠前——1520–1600 CSS px 之间就开始折行（1080p / 2K 屏 100% 缩放即命中）。现由自适应收纳承接。
+- 「更多」面板内的下拉子面板向右戳出父面板 48px（同一 issue 附带项 T-07a）→ 面板按实测抬高 `min-width: 244px`，改后溢出归 0。
+- 子 demo 顶栏的「宿主示例」互跳下拉常驻可见并压在画布上 → 闭合态恢复隐藏。
+- common 宿主属性台的字段帮助气泡与 canvas 不一致（被剥掉 `[data-v-*]` 的裸 `[data-tip]::after` 连带命中）→ 逐条还原。
+- 独立 image 的 `fit` 在出纸端被写死 `contain`；`PresetColorPicker` 双根导致的属性落空告警；主题变量未接通的一批控件。
 
 ### 行为变更与影响面
 
-- **升级后同一份宽幅标签的出纸方向与 PDF 一致**。此前为规避旋转而把模板做成竖版、再由人工旋转的做法，需改回按真实出纸方向设计。
-- **macOS / Linux 出纸现在会真正声明纸张**。此前按队列默认纸张（多为纵向 A4/Letter）处理的横向页面改用页面真实尺寸，横向 A4 与宽幅自定义纸随之正立（macOS 靠方向请求翻介质，Linux 靠按真实朝向声明 `Custom.`）。
-- **队列 PPD 不支持自定义尺寸时 `media=Custom.*` 会被静默忽略**（AirPrint / driverless 队列即如此），并回落队列默认纸张。标签类纸张请在宿主侧传驱动内已定义的 `paperName`。
-- **驱动侧仍可能反向旋转**：若驱动中标签定义的朝向与模板不一致，出纸仍可能被驱动转回去，需在驱动 / 机器设置里对齐。
-- **Windows 侧不消费 `paperName`**：该通路没有 CUPS 的纸张声明能力，只声明方向；需要指定驱动预置纸型时走 macOS / Linux。
-- 客户端协议、WebSocket 接口与宿主 SDK 均无变更。
+- **既有二维码模板会变大**：出纸不再固定 4 模块静区，缺省 0 模块 → 码面铺满元素框。需要留白边请在属性台显式填 4。
+- **两端对齐会拉伸多行文本的末行**（同 Lodop `AlignJustify` / Excel，不是 Word 的「两端对齐」）。
+- **升级后桌面客户端不再需要 SumatraPDF**；此前依赖 Windows 那条通路的部署可以卸载该工具。
+- 队列 PPD 不支持自定义尺寸时 `media=Custom.*` 仍会被静默忽略（只在 PDF 回退通路相关）；HTML 直打不消费 `media=`。
 
-### 桌面客户端安装包（本版本起含 Linux）
+### 关联 Issue
 
-不发布 npm 的桌面客户端 `clients/print-client`（Electron 静默打印，回环 WebSocket 默认端口 17521）以安装包附件形式挂在本发行版页面：
+- GitHub：[#4 补齐中文排版缺口：文本 justify 两端对齐、首行缩进、image 裁剪锚点](https://github.com/worm-longliu/worm-vue3-print/issues/4)
+- Gitee：[IKN95F 二维码修改尺寸后无法继续增大](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)
 
-| 附件 | 适用系统 |
-| --- | --- |
-| `WormPrintClient-1.3.6-mac-x64.dmg` | Intel Mac |
-| `WormPrintClient-1.3.6-mac-arm64.dmg` | Apple Silicon Mac |
-| `WormPrintClient-1.3.6-win-x64.exe` | Windows 10 / 11 x64（NSIS 安装程序，可选择安装目录、创建桌面快捷方式） |
-| `WormPrintClient-1.3.6-linux-amd64.deb` | Debian / Ubuntu x64（`sudo apt install ./<文件>`） |
-| `WormPrintClient-1.3.6-linux-x86_64.rpm` | Fedora / RHEL / openSUSE x64（`sudo rpm -i <文件>`） |
-| `WormPrintClient-1.3.6-linux-x86_64.AppImage` | 任意 x64 发行版，免安装单文件（需 `libfuse2`） |
-| `SHA256SUMS.txt` | 以上安装包的 SHA-256 校验和 |
+### 桌面客户端安装包
 
-> ⚠️ **安装包未做 Developer ID 签名与公证**（本项目没有 Apple Developer ID 与 Windows 签名证书）。主程序、Helper 与 `Electron Framework` 保留 Electron 官方预编译自带的 ad-hoc 签名，所以 arm64 包在 Apple Silicon 上不缺执行前提；缺的只是 bundle 级资源封印，表现为 macOS 首次打开被 Gatekeeper 拦截。绕过方式：`xattr -dr com.apple.quarantine /Applications/WormPrintClient.app`（与系统版本无关），或 macOS 15 起在 系统设置 → 隐私与安全性 点「仍要打开」。Windows 会在 SmartScreen 提示「未知发布者」，点「更多信息」→「仍要运行」。arm64 包在 Apple Silicon 真机的实际启动**未经真机验证**（构建机为 Intel）。打包与上传步骤见 [客户端 README](https://github.com/worm-longliu/worm-vue3-print/blob/master/clients/print-client/README.md)。
+安装包基线为 master 顶端提交 `61d1631`（其父 `f8af92e` 为上述码值渲染修复），明细见 CHANGELOG 的 V1.3.7 段。
 
-> 🐧 **Linux 三个包为新产出，在 x64 的 Docker 容器里交叉构建**（`npm run pack:client:linux`）：包内容、依赖声明与 SHA-256 均已核对，但**没有经过任何 Linux 真机安装与出纸验证**。出纸依赖 CUPS；deb/rpm 内的 `chrome-sandbox` 为非 setuid（`0755`），若启动报 `SUID sandbox helper` 错误，需启用非特权用户命名空间或临时加 `--no-sandbox`。只提供 fuse3 的发行版（如 Ubuntu 24.04）跑 AppImage 前要装 `libfuse2`，或用 `--appimage-extract-and-run`。本版不提供 `snap` 与 arm64 包。
+- [WormPrintClient-1.3.7-mac-x64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-mac-x64.dmg)
+- [WormPrintClient-1.3.7-mac-arm64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-mac-arm64.dmg)
+- [WormPrintClient-1.3.7-win-x64.exe](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-win-x64.exe)
+- [WormPrintClient-1.3.7-linux-amd64.deb](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-linux-amd64.deb)
+- [WormPrintClient-1.3.7-linux-x86_64.rpm](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-linux-x86_64.rpm)
+- [WormPrintClient-1.3.7-linux-x86_64.AppImage](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-linux-x86_64.AppImage)
+- [SHA256SUMS.txt](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/SHA256SUMS.txt)
 
-> 🧭 **安装包的基线是发布时的 `master` 顶端（`9b3af68`），不是 `v1.3.6` tag。** 该顶端与 tag 之间共 8 笔提交，其中 4 笔改动了桌面客户端与 demo，安装包一并带上：出纸默认通路改为 **HTML 直打**（`webContents.print`，三端不再依赖外部命令；随之 Windows 的 SumatraPDF 通路整体移除、`config.json` 不再接受 `printRoute`、Windows / Linux 去掉应用菜单，均为破坏性变更），macOS 回退 PDF 通路的 `Custom.` 改按页面真实朝向声明（即上文「口径更正」所指的修正），窗口与托盘图标和安装包同源，demo 自定义字体改为跟随模板声明。逐条明细见 [`docs/中文/CHANGELOG.md`](https://github.com/worm-longliu/worm-vue3-print/blob/master/docs/中文/CHANGELOG.md) 的「未发布」段。npm 的 `core` / `canvas` 不受影响——tag 之后 `packages/` 零改动，发布内容与 tag 一致。
+安装包只挂在 GitHub（Gitee 发行版附件单文件上限 100 MB，装不下 Electron 产物）。下载不动或掉速时，把链接交给迅雷 / IDM / qBittorrent 续传；GitHub 页面本身打不开则属访问受阻，换网络或走源码构建。Linux 三包未经真机验证：出纸依赖 CUPS，AppImage 需 `libfuse2`（只有 fuse3 的发行版用 `--appimage-extract-and-run`），deb/rpm 内 `chrome-sandbox` 为非 setuid。
 
 ### 质量
 
-- 测试全绿：按安装包基线（`9b3af68`）复跑，四工作区 1459 项 —— core 814 / canvas 415 / common 120 / print-client 110（`v1.3.6` tag 基线为 1443 项，多出的 16 项全在 print-client，属 HTML 直打通路）。
-- 出纸参数转发新增回归用例：`pdf-printer.test.ts` 以 `execFile` 桩核对 macOS / Windows 分支实际下发的参数（防止再次出现「声明写了但没转发」），并按页面长宽比逐档断言方向 token。
-- `npm run build`、`npm test`、`npm run lint:print-architecture`（三端重复实现守卫）退出码均为 0。
-- **未验证项如实列出**：macOS 的出纸方向与纸张口径已用开源虚拟打印机（RWTS-PDFwriter）在 macOS 15.7.8 / CUPS 2.3.4 上逐例度量复核（落盘介质的 MediaBox、`/Rotate` 与内容旋转矩阵），HTML 直打与回退的 PDF 通路各自都测；真机打印机（尤其标签机会把自定义尺寸夹回自带表单）与 Windows 的方向修复仍需真机出纸核对；Linux 三个安装包未做真机安装与启动验证。
+- `npm run build` 与 `npm test` 全部 exit 0：**1598 例**（core 63 文件/847、canvas 56/465、common 13/149、print-client 14/110），另有渲染服务 `npm run test -w @worm-vue3-print/render` **8 文件/27 例**在真实 Chromium 下通过；`npm run lint:print-architecture` 通过。跳过 0 例。
+- demo-common 四宿主验收 `verify-demo.mjs`：jquery / vue2 / react / vue3 各 **36/36**（合计 144 条断言，0 失败）。
+- 工具栏收纳在 1600/1280/900/700/640 五档实测：折行 0、内容溢出条底 0、横向溢出 0，设计器条高恒 51px、demo 顶栏恒 45px。
+- 客户端出纸经本机 CUPS 虚拟队列实测（HTML 直打与 PDF 回退两条通路各自验证纸型与朝向）；六个安装包的 `app.asar` 载荷逐份核对（mac / win / deb / rpm 内层字节一致，含本版新口径与上述修复，SumatraPDF 通路残留 0）。
+- 未经真机验证的部分：Windows 与 Linux 客户端的真实打印（本机为 macOS），以及厂商驱动对自定义尺寸的夹取行为。
 
 ---
 
 <a id="english"></a>
 
-## v1.3.6 (2026-10-16) — English
+## v1.3.7 (2026-10-19) — English
 
-11 commits since `v1.3.5`. **This is a fix release: no API changes and no template JSON changes.** It corrects the output orientation of desktop silent printing (wide labels rotated 90° on Windows, the paper declaration that never actually reached the print command on macOS / Linux, and landscape pages pinned to a portrait paper name) and ships Linux installers for the first time.
+17 commits since `v1.3.6`. Four headline items: **the four missing CJK typography features** (text justification, justified table cells, first-line indent, image crop anchor — [GitHub issue #4](https://github.com/worm-longliu/worm-vue3-print/issues/4)); **adaptive overflow for the designer toolbar and the demo top bars** (labels no longer wrap character by character onto the canvas, same issue); **QR codes now fill their box with a configurable quiet zone via the new `qrQuietZone`** ([Gitee issue #IKN95F](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)); and the desktop client **prints through Chromium's native HTML route**, which also fixes a blocker that had made **every barcode/QR template unprintable since 1.3.5**.
 
 ### Install / upgrade
 
 ```bash
-npm install @worm-vue3-print/core@^1.3.6 @worm-vue3-print/canvas@^1.3.6
+npm install @worm-vue3-print/core@^1.3.7 @worm-vue3-print/canvas@^1.3.7
 ```
 
-Only `core` and `canvas` are published to npm. The render service, the desktop client and the experimental `print-common` package remain in-repo. Projects that do not use desktop silent printing see no visible change.
+Only `core` and `canvas` are published to npm. `services/print-render`, `clients/print-client` and the experimental `packages/print-common` are maintained in-repo and not published.
 
-### Fixes (desktop client output orientation)
+> ⚠️ **Typography semantics live in the rendering side, not in the template.** The client and the render service each bundle their own copy of `core`. A 1.3.7 template carrying `textAlign / align: 'justify'`, `longTextIndent`, `objectPosition` or `qrQuietZone` printed by a **1.3.6 or older** client or render service **silently degrades** (single lines never stretch, indent ignored, anchor and quiet zone lost). Upgrade host packages, the `print-render` service and the desktop installers together.
 
-- **Windows: wide labels came out a quarter turn off.** A 100×75 mm label printed rotated even though the generated PDF is correct in any viewer. Windows output is handed to SumatraPDF, whose default `autoRotate` unconditionally adds 90° to pages where width > height and cancels it back to 0° only when the page is judged landscape — with no orientation declared, that judgement comes from the print driver (label drivers usually report portrait). The client now declares orientation from the page's own aspect ratio: `-print-settings "<copies>x,landscape|portrait"`, with square pages counted as `portrait` (a square page tagged `landscape` gets rotated the other way).
-- **macOS / Linux: the paper declaration was never actually sent.** `printPdfFile` forwarded options field by field and dropped `paper`, so page size never reached argument construction and the `-o media=…` declaration (host driver paper name → standard-size match → `Custom.<w>x<h>`) introduced in V1.3.0 only went out when the host supplied a `paperName`. All options are now passed through unchanged.
-- **macOS / Linux: a paper name alone did not stop landscape pages from rotating.** The trigger is the same as on Windows — CUPS' `pdftops` adds 90° whenever the effective media's orientation disagrees with the page's, and standard names such as `A4` / `Letter` are portrait media by definition. On macOS the command now also sends `-o orientation-requested=4` when the page is wider than tall and no driver paper name was given (`do_rotate` measured 90 → 0); it is never sent for portrait or square pages, and since the request swaps the media's dimensions, macOS `Custom.` sizes are declared portrait-canonical (short × long) so one swap lands on the page's real size. **Linux takes the paper route instead**: cups-filters 1.28 implements that request by writing `/Rotate 270` into the page and swapping the MediaBox, which skews label output, so Linux skips it and no longer reports a portrait paper name for landscape pages, declaring `Custom.<width>x<height>` in the page's real orientation (A/B measured: MediaBox went from 595×842 to 841.89×595.28 with no `/Rotate`).
+### Added
 
-> ⚠️ **Correction added at release time**: the claim above that the request "swaps the media's dimensions, so macOS `Custom.` sizes are declared portrait-canonical (short × long)" has since been refuted by measurement. Queues that take PDF directly (driverless / `_ib`) go through `cgpdftopdf`, whose semantics are "rotate the content onto the declared medium" — the medium itself is not swapped, so declaring a physically landscape label in portrait order pins the media to portrait. The code inside the `v1.3.6` tag is still the portrait-canonical version; the fix is recorded under Unreleased.
+- **Text justification** `justify` ([GitHub issue #4](https://github.com/worm-longliu/worm-vue3-print/issues/4)): a new `TextAlign` value, a 4th radio in the property panel and a 4th cell in the toolbar alignment popover (same icon in canvas and print-common). Two renderer-side fixes are both required: switching the flex main axis to `column` when combined with vertical alignment (an anonymous flex item of a row container cannot stretch), and pairing `text-align:justify` with `text-align-last:justify` (CSS never justifies the last line, and a text element is usually exactly one line). Measured live in the designer: 140px line box inside a 349px element → full 349px. As in other print designers this means "fill the line width, last line included", which is what Word calls distributed alignment.
+- **Justified table cells**: the cell property panel gained its 4th option. The toolbar could already write `align:'justify'` in cell context while the panel neither showed nor offered it, and the renderer emitted only `text-align:justify` — an 83px header cell kept its content at 48px. Core `matrixCellStyle()` and both hosts now pair the declarations; the same cell fills its 73px content box. Defaults unchanged.
+- **First-line indent** `longTextIndent` now reaches paper, emitted in **em** so it follows the font size (including `textFit='shrink'`), with a "首行缩进 (字符)" field added to the Appearance group. `longText` elements only.
+- **Image crop anchor** `objectPosition` for standalone and cell images (`center 20%` keeps a face's head in frame), plus "缩放模式" and "裁剪锚点" in the property panel; values containing `;`, quotes or `url()` are dropped entirely. Also fixes standalone images having `object-fit` hard-coded to `contain` on the print side.
+- **Adaptive designer toolbar overflow**: button groups collapse into a 更多 dropdown along a fixed priority chain, keeping group titles and icon grids inside the panel; only if everything is collapsed does the brand text fall back to ellipsis. The decision function `resolveToolbarOverflow` lives in `@worm-vue3-print/core/designer` and both hosts share one chain. canvas moves nodes with `Teleport`, so a border style picked in the panel survives repeated resizing. The mechanism is now public canvas API (`provideToolbarOverflow` / `useToolbarOverflow` / `emptyToolbarOverflow` / `createOverflowUnitDirective` / `TOOLBAR_OVERFLOW`).
+- **The demo and all four demo-common top bars** use the same overflow chain (T-10 of the same issue).
+- **QR quiet zone is configurable** ([Gitee issue #IKN95F](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)): new "静区 (模块)" property (element and table cell alike, 0–8, **default 0**), and the print side now writes `width/height:100%` so the code face fills its box proportionally; all four design-time implementations reuse the single SVG from core. Previously paper used 4 modules, canvas 1 and print-common 0. **Note**: existing templates grow from 72.4% to 100% of the box because printing no longer forces a 4-module band.
+- **Desktop client HTML direct printing**: the final HTML from core goes straight to `webContents.print({ silent: true })`, with paper declared in **micrometres** from the pipeline's `paperMm` and margins always `none`; the resolved parameters are logged before the job. Measured on macOS the spooled media equals the declared size exactly, better than the `printToPDF` rounding of the PDF route.
+- Window and tray icon now come from the same `build/icon.png` as the installer; no application menu on Windows / Linux (macOS keeps the default one).
+
+### Changed (breaking)
+
+- The desktop client **drops the print-route setting**: `config.json` no longer accepts `printRoute` (a residual key is ignored) and printing always uses HTML. To restore the `HTML → printToPDF → system command` chain, change `ACTIVE_PRINT_ROUTE` in `print-engine.ts` and rebuild — macOS / Linux only.
+- The **SumatraPDF route on Windows is removed** along with its install probing, download and settings status bar; `printPdfFile` throws on win32 and Windows needs no external tool.
+- Consequently `paperName` and `margins` are **not consumed** by the current route (kept in the protocol for compatibility).
+- The never-consumed optional fields `lHeight` and `leftSpaceRemoved` are removed; residual keys are ignored and rendering is unchanged.
+
+### Fixed
+
+- **Desktop client: templates containing a barcode or QR code could not print at all** — every such job ended in `PRINT_FAILED: 码值渲染超过 ~30000ms`. The pipeline renders code SVGs in the page *before* the first `setContent`, and the Electron driver called `webContents.executeJavaScript` on a window that had never committed a document, so Electron queued the script forever. The driver now loads a blank document before the first executor injection. Measured on a local PDFwriter queue: the shipped waybill (barcode + QR, 100×150 mm custom paper) went from timeout to **2.4 s** with the spooled media exactly 100.00×150.00 mm and `/Rotate=0`; barcode-only 1.5 s, QR-only with quiet zone 4 at 1.5 s, the typography probe 1.9–2.3 s. **The defect dates back to 1.3.5** (the 1.3.5 client installed on the same machine times out on the same template); it was not introduced by V1.3.7 but ships fixed here.
+- **macOS fallback route: landscape labels were pinned to portrait media.** `Custom.` sizes are now declared in the page's real orientation on both platforms and macOS no longer adds an orientation request for them; the request stays only for landscape pages hitting a standard paper name.
+- **Toolbar labels no longer wrap onto the canvas** ([GitHub issue #4, comment 1](https://github.com/worm-longliu/worm-vue3-print/issues/4)) — wrapping started between 1520 and 1600 CSS px, i.e. on a 1080p/2K display at 100% zoom.
+- The border sub-panel stuck 48px out of the 更多 panel (T-07a) → measured `min-width: 244px`, overflow now 0.
+- The host-switch dropdown in the sub-demos stayed painted while its `details` was closed; common-host field help bubbles lost their scoping; several controls were never wired to theme tokens; `PresetColorPicker`'s double root produced an attribute warning.
 
 ### Behavior changes
 
-- **The same wide label now prints in the orientation the PDF shows.** Templates turned sideways to work around the old behavior must go back to their real output orientation.
-- **macOS / Linux output now really declares the paper**, so jobs that previously fell back to the queue's default paper (usually portrait A4/Letter) use the page's true size, and landscape A4 / wide custom paper now prints upright (macOS flips the media with an orientation request; Linux declares `Custom.` in the page's real orientation).
-- **Queues whose PPD has no custom-size support silently ignore `media=Custom.*`** (AirPrint and driverless queues do this) and fall back to the queue's default paper — for label stock, pass a `paperName` the driver already defines.
-- **The driver can still rotate back**: if the label definition in the driver disagrees with the template, align the driver / machine setting.
-- **`paperName` is not consumed on Windows**: that path has no CUPS paper declaration, only orientation; use macOS / Linux when a driver preset paper name is required.
-- The client protocol, the WebSocket interface and the host SDK are unchanged.
+- **Existing QR templates get bigger** (no forced quiet band by default). Enter 4 if you need the ISO/IEC 18004 band.
+- Justification **stretches the last line of multi-line text** (Lodop `AlignJustify` / Excel behaviour, not Word's).
+- **Windows no longer needs SumatraPDF**; deployments that relied on that route can uninstall it.
 
-### Desktop client installers (Linux added in this release)
+### Related issues
 
-The desktop client `clients/print-client` (Electron silent printing over a loopback WebSocket, port 17521) is not published to npm; its installers are attached to this release page:
+- GitHub: [#4 Chinese typography gaps: text justify, first-line indent, image crop anchor](https://github.com/worm-longliu/worm-vue3-print/issues/4)
+- Gitee: [IKN95F QR code stops growing when the box gets larger](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)
 
-| Asset | Target |
-| --- | --- |
-| `WormPrintClient-1.3.6-mac-x64.dmg` | Intel Mac |
-| `WormPrintClient-1.3.6-mac-arm64.dmg` | Apple Silicon Mac |
-| `WormPrintClient-1.3.6-win-x64.exe` | Windows 10 / 11 x64 (NSIS, selectable install dir and desktop shortcut) |
-| `WormPrintClient-1.3.6-linux-amd64.deb` | Debian / Ubuntu x64 (`sudo apt install ./<file>`) |
-| `WormPrintClient-1.3.6-linux-x86_64.rpm` | Fedora / RHEL / openSUSE x64 (`sudo rpm -i <file>`) |
-| `WormPrintClient-1.3.6-linux-x86_64.AppImage` | Any x64 distribution, single self-contained file (requires `libfuse2`) |
-| `SHA256SUMS.txt` | SHA-256 checksums for the installers above |
+### Desktop client installers
 
-> ⚠️ **The installers carry no Developer ID signature and are not notarized** — the project holds no Apple Developer ID or Windows signing certificate. The main executable, the Helpers and `Electron Framework` keep the ad-hoc signature that ships inside Electron's official prebuilds, so the arm64 package is not missing any execution prerequisite on Apple Silicon; what is missing is the bundle-level resource seal, which surfaces as a Gatekeeper prompt on first launch. Bypass it with `xattr -dr com.apple.quarantine /Applications/WormPrintClient.app` (works on every macOS version), or on macOS 15 via System Settings → Privacy & Security → "Open Anyway". On Windows, SmartScreen reports an unknown publisher → More info → Run anyway. Launching the arm64 build on real Apple Silicon hardware has **not been verified** (the build machine is Intel). Packaging and upload steps live in the [client README](https://github.com/worm-longliu/worm-vue3-print/blob/master/clients/print-client/README.md).
+Installer baseline is master head `61d1631` (its parent `f8af92e` carries the code-render fix above); details in the V1.3.7 section of the changelog.
 
-> 🐧 **The three Linux packages are new and were cross-built inside an x64 Docker container** (`npm run pack:client:linux`): payload, declared dependencies and SHA-256 are verified, but **no installation or printing on real Linux hardware has been tested**. Printing relies on CUPS; `chrome-sandbox` inside the deb/rpm is not setuid (`0755`), so a `SUID sandbox helper` error at launch means you need unprivileged user namespaces enabled or `--no-sandbox` for now. On distributions that ship only fuse3 (Ubuntu 24.04 and newer), install `libfuse2` before running the AppImage, or launch it with `--appimage-extract-and-run`. No `snap` and no arm64 builds in this release.
+- [WormPrintClient-1.3.7-mac-x64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-mac-x64.dmg)
+- [WormPrintClient-1.3.7-mac-arm64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-mac-arm64.dmg)
+- [WormPrintClient-1.3.7-win-x64.exe](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-win-x64.exe)
+- [WormPrintClient-1.3.7-linux-amd64.deb](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-linux-amd64.deb)
+- [WormPrintClient-1.3.7-linux-x86_64.rpm](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-linux-x86_64.rpm)
+- [WormPrintClient-1.3.7-linux-x86_64.AppImage](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/WormPrintClient-1.3.7-linux-x86_64.AppImage)
+- [SHA256SUMS.txt](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.7/SHA256SUMS.txt)
 
-> 🧭 **The installers are built from the tip of `master` at release time (`9b3af68`), not from the `v1.3.6` tag.** Eight commits separate that tip from the tag and four of them change the desktop client and the demo, which the bundles therefore carry: silent printing now defaults to the **direct HTML route** (`webContents.print`, no external command on any platform — which also removes the Windows SumatraPDF path, drops `printRoute` from `config.json` and removes the Windows / Linux application menu, all breaking), the macOS fallback PDF route now declares `Custom.` in the page's real orientation (the correction noted above), window and tray icons share the installer artwork, and the demo's custom fonts follow the template. Each item is detailed in the Unreleased section of [`docs/en/CHANGELOG.en.md`](https://github.com/worm-longliu/worm-vue3-print/blob/master/docs/en/CHANGELOG.en.md). The npm `core` / `canvas` packages are unaffected: `packages/` has no changes after the tag, so the published content matches it exactly.
+Installers are attached on GitHub only (Gitee caps a single asset at 100 MB). For stalled downloads paste the links into Xunlei / IDM / qBittorrent. The Linux packages are not verified on real hardware.
 
 ### Quality
 
-- Tests are green: re-run at the installer baseline (`9b3af68`), 1459 tests across the four workspaces — core 814 / canvas 415 / common 120 / print-client 110 (the `v1.3.6` tag baseline was 1443; the 16 extra are all in print-client, covering the direct HTML route).
-- New regression coverage for argument forwarding: `pdf-printer.test.ts` stubs `execFile` to assert what each platform branch actually sends (so a "declared but never forwarded" bug cannot come back) and checks the orientation token for every aspect-ratio case.
-- `npm run build`, `npm test` and `npm run lint:print-architecture` all exit 0.
-- **Not yet verified, stated plainly**: macOS orientation and paper declaration have now been measured case by case against an open-source virtual printer (RWTS-PDFwriter) on macOS 15.7.8 / CUPS 2.3.4 — MediaBox, `/Rotate` and the content rotation matrix of the saved PDF, for both the direct HTML route and the fallback PDF route. Real printers (label drivers in particular, which clamp custom sizes back to their own forms) and the Windows orientation fix still need output on hardware; the three Linux installers have not been installed or launched on real Linux machines.
+- `npm run build` and `npm test` exit 0: **1598 tests** (core 63 files/847, canvas 56/465, common 13/149, print-client 14/110), plus the render service **8 files / 27 tests** on real Chromium; `npm run lint:print-architecture` passes. 0 skipped.
+- demo-common acceptance `verify-demo.mjs`: jquery / vue2 / react / vue3 **36/36** each (144 assertions, 0 failures).
+- Toolbar overflow measured at 1600/1280/900/700/640: zero wrapped labels, zero bleeding below the bar, zero horizontal overflow; bar height constant at 51px (designer) and 45px (demo top bar).
+- Client output verified through a local CUPS queue on both routes (HTML direct and the PDF fallback), and the payloads of all six installers were inspected (identical `app.asar` bytes across mac / win / deb / rpm, new declarations present, zero SumatraPDF residue).
+- Not verified on real hardware: actual printing on Windows and Linux clients, and vendor-driver clamping of custom sizes.
 
----
-
-感谢所有提交者与反馈者。问题请在 [Issues](https://github.com/worm-longliu/worm-vue3-print/issues) 提出，完整变更见 [`docs/中文/CHANGELOG.md`](/docs/中文/CHANGELOG.md)。
