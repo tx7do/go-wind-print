@@ -59,6 +59,13 @@
         </select>
       </div>
 
+      <div class="pd-field" v-if="isQrcodeCell"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="quietTip" aria-label="字段说明" /></span>
+        <StepperInput :model-value="mainCell.qrQuietZone"
+          :min="0"
+          :max="8"
+          placeholder="默认 0" @update:model-value="write(c => { c.qrQuietZone = $event ?? undefined })" />
+      </div>
+
       <p class="pd-hint" v-if="isBarcodeCell">单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限</p>
       <div class="pd-field" v-if="isQrcodeCell || isImageCell"><span class="pd-label">缩放模式</span>
         <select :value="mainCell.fit || 'contain'" class="pd-select" @change="write(c => { c.fit = ($event.target as HTMLSelectElement).value as any })">
@@ -206,7 +213,7 @@ import type {
 } from '@worm-vue3-print/core/designer'
 import {
   canMergeReason, mergeCells, splitCells, applyBorderPreset, findMainCell, type BorderPreset,
-  resolveCellTextFit, type TextFit,
+  resolveCellTextFit, type TextFit, propertyTip,
 } from '@worm-vue3-print/core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import PropertyGroup from './PropertyGroup.vue'
@@ -214,6 +221,9 @@ import StepperInput from './StepperInput.vue'
 import ExpressionEditor from '../ExpressionEditor.vue'
 import PresetColorPicker from '../PresetColorPicker.vue'
 import FontSelect from './FontSelect.vue'
+
+/** 静区说明：文案单一来源在 core 的属性注册表，与元素台、common 宿主共用同一条 */
+const quietTip = propertyTip('cd-quiet-zone')
 
 const props = defineProps<{
   element: RuntimeElement
@@ -269,7 +279,10 @@ function onCellTypeChange(v: string) {
       c.showBarcodeText = undefined
       c.printerDpi = undefined
     }
-    if (v !== 'qrcode') c.qrCodeLevel = undefined
+    if (v !== 'qrcode') {
+      c.qrCodeLevel = undefined
+      c.qrQuietZone = undefined
+    }
     // fit、maxWidth、maxHeight 对所有类型都有效，不再清除
   })
 }

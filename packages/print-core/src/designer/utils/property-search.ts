@@ -2,6 +2,8 @@
 export interface PropertyItem {
   key: string
   keywords: string[]
+  /** 字段说明文案：挂在标签后的帮助图标上（悬浮/点击显示），元素台与单元格台、canvas 与 common 共用同一份 */
+  tip?: string
 }
 
 export interface PropertyGroupDef {
@@ -49,6 +51,11 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
       { key: 'cd-show-text', keywords: ['显示文本', '条码文本', '显示数字'] },
       { key: 'cd-font-size', keywords: ['条码字号', '文本字号'] },
       { key: 'cd-ec-level', keywords: ['纠错级别', '容错', 'qrcodelevel'] },
+      {
+        key: 'cd-quiet-zone',
+        keywords: ['静区', '静区宽度', '白边', '空白边', '留白', '铺满', 'quietzone'],
+        tip: '二维码四周留出的空白格数：0 即不留白边、码面等比铺满元素框（此时靠框外的白纸充当静区）；数值越大白边越宽、码面在框内越小（缺省 0，需 ISO/IEC 18004 推荐静区时填 4）',
+      },
       { key: 'cd-fit', keywords: ['缩放模式', '拉伸', '等比', 'fit', 'contain', 'cover'] },
       { key: 'cd-max-width', keywords: ['最大宽度', '最大宽', 'maxwidth'] },
       { key: 'cd-max-height', keywords: ['最大高度', '最大高', 'maxheight'] },
@@ -105,6 +112,15 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
 ]
 
 /** 正向包含匹配：任一关键词包含搜索词即命中；空搜索恒命中 */
+/** 按表单项 key 取说明文案（帮助图标 tip 的内容）；未登记说明时返回空串 */
+export function propertyTip(key: string): string {
+  for (const group of PROPERTY_REGISTRY) {
+    const hit = group.items.find(item => item.key === key)
+    if (hit) return hit.tip ?? ''
+  }
+  return ''
+}
+
 export function matchKeywords(search: string, keywords: string[]): boolean {
   const s = search.trim().toLowerCase()
   if (!s) {

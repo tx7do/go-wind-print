@@ -62,6 +62,7 @@ TYPE_ALIAS = {
     },
     'qrcode': {
         'level': 'qrCodeLevel',  # L/M/Q/H
+        'quiet': 'qrQuietZone',  # 静区白边（模块）0~8，缺省 0＝码面等比铺满元素框
     },
     'image': {
         'src': 'src',
@@ -98,6 +99,7 @@ CELL_ALIAS = {
     'dpi': 'printerDpi',
     'showText': 'showBarcodeText',
     'level': 'qrCodeLevel',
+    'quiet': 'qrQuietZone',
     'padding': 'padding',
     'textFit': 'textFit',
     'wordWrap': 'wordWrap',

@@ -103,3 +103,22 @@ describe('CellBarcode 落纸尺寸（条宽 → dpi → 等比缩小）', () => 
     expect(svg.attributes('viewBox')).toBeUndefined()
   })
 })
+
+describe('CellBarcode 单元格二维码铺满单元格', () => {
+  it('img 显式给出 width/height:100%，图形与出纸同源', async () => {
+    const wrapper = await mountCell({ cellType: 'qrcode', value: 'qrcode-cell' })
+    const img = wrapper.find('img')
+    expect(img.exists(), '二维码应已出图').toBe(true)
+    const decls = (img.attributes('style') ?? '').split(';').map(d => d.replace(/\s+/g, '')).filter(Boolean)
+    expect(decls).toContain('width:100%')
+    expect(decls).toContain('height:100%')
+    expect(img.attributes('src')?.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true)
+  })
+
+  it('qrQuietZone 经 TableElement 透传到图形：0 档 viewBox 边长即码面 84', async () => {
+    const wrapper = await mountCell({ cellType: 'qrcode', value: 'QR', qrQuietZone: 0 })
+    const src = wrapper.find('img').attributes('src') ?? ''
+    const svg = decodeURIComponent(src.slice(src.indexOf(',') + 1))
+    expect(svg).toContain('viewBox="0 0 84 84"')
+  })
+})

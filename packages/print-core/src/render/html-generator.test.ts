@@ -14,6 +14,18 @@ function stubRenderer(onRender?: (opts: CodeRenderOptions) => void): CodeRendere
   }
 }
 
+/**
+ * 取码值 img 的行内声明列表：逐条比对，避免 toContain('width:100%') 被 'max-width:100%' 蒙过去。
+ * srcIncludes 用于在含多个 img 的产物里定位目标码值（如表格单元格场景）。
+ */
+function imgDecls(html: string, srcIncludes = 'data:image/svg+xml'): string[] {
+  for (const [, src, style] of html.matchAll(/<img src="([^"]*)"[^>]*style="([^"]*)"/g)) {
+    if (!src.includes(srcIncludes)) continue
+    return style!.split(';').map(d => d.trim()).filter(Boolean)
+  }
+  throw new Error(`html 中没有 src 含「${srcIncludes}」的 <img>`)
+}
+
 function makeTemplate(tableOptions: Record<string, any>): TemplateData {
   return {
     paperSize: 'A4', orientation: 'portrait',
@@ -272,7 +284,7 @@ describe('页眉/页脚区域元素渲染', () => {
     expect(captured.targetHeightMm).toBe(20)
   })
 
-  it('二维码元素保持原 shrink-to-fit（不含 object-fit:contain）', () => {
+  it('二维码元素铺满元素盒：img 写死 width/height:100%，fit 缺省按 contain', () => {
     const t = makeAreaTemplate({
       footer: {
         height: 12,
@@ -280,9 +292,14 @@ describe('页眉/页脚区域元素渲染', () => {
       },
     })
     const html = generateHtml(t, singlePage, undefined, { codeRenderer: stubRenderer() })
+    const decls = imgDecls(html)
+    // 只给 max-* 时 img 停在 SVG 内在像素尺寸（116px≈30.7mm），盒子更大即不铺满且 object-fit 空转
+    expect(decls).toContain('width:100%')
+    expect(decls).toContain('height:100%')
+    expect(decls).toContain('object-fit:contain')
+    expect(decls).toContain('max-width:100%')
+    expect(decls).toContain('max-height:100%')
     expect(html).toContain(encodeURIComponent('data-test-code="qrcode"'))
-    expect(html).toContain('max-width:100%;max-height:100%')
-    expect(html).not.toContain('object-fit:contain')
   })
 
   it('条形码元素的最大宽高并入可用框（参与结算，而非事后 CSS 缩放）', () => {
@@ -327,6 +344,22 @@ describe('页眉/页脚区域元素渲染', () => {
     const html = generateHtml(t, singlePage, undefined, { codeRenderer: stubRenderer() })
     expect(html).toContain('object-fit:contain')
     expect(html).toContain('max-width:20mm')
+  })
+
+  it('二维码元素把 qrQuietZone 交给渲染器（0 不能被当假值丢掉，未设置则不写该键）', () => {
+    let captured: CodeRenderOptions = {}
+    const withZone = makeAreaTemplate({
+      footer: { height: 12, elements: [makeAreaEl('qrcode', { testData: 'qrcode-x', qrQuietZone: 0 })] as any },
+    })
+    generateHtml(withZone, singlePage, undefined, { codeRenderer: stubRenderer(o => { captured = o }) })
+    expect(captured.qrQuietZone).toBe(0)
+
+    captured = {}
+    const bare = makeAreaTemplate({
+      footer: { height: 12, elements: [makeAreaEl('qrcode', { testData: 'qrcode-x' })] as any },
+    })
+    generateHtml(bare, singlePage, undefined, { codeRenderer: stubRenderer(o => { captured = o }) })
+    expect(captured.qrQuietZone).toBeUndefined()
   })
 
   it('条形码元素无论是否设置 printerDpi 都内联 <svg>（<img> 的内在尺寸会被取整到整数 CSS px）', () => {
@@ -400,7 +433,7 @@ describe('页眉/页脚区域元素渲染', () => {
     expect(captured.targetHeightMm).toBeCloseTo(6 - 0.1323, 3)
   })
 
-  it('表格单元格二维码保持原 shrink-to-fit（不含 object-fit:contain）', () => {
+  it('表格单元格二维码同样铺满单元格：img 写死 width/height:100%', () => {
     const t = makeTemplate({
       ...matrixOptions(),
       tableDefaultFontSize: 10,
@@ -415,8 +448,10 @@ describe('页眉/页脚区域元素渲染', () => {
       { elementId: 'tbl-1', type: 'table-slice', startRow: 0, endRow: 3 },
     ]), undefined, { codeRenderer: stubRenderer() })
     expect(html).toContain('<img src="data:image/svg+xml;charset=utf-8,')
-    expect(html).toContain('max-width:100%;max-height:100%')
-    expect(html).not.toContain('object-fit:contain')
+    const decls = imgDecls(html, encodeURIComponent('data-test-code="qrcode"'))
+    expect(decls).toContain('width:100%')
+    expect(decls).toContain('height:100%')
+    expect(decls).toContain('object-fit:contain')
   })
 
   it('表格单元格条形码启用 printerDpi：按单元格可用宽高点对齐并内联 svg', () => {

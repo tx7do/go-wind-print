@@ -74,7 +74,17 @@ function renderBarcodeSvg(value: string, opts: CodeRenderOptions): string {
   return svg.outerHTML
 }
 
-/** 二维码：QRCode.create 同步取模块矩阵，拼接 SVG（静态白边 4 模块） */
+/** 二维码静区缺省档（模块）：元素/单元格选项 qrQuietZone 未设置时使用，0 = 码面等比铺满元素框 */
+const QR_DEFAULT_QUIET_MODULES = 0
+
+/** 静区取非负整数模块数；未填或非法值回退缺省档，0 是合法档（码面即整张图） */
+function qrQuietModules(value?: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : QR_DEFAULT_QUIET_MODULES
+}
+
+/** 二维码：QRCode.create 同步取模块矩阵，拼接 SVG（静区按 qrQuietZone，缺省 0 模块＝铺满） */
 function renderQrSvg(value: string, opts: CodeRenderOptions): string {
   const level = (opts.qrCodeLevel ?? 'M').toUpperCase()
   const qr = QRCode.create(value, {
@@ -83,7 +93,7 @@ function renderQrSvg(value: string, opts: CodeRenderOptions): string {
   const modules = qr.modules
   const size = modules.size
   const dot = 4
-  const quiet = 4 * dot
+  const quiet = qrQuietModules(opts.qrQuietZone) * dot
   const dim = size * dot + quiet * 2
   let rects = ''
   for (let y = 0; y < size; y++) {

@@ -55,6 +55,13 @@
             <option value="H">H（最高）</option>
           </select>
         </div>
+        <div class="pd-field" v-show="showItem('cd-quiet-zone')"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="quietTip" aria-label="字段说明" /></span>
+          <StepperInput :model-value="element.options.qrQuietZone"
+            :min="0"
+            :max="8"
+            placeholder="默认 0"
+            @update:model-value="element.options.qrQuietZone = $event ?? undefined; emitChange()" />
+        </div>
       </template>
 
       <h3 class="pd-divider">自定义设置</h3>
@@ -89,8 +96,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { propertyTip } from '@worm-vue3-print/core/designer'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
+
+/** 静区说明：文案单一来源在 core 的属性注册表，与单元格台、common 宿主共用同一条 */
+const quietTip = propertyTip('cd-quiet-zone')
 
 const props = defineProps<{
   element: RuntimeElement

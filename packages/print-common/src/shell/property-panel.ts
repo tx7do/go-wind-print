@@ -4,10 +4,10 @@
 //  .property-search>input.pd-input / .font-select>.font-select-input+.font-select-list /
 //  .pd-form / .position-grid / .margin-grid / .pd-field>.pd-label / .pd-divider / .pd-empty）。
 // 搜索门控（filteredGroups / matchedKeys / searching）见 shell/property-search.ts，口径同 canvas。
-import { PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit } from '@worm-vue3-print/core/designer'
+import { PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
-import { colorTrigger, divider, field, radioGroup, stepper } from './controls'
+import { colorTrigger, divider, field, fieldHelp, radioGroup, stepper } from './controls'
 import { designBackgroundSection, tilingSection } from './page-extras'
 import { bindingGroup } from './binding'
 import { renderFontSelect } from './font-select'
@@ -152,10 +152,16 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
             value: o.fontSize, min: 5, max: 24, placeholder: '默认 10',
             onCommit: v => patch({ fontSize: v || undefined }),
           }))),
-        ] : gateItem(ctx, 'cd-ec-level', selectField(ctx, '纠错级别', String(o.qrCodeLevel ?? 'M'), [
-          { value: 'L', label: 'L（最低，容量大）' }, { value: 'M', label: 'M（推荐）' },
-          { value: 'Q', label: 'Q' }, { value: 'H', label: 'H（最高）' },
-        ], v => patch({ qrCodeLevel: v }))),
+        ] : [
+          gateItem(ctx, 'cd-ec-level', selectField(ctx, '纠错级别', String(o.qrCodeLevel ?? 'M'), [
+            { value: 'L', label: 'L（最低，容量大）' }, { value: 'M', label: 'M（推荐）' },
+            { value: 'Q', label: 'Q' }, { value: 'H', label: 'H（最高）' },
+          ], v => patch({ qrCodeLevel: v }))),
+          gateItem(ctx, 'cd-quiet-zone', fieldHelp('静区 (模块)', stepper({
+            value: o.qrQuietZone, min: 0, max: 8, placeholder: '默认 0',
+            onCommit: v => patch({ qrQuietZone: v }),
+          }), propertyTip('cd-quiet-zone'))),
+        ],
         divider('自定义设置'),
         isBarcode ? h('p', {
           class: 'pd-hint',

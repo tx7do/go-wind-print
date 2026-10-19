@@ -41,6 +41,43 @@ function selects(w: ReturnType<typeof mountGroup>) {
   return w.findAll('select')
 }
 
+describe('TableCellGroup 二维码单元格静区', () => {
+  const quietField = (w: ReturnType<typeof mountGroup>) =>
+    w.findAll('.pd-field').find(f => f.find('.pd-label').text() === '静区 (模块)')
+  const cellOf = (el: RuntimeElement) => (el.options.tableRows as any[])[0].cells[0] as TableCell
+
+  it('二维码单元格出「静区 (模块)」，条形码与文本单元格不出', () => {
+    expect(quietField(mountGroup(makeElement({ cellType: 'qrcode' })))).toBeTruthy()
+    expect(quietField(mountGroup(makeElement({ cellType: 'barcode' })))).toBeUndefined()
+    expect(quietField(mountGroup(makeElement({ formatter: '文本' })))).toBeUndefined()
+  })
+
+  it('填 0 写进单元格（0 就是「无白边、码面铺满」，被假值判断归成未设置这档就没了）', async () => {
+    const element = makeElement({ cellType: 'qrcode' })
+    const input = quietField(mountGroup(element))!.find('input[type="number"]')
+    await input.setValue('0')
+    await input.trigger('change')
+    expect(cellOf(element).qrQuietZone).toBe(0)
+  })
+
+  it('说明挂在标签后的帮助图标上（悬浮/点击显示），不常驻文字提示', () => {
+    const field = quietField(mountGroup(makeElement({ cellType: 'qrcode' })))!
+    const help = field.find('.pd-help')
+    expect(help.exists(), '静区标签后应有帮助图标').toBe(true)
+    expect(help.attributes('data-tip')).toContain('0 即不留白边')
+    expect(field.find('.pd-hint').exists(), '说明不应常驻成一行文字').toBe(false)
+  })
+
+  it('缺省显示 2（与渲染器缺省档一致），单元格类型切走时清除该字段', async () => {
+    const element = makeElement({ cellType: 'qrcode', qrQuietZone: 4 })
+    const w = mountGroup(element)
+    expect(quietField(w)!.find('input[type="number"]').element.value).toBe('4')
+
+    await w.find('input[type="radio"][value="text"]').setValue()
+    expect(cellOf(element).qrQuietZone).toBeUndefined()
+  })
+})
+
 describe('TableCellGroup 条形码单元格打印机分辨率', () => {
   it('条形码单元格显示「打印机分辨率」，缺省为不对齐', () => {
     const w = mountGroup(makeElement({ cellType: 'barcode' }))

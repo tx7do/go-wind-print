@@ -84,12 +84,16 @@
 | 类型 | 字段 |
 |---|---|
 | `barcode` | `barcodeType`（`code128`/`ean13`/`code39`/`itf14`，默认 code128）、`barWidth`（模块倍率 2~4）、`printerDpi`（203/300/600，给出则吸附整数打印点，热敏强烈建议给）、`hideTitle` |
-| `qrcode` | `qrCodeLevel`（`L`/`M`/`Q`/`H`）、`fit`、`maxWidth`/`maxHeight` |
+| `qrcode` | `qrCodeLevel`（`L`/`M`/`Q`/`H`）、`qrQuietZone`（静区白边，单位「模块」，0~8，缺省 0＝不留白边、码面等比铺满元素框）、`fit`（缺省 `contain`）、`maxWidth`/`maxHeight` |
 | `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`）、`maxWidth`/`maxHeight` |
 | `hline`/`vline` | `borderWidth` + `borderColor`（元素高度常取 0.2） |
 
 **条码尺寸口径**：每模块首选宽 = `barWidth/2 × 0.25mm`；给了 `printerDpi` 就吸附到整数打印点
 （dpi 优先），可用框放不下则整体等比缩小，绝不溢出。热敏出纸「条宽忽宽忽窄」的根因就是没给 dpi。
+
+**二维码铺满口径**：图形走 `<img>`，写 `width/height:100%` 再配 `object-fit`（缺省 `contain`），码面等比贴住元素框短边；
+框内那圈白边就是 `qrQuietZone`（单位「模块」，与元素框大小无关，**缺省 0**）。21 模块的码：`0`→码面占框 100%、`2`→84%、`4`→72%。
+需要 ISO/IEC 18004 推荐的静区时显式写 `qrQuietZone: 4`——0 档靠元素框外的白纸充当静区，密集排版（紧邻文字或表格线）可能扫不出。
 
 ## 5. 表格模型
 

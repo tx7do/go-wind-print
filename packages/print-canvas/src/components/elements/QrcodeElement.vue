@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import QRCode from 'qrcode'
+import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
 import { resolveTextBinding } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 
@@ -16,29 +16,31 @@ const props = defineProps<{
   designMode?: boolean
 }>()
 
-// 改用 toDataURL 渲染为 <img>：纳入统一图片加载屏障，规避 canvas 在 PDF 中偶发空白
+// 与出纸同源（core/browser 的 browserCodeRenderer）：同一份 SVG、同一静区，
+// 矢量图形不受元素盒大小影响，缩放盒子无需重新出图
 const dataUrl = ref('')
 
-/** 最大宽高（mm）与出图端 codeImgHtml 的 max-width/max-height 同口径 */
+/** 铺满元素盒（width/height 显式给出）+ 最大宽高（mm）上限，与出图端 codeImgHtml 同口径 */
 const imgStyle = computed(() => {
   const o = props.element.options
   return {
+    width: '100%',
+    height: '100%',
     objectFit: (o.fit || 'contain') as any,
     maxWidth: o.maxWidth ? `${o.maxWidth}mm` : '100%',
     maxHeight: o.maxHeight ? `${o.maxHeight}mm` : '100%',
   }
 })
 
-async function render() {
+function render() {
   const o = props.element.options
   const value = (props.designMode ? (o.testData || o.formatter) : resolveTextBinding(o, props.data)) || '二维码'
-  const size = Math.min(o.width || 80, o.height || 80)
   try {
-    dataUrl.value = await QRCode.toDataURL(value, {
-      width: size,
-      margin: 1,
-      errorCorrectionLevel: (String(o.qrCodeLevel ?? 'M') as 'L' | 'M' | 'Q' | 'H'),
+    const svg = browserCodeRenderer.render(value, 'qrcode', {
+      qrCodeLevel: String(o.qrCodeLevel ?? 'M'),
+      qrQuietZone: typeof o.qrQuietZone === 'number' ? o.qrQuietZone : undefined,
     })
+    dataUrl.value = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
   } catch {
     dataUrl.value = ''
   }
@@ -46,7 +48,10 @@ async function render() {
 
 onMounted(render)
 watch(
-  () => [props.element.options.formatter, props.element.options.testData, props.element.options.qrCodeLevel],
+  () => [
+    props.element.options.formatter, props.element.options.testData,
+    props.element.options.qrCodeLevel, props.element.options.qrQuietZone,
+  ],
   render,
 )
 </script>

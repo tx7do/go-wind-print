@@ -96,6 +96,24 @@ describe('bindTableData 静态模式', () => {
   })
 })
 
+describe('bindData 单元格码类配置透传', () => {
+  it('二维码单元格的 qrQuietZone 与 qrCodeLevel 进入 _renderRows（漏一个字段属性台就失效）', () => {
+    const t = makeTemplate({
+      tableMode: 'static',
+      tableRows: [{
+        id: 'r1', type: 'static', height: 8,
+        cells: [cell({ formatter: 'QR', cellType: 'qrcode', qrCodeLevel: 'H', qrQuietZone: 0 })],
+      }],
+    })
+    const bound = bindData(t, {})
+    const c = bound.elements[0]!.options._renderRows[0].cells[0]
+    expect(c.cellType).toBe('qrcode')
+    expect(c.qrCodeLevel).toBe('H')
+    // 0 是合法档位，不能被 or/falsy 判断吃掉
+    expect(c.qrQuietZone).toBe(0)
+  })
+})
+
 describe('文本元素 formatter 求值', () => {
   it('文本元素 options.formatter 在绑定后求值', () => {
     const tpl = { paperSize: 'A4', orientation: 'portrait', margins: { top: 10, right: 10, bottom: 10, left: 10 }, header: { height: 10, elements: [] }, footer: { height: 10, elements: [] }, elements: [{ id: 'e1', type: 'text', options: { formatter: '公司：{company.name}' } }] } as any

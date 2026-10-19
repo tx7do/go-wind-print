@@ -25,6 +25,7 @@
                 :value="cellDisplay(row, cell)"
                 :barcode-type="cell.barcodeType"
                 :qr-code-level="cell.qrCodeLevel"
+                :qr-quiet-zone="cell.qrQuietZone"
                 :show-text="cell.showBarcodeText !== false"
                 :fit="cell.fit"
                 :max-width="cell.maxWidth"

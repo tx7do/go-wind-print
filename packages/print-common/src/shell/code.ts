@@ -1,8 +1,8 @@
 // 条码 / 二维码绘制：与 canvas 的 BarcodeElement / QrcodeElement 同口径
-// （条宽定首选尺寸 → dpi 吸附 → 框不够等比缩小；二维码出 <img> 走统一图片尺寸约束）。
+// （条宽定首选尺寸 → dpi 吸附 → 框不够等比缩小；二维码取 core/browser 同一份 SVG 出 <img> 铺满元素盒）。
 // 绘制在 DOM 落位后由 hydrateCodes 补上，避免每次重渲染都同步跑一遍码制计算。
 import JsBarcode from 'jsbarcode'
-import QRCode from 'qrcode'
+import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
 import {
   BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_MARGIN_BOTTOM_MODULES,
@@ -92,17 +92,23 @@ function drawQrcode(el: RuntimeElement, box: HTMLElement) {
   const o = el.options
   const text = String(o.testData || o.formatter || o.title || '') || '二维码'
   box.replaceChildren()
-  void QRCode.toDataURL(text, { margin: 0 })
-    .then(url => {
-      const img = document.createElement('img')
-      img.src = url
-      img.alt = 'qrcode'
-      img.style.objectFit = String(o.fit || 'contain')
-      img.style.maxWidth = o.maxWidth ? `${o.maxWidth}mm` : '100%'
-      img.style.maxHeight = o.maxHeight ? `${o.maxHeight}mm` : '100%'
-      box.appendChild(img)
+  try {
+    // 与出纸同源（core/browser）：同一份 SVG、同一静区，矢量图形不随元素盒大小重出图
+    const svg = browserCodeRenderer.render(text, 'qrcode', {
+      qrCodeLevel: String(o.qrCodeLevel ?? 'M'),
+      qrQuietZone: typeof o.qrQuietZone === 'number' ? o.qrQuietZone : undefined,
     })
-    .catch(() => { /* 码值非法：留空，与设计态不弹错 */ })
+    const img = document.createElement('img')
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+    img.alt = 'qrcode'
+    // 铺满元素盒（与出图端 codeImgHtml 同口径）：只给 max-* 时 img 停在内在像素尺寸
+    img.style.width = '100%'
+    img.style.height = '100%'
+    img.style.objectFit = String(o.fit || 'contain')
+    img.style.maxWidth = o.maxWidth ? `${o.maxWidth}mm` : '100%'
+    img.style.maxHeight = o.maxHeight ? `${o.maxHeight}mm` : '100%'
+    box.appendChild(img)
+  } catch { /* 码值非法：留空，与设计态不弹错 */ }
 }
 
 /** DOM 落位后绘制所有码类元素 */

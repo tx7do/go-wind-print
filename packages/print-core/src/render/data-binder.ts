@@ -186,6 +186,7 @@ function makeRenderRow(
       cellType: cell.cellType,
       barcodeType: cell.barcodeType,
       qrCodeLevel: cell.qrCodeLevel,
+      qrQuietZone: cell.qrQuietZone,
       showBarcodeText: cell.showBarcodeText,
       printerDpi: cell.printerDpi,
       fit: cell.fit,

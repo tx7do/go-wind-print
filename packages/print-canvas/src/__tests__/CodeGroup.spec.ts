@@ -160,6 +160,55 @@ function tpl(): TemplateData {
   } as TemplateData
 }
 
+describe('CodeGroup 二维码元素：静区 (模块)', () => {
+  /** 按标签定位静区字段：不依赖数字输入框顺序，加字段不会串位 */
+  function mountQrcodePanel(element: RuntimeElement) {
+    const w = mountCodeGroup(element)
+    const field = w.findAll('.pd-field').find(f => f.find('.pd-label').text() === '静区 (模块)')
+    return { w, input: field?.find('input[type="number"]') }
+  }
+
+  it('二维码出「静区 (模块)」，条形码不出（白边只对二维码有意义）', () => {
+    expect(mountQrcodePanel(makeElement('qrcode')).input).toBeTruthy()
+    expect(mountQrcodePanel(makeElement('barcode')).input).toBeUndefined()
+  })
+
+  it('填 0 写 options.qrQuietZone = 0（0 档就是「无白边、码面铺满」，不能被当空清掉）', async () => {
+    const element = makeElement('qrcode', {})
+    const { input } = mountQrcodePanel(element)
+    await input!.setValue('0')
+    await input!.trigger('change')
+    expect(element.options.qrQuietZone).toBe(0)
+  })
+
+  it('填 2 原样写入（2 就是渲染器缺省档，显式写下与留空的出纸一致）', async () => {
+    const element = makeElement('qrcode', {})
+    const { input } = mountQrcodePanel(element)
+    await input!.setValue('2')
+    await input!.trigger('change')
+    expect(element.options.qrQuietZone).toBe(2)
+  })
+
+  it('说明改挂到标签后的帮助图标（悬浮/点击显示），该字段不再常驻一行文字提示', () => {
+    const element = makeElement('qrcode', {})
+    const w = mountCodeGroup(element)
+    const field = w.findAll('.pd-field').find(f => f.find('.pd-label').text() === '静区 (模块)')
+    expect(field, '应存在静区字段').toBeTruthy()
+    const help = field!.find('.pd-help')
+    expect(help.exists(), '静区标签后应有帮助图标').toBe(true)
+    const tip = help.attributes('data-tip') ?? ''
+    expect(tip).toContain('0 即不留白边')
+    expect(tip).toContain('数值越大白边越宽')
+    expect(field!.find('.pd-hint').exists(), '说明不应再常驻成一行文字').toBe(false)
+  })
+
+  it('未设置时输入框留空并显示「默认 0」占位', () => {
+    const { input } = mountQrcodePanel(makeElement('qrcode', {}))
+    expect((input!.element as HTMLInputElement).value).toBe('')
+    expect((input!.element as HTMLInputElement).placeholder).toBe('默认 0')
+  })
+})
+
 describe('PropertyPanel 挂载条码设置分组', () => {
   function mountPanel(element: RuntimeElement) {
     return mount(PropertyPanel, {

@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import JsBarcode from 'jsbarcode'
-import QRCode from 'qrcode'
+import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
 import {
   BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_MARGIN_BOTTOM_MODULES,
@@ -26,6 +26,8 @@ const props = defineProps<{
   value: string
   barcodeType?: string
   qrCodeLevel?: string
+  /** 二维码静区（白边）宽度（模块），缺省按渲染器默认 0（码面铺满单元格） */
+  qrQuietZone?: number
   /**
    * 条形码下方是否显示文本，缺省视为「显示」（与出图端 `showBarcodeText` 同口径）。
    * 注意：Vue 会把缺省的布尔 prop 转成 false，调用方必须显式传 `cell.showBarcodeText !== false`。
@@ -80,6 +82,8 @@ const svgStyle = computed(() => {
 })
 
 const imgStyle = computed(() => ({
+  width: '100%',
+  height: '100%',
   objectFit: (props.fit || 'contain') as any,
   maxWidth: props.maxWidth ? `${props.maxWidth}mm` : '100%',
   maxHeight: props.maxHeight ? `${props.maxHeight}mm` : '100%',
@@ -138,17 +142,18 @@ function readViewBox(svg: SVGSVGElement): { width: number; height: number } | nu
   return { width: parts[2]!, height: parts[3]! }
 }
 
-async function renderQrcode() {
+function renderQrcode() {
   if (!props.value) {
     dataUrl.value = ''
     return
   }
   try {
-    dataUrl.value = await QRCode.toDataURL(props.value, {
-      width: 96,
-      margin: 1,
-      errorCorrectionLevel: ((props.qrCodeLevel || 'M') as 'L' | 'M' | 'Q' | 'H'),
+    // 与出纸同源（core/browser）：同一份 SVG、同一静区，矢量图形不随单元格大小重出图
+    const svg = browserCodeRenderer.render(props.value, 'qrcode', {
+      qrCodeLevel: String(props.qrCodeLevel || 'M'),
+      qrQuietZone: typeof props.qrQuietZone === 'number' ? props.qrQuietZone : undefined,
     })
+    dataUrl.value = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
   } catch {
     dataUrl.value = ''
   }
@@ -162,7 +167,7 @@ function render() {
 onMounted(render)
 watch(
   () => [
-    props.cellType, props.value, props.barcodeType, props.qrCodeLevel, props.showText,
+    props.cellType, props.value, props.barcodeType, props.qrCodeLevel, props.qrQuietZone, props.showText,
     props.printerDpi, props.targetWidthMm, props.targetHeightMm,
     props.barWidth, props.barFontSize, props.maxWidth, props.maxHeight,
   ],

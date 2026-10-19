@@ -123,6 +123,21 @@ describe('表格渲染 DOM 与 canvas 逐字一致', () => {
 })
 
 describe('单元格图片 / 二维码', () => {
+  it('单元格二维码静区 0 档：图形无白边（21 模块码值 viewBox 边长即码面 84）', async () => {
+    const store = makeStore()
+    const rows = JSON.parse(JSON.stringify(store.elements[0]!.options.tableRows)) as TableRow[]
+    rows[0]!.cells[2]!.cellType = 'qrcode'
+    rows[0]!.cells[2]!.formatter = 'QR'
+    rows[0]!.cells[2]!.qrQuietZone = 0
+    store.updateElement(store.elements[0]!.id, { tableRows: rows } as never, false)
+    const host = paint(store, () => {}, { visible: false, x: 0, y: 0 })
+    await new Promise(r => setTimeout(r, 300))
+    const img = host.querySelector('.cell-barcode img') as HTMLImageElement
+    expect(img, '二维码应已出图').toBeTruthy()
+    const svg = decodeURIComponent((img.getAttribute('src') ?? '').slice((img.getAttribute('src') ?? '').indexOf(',') + 1))
+    expect(svg).toContain('viewBox="0 0 84 84"')
+  })
+
   it('图片格：无 src 出占位；有 src 出 img；表达式走 demo 数据求值', async () => {
     const store = makeStore()
     const rows = JSON.parse(JSON.stringify(store.elements[0]!.options.tableRows)) as TableRow[]
@@ -139,11 +154,14 @@ describe('单元格图片 / 二维码', () => {
     expect(imgs[0]!.querySelector('.image-placeholder')!.textContent).toBe('图片')
     expect(imgs[1]!.querySelector('img')!.getAttribute('src')).toBe('https://example.com/a.png')
     expect(imgs[1]!.querySelector('img')!.style.maxWidth).toBe('100%')
-    // 二维码：dataUrl 异步补 img
+    // 二维码：图形异步补 img
     await new Promise(r => setTimeout(r, 300))
     const qr = host.querySelector('.cell-barcode img')
     expect(qr, '二维码应已异步出图').toBeTruthy()
     expect(qr!.getAttribute('alt')).toBe('qrcode')
+    // 铺满单元格：只给 max-* 时 img 停在内在像素尺寸，格大于它就不铺满
+    expect((qr as HTMLImageElement).style.width).toBe('100%')
+    expect((qr as HTMLImageElement).style.height).toBe('100%')
   })
 })
 

@@ -180,6 +180,7 @@ export interface TableCell {
   cellType?: TableCellType    // 内容类型，缺省 text
   barcodeType?: string        // 条形码码制（jsbarcode 格式名），仅 cellType='barcode' 时生效
   qrCodeLevel?: string        // 二维码纠错级别 L/M/Q/H，仅 cellType='qrcode' 时生效
+  qrQuietZone?: number        // 二维码静区（白边）宽度（模块），仅 cellType='qrcode' 时生效；缺省 0 = 码面铺满单元格
   showBarcodeText?: boolean   // 条形码下方是否显示文本，仅 cellType='barcode' 时生效
   /**
    * 打印机分辨率（点/英寸，常见 203/300/600），仅 cellType='barcode' 时生效：
@@ -298,6 +299,13 @@ export interface ElementOptions {
    */
   printerDpi?: number
   qrCodeLevel?: string
+  /**
+   * 二维码静区（白边）宽度，单位「模块」：图形四周留出的空白格数，缺省 0。
+   * 0 表示不留白边，码面即整张图、等比铺满元素框——此时扫码所需的静区由元素框外的白纸充当；
+   * 要合规静区（ISO/IEC 18004 推荐 4 模块）请显式写 4。
+   * 值越大码面在框内占比越小（21 模块时：0→100%、2→84%、4→72.4%）。
+   */
+  qrQuietZone?: number
   src?: string
   /** 内容缩放模式（image/qrcode）：contain | cover | fill | none | scale-down。条形码不接受拉伸——尺寸已由结算确定 */
   fit?: string

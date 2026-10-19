@@ -14,6 +14,13 @@
 .pd-label {
   font-size: 11px;
   color: var(--pd-text-muted, #909399);
+  /* 帮助图标的气泡以标签左边缘为基准定位：图标紧跟在变长的标签文字后面，
+     若以图标自身为基准，长标签会把气泡顶出属性台右边界被 overflow:hidden 裁掉。
+     同时用 flex 让文字与图标垂直居中对齐（在 .pd-field 的纵向 flex 里，
+     inline-flex 会被块化成 flex，宽度仍占满一行，不改变原有排版）。 */
+  display: inline-flex;
+  align-items: center;
+  position: relative;
 }
 /* 字段下方的说明文字（各属性分组共用） */
 .pd-hint {
@@ -21,6 +28,61 @@
   color: var(--pd-text-muted, #8b909c);
   font-size: 12px;
   line-height: 1.4;
+}
+/* 字段说明图标（.pd-label 之后）：说明不常驻行内，悬浮或点击聚焦时才浮出。
+   字形走 ::before 的 content，不进 textContent —— 属性搜索与用例按标签文本匹配才不会失配。 */
+.pd-help {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 13px;
+  height: 13px;
+  margin-left: 4px;
+  padding: 0;
+  border: 1px solid var(--pd-border, #d9dde6);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pd-text-muted, #909399);
+  font-size: 9px;
+  line-height: 1;
+  cursor: help;
+}
+.pd-help::before {
+  content: "?";
+  font-weight: 600;
+}
+.pd-help:hover,
+.pd-help:focus-visible {
+  border-color: var(--pd-accent, #165DFF);
+  color: var(--pd-accent, #165DFF);
+}
+.pd-help::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 120;
+  width: 196px;
+  padding: 5px 7px;
+  border-radius: 4px;
+  background: rgba(30, 35, 48, .88);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+.pd-help:hover::after,
+.pd-help:focus::after {
+  opacity: 1;
+  visibility: visible;
 }
 .pd-input,
 .pd-select,

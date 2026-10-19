@@ -31,7 +31,7 @@
 // 之后单元格右键直接改写这份状态，外层无需再接开启/关闭动作），
 // 返回值非空时渲染进 shadow 内即可（.table-ctx-menu 为 position: fixed，按视口定位）。
 import JsBarcode from 'jsbarcode'
-import QRCode from 'qrcode'
+import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
 import type {
   ElementOptions, TableCell, TableRow, TableRowType, TableSelection, RuntimeElement, TextFit,
 } from '@worm-vue3-print/core/designer'
@@ -340,23 +340,25 @@ function cellCodeNode(ctx: TableCtx, ri: number, ci: number, cell: TableCell): H
     return holder
   }
 
-  // 二维码：svg 常挂但隐藏（canvas 的 v-show 结果），img 在 dataUrl 解析后补上
+  // 二维码：svg 常挂但隐藏（canvas 的 v-show 结果），img 与出纸同源（core/browser 的同一份 SVG）
   svg.style.display = 'none'
   if (!value) return holder
-  void QRCode.toDataURL(value, {
-    width: 96,
-    margin: 1,
-    errorCorrectionLevel: (cell.qrCodeLevel || 'M') as 'L' | 'M' | 'Q' | 'H',
-  }).then(url => {
-    if (!holder.isConnected) return
+  try {
+    const qrSvg = browserCodeRenderer.render(value, 'qrcode', {
+      qrCodeLevel: String(cell.qrCodeLevel || 'M'),
+      qrQuietZone: typeof cell.qrQuietZone === 'number' ? cell.qrQuietZone : undefined,
+    })
     const img = document.createElement('img')
-    img.setAttribute('src', url)
+    img.setAttribute('src', `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrSvg)}`)
     img.setAttribute('alt', 'qrcode')
+    // 铺满单元格（与出图端 codeImgHtml 同口径）：只给 max-* 时 img 停在内在像素尺寸
+    img.style.width = '100%'
+    img.style.height = '100%'
     img.style.objectFit = cell.fit || 'contain'
     img.style.maxWidth = cell.maxWidth ? `${cell.maxWidth}mm` : '100%'
     img.style.maxHeight = cell.maxHeight ? `${cell.maxHeight}mm` : '100%'
     holder.appendChild(img)
-  }).catch(() => { /* 码值非法：留空，与设计态不弹错 */ })
+  } catch { /* 码值非法：留空，与设计态不弹错 */ }
   return holder
 }
 

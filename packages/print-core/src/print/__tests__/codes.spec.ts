@@ -12,6 +12,12 @@ describe('codeSpecKey', () => {
     expect(codeSpecKey('123', 'barcode', { barWidth: 2, showText: true }))
       .toBe(codeSpecKey('123', 'barcode', { barWidth: 2, showText: true }))
   })
+  it('静区不同 → 键不同（同一码值的两种白边不能复用同一份 SVG）', () => {
+    expect(codeSpecKey('123', 'qrcode', { qrQuietZone: 0 }))
+      .not.toBe(codeSpecKey('123', 'qrcode', { qrQuietZone: 4 }))
+    expect(codeSpecKey('123', 'qrcode', {}))
+      .not.toBe(codeSpecKey('123', 'qrcode', { qrQuietZone: 0 }))
+  })
 })
 
 describe('createMapCodeRenderer', () => {

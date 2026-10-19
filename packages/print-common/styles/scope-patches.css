@@ -52,3 +52,11 @@
 .tiling-config .tiling-summary {
   color: var(--pd-text-regular, #606266);
 }
+
+/* 泄漏修正：canvas 顶部栏的 [data-tip] { position: relative } 是按钮 tooltip 的基座，
+   剥掉 [data-v-*] 后会连带命中属性台里带 data-tip 的 .pd-help，把气泡基准从「标签左边缘」
+   挪成「图标自身」——长标签时气泡右端会顶出属性台被 overflow:hidden 裁掉。
+   canvas 侧 .pd-help 本就是 static（基准交给 .pd-label），这里按 canvas 实测还原。 */
+.pd-help {
+  position: static;
+}

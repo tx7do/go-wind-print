@@ -84,6 +84,7 @@ agent_created: true
 | `bg` | `backgroundColor` | `border` | `borderWidth/Style/Color` |
 | `code` | `barcodeType` | `dpi` | `printerDpi` |
 | `level` | `qrCodeLevel` | `cols`/`rows`/`source` | 表格三件套 |
+| `quiet` | `qrQuietZone`（二维码静区白边，模块 0~8，缺省 0＝码面铺满元素框） |  |  |
 
 表格行类型：`header`（表头）、`data`（明细，按 `source` 迭代）、`subtotal`（本页小计）、`summary`（总计）。
 `colspan`/`rowspan` 的占位格由脚本自动补齐。多页面模板用 `{"pages": [scene, scene]}`。

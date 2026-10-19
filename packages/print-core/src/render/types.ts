@@ -148,6 +148,8 @@ export interface RenderCell {
   barcodeType?: string
   /** 二维码纠错级别 L/M/Q/H，仅 cellType='qrcode' 时生效 */
   qrCodeLevel?: string
+  /** 二维码静区（白边）宽度（模块），仅 cellType='qrcode' 时生效；缺省 0 = 码面铺满单元格 */
+  qrQuietZone?: number
   /** 条形码下方是否显示文本，仅 cellType='barcode' 时生效 */
   showBarcodeText?: boolean
   /** 打印机分辨率（点/英寸），仅 cellType='barcode' 时生效：给出后条码尺寸优先适配打印机点阵 */
@@ -195,6 +197,8 @@ export interface CodeRenderOptions {
   barcodeType?: string
   /** 二维码纠错级别 L/M/Q/H，仅 qrcode 类型使用 */
   qrCodeLevel?: string
+  /** 二维码静区（白边）宽度，单位「模块」，仅 qrcode 类型使用；缺省 0 = 无白边，码面即整张图 */
+  qrQuietZone?: number
   /** 条形码下方是否显示文本 */
   showText?: boolean
   /** 条码模块宽度倍率；决定每模块的首选物理宽度（倍率/2 × 0.25mm），给 dpi 后吸附到最近整数点 */

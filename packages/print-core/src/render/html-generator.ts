@@ -448,7 +448,7 @@ function renderElement(el: TemplateElement, isMeasure: boolean, containerStyle?:
 interface CodeImgOptions {
   fallback: string
   codeRenderer?: CodeRenderer
-  /** 缩放模式（仅二维码生效；条形码尺寸由条宽与打印机 DPI 结算，不接受拉伸） */
+  /** 缩放模式（仅二维码生效，缺省 contain；条形码尺寸由条宽与打印机 DPI 结算，不接受拉伸） */
   fit?: string
   /** 最大宽度（mm）：条形码把它并入可用框，作为结算尺寸的附加上限 */
   maxWidth?: number
@@ -486,6 +486,8 @@ function codeImgHtml(
     const svg = codeRenderer.render(value, cellType, {
       barcodeType: opts.barcodeType,
       qrCodeLevel: opts.qrCodeLevel != null ? String(opts.qrCodeLevel) : undefined,
+      // 0 是合法档（无白边），必须用 typeof 判定而非 or/?? 之类假值判断
+      qrQuietZone: typeof opts.qrQuietZone === 'number' ? opts.qrQuietZone : undefined,
       showText: opts.hideTitle !== undefined ? !opts.hideTitle : opts.showBarcodeText,
       barWidth: typeof opts.barWidth === 'number' ? opts.barWidth : undefined,
       fontSize: typeof opts.fontSize === 'number' ? opts.fontSize : undefined,
@@ -498,12 +500,12 @@ function codeImgHtml(
     const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
     // 构建样式
     const styleParts: string[] = []
-    // 默认 shrink-to-fit 行为
-    styleParts.push('max-width:100%', 'max-height:100%', 'display:block', 'margin:auto')
-    // 应用缩放模式
-    if (fit) {
-      styleParts.push(`object-fit:${fit}`)
-    }
+    // 铺满元素盒：width/height 必须显式给出。只写 max-* 时 img 停在 SVG 的内在像素尺寸
+    //（二维码 SVG 为「模块数 × 4 + 静区」，与盒子的 mm 尺寸无关），max-* 只会缩小不会放大，
+    // 盒子一旦大于该尺寸就明显不铺满，object-fit 也随之空转。
+    styleParts.push('width:100%', 'height:100%', 'max-width:100%', 'max-height:100%', 'display:block', 'margin:auto')
+    // 缩放模式：缺省与属性面板一致（contain 等比放进盒子）
+    styleParts.push(`object-fit:${fit || 'contain'}`)
     // 应用最大宽度和高度（mm 单位）
     if (maxWidth) {
       styleParts.push(`max-width:${maxWidth}mm`)

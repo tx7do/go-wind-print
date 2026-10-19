@@ -9,12 +9,12 @@ import type {
 } from '@worm-vue3-print/core/designer'
 import {
   applyBorderPreset, canMergeReason, findMainCell, mergeCells, resolveCellTextFit, setHeaderRepeat,
-  setRowType, splitCells,
+  setRowType, splitCells, propertyTip,
 } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import type { DesignerStore } from '../core/store'
-import { colorTrigger, divider, radioGroup, stepper } from './controls'
+import { colorTrigger, divider, fieldHelp, radioGroup, stepper } from './controls'
 import type { ShellCtx } from './controls'
 import { renderFontSelect } from './font-select'
 import { gateItem } from './property-search'
@@ -278,7 +278,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
           write(c => {
             c.cellType = v === 'text' ? undefined : (v as TableCellType)
             if (v !== 'barcode') { c.barcodeType = undefined; c.showBarcodeText = undefined; c.printerDpi = undefined }
-            if (v !== 'qrcode') c.qrCodeLevel = undefined
+            if (v !== 'qrcode') { c.qrCodeLevel = undefined; c.qrQuietZone = undefined }
           })
         }),
       ]),
@@ -306,6 +306,11 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       isBarcodeCell ? hint('填写后条宽吸附到整数打印点（消除出纸「条宽忽宽忽窄」）：条码先按条宽渲染，可用宽度够就原样落纸，不够才整体等比缩小') : '',
       isQrcodeCell ? selectRow('纠错级别', cell0.qrCodeLevel || 'M', QR_LEVEL_OPTIONS,
         v => write(c => { c.qrCodeLevel = v || undefined })) : '',
+      // 与元素台同构造直接用 stepper：numField 经 orUndef 会把显式填的 0 归并成未设置（出图虽一致，存的值应与用户填的一致），且它也不带说明图标
+      isQrcodeCell ? fieldHelp('静区 (模块)', stepper({
+        value: cell0.qrQuietZone ?? 0, min: 0, max: 8, placeholder: '默认 0',
+        onCommit: v => write(c => { c.qrQuietZone = v }),
+      }), propertyTip('cd-quiet-zone')) : '',
 
       isBarcodeCell ? hint('单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限') : '',
       (isQrcodeCell || isImageCell) ? selectRow('缩放模式', cell0.fit || 'contain', FIT_OPTIONS,

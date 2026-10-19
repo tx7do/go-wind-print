@@ -168,6 +168,19 @@ export function field(label: string, control: unknown, hint?: string) {
   ].filter(Boolean) as never)
 }
 
+/** 字段说明图标：说明不常驻行内，悬浮或点击聚焦时才浮出（对应 canvas 的 button.pd-help） */
+export const labelHelp = (tip: string) => h('button', {
+  class: 'pd-help', type: 'button', 'data-tip': tip, 'aria-label': '字段说明',
+})
+
+/** 带说明图标的属性行：与 field() 同结构，差别只在说明挂图标而非常驻 .pd-hint 段落 */
+export function fieldHelp(label: string, control: unknown, tip: string) {
+  return h('div', { class: 'pd-field' }, [
+    h('span', { class: 'pd-label' }, [label, labelHelp(tip)]),
+    control,
+  ])
+}
+
 /** 分节标题（对应 canvas 的 h3.pd-divider） */
 export const divider = (text: string) => h('h3', { class: 'pd-divider', text })
 

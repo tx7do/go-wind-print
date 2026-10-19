@@ -33,6 +33,22 @@ describe('browserCodeRenderer 二维码', () => {
   it('非法纠错级别回退 M 不抛错', () => {
     expect(browserCodeRenderer.render('test', 'qrcode', { qrCodeLevel: 'X' })).toContain('<svg')
   })
+
+  it('静区按 qrQuietZone 出图：缺省 0 模块（码面铺满），2 / 4 各自改变 viewBox 边长', () => {
+    // 码值 'qrcode' 在 M 级下为 21 模块，每模块 4 用户单位
+    const dim = (opts: Parameters<typeof browserCodeRenderer.render>[2]) => {
+      const m = /viewBox="0 0 (\d+) \1"/.exec(browserCodeRenderer.render('qrcode', 'qrcode', opts))
+      if (!m) throw new Error('viewBox 未按预期输出')
+      return Number(m[1])
+    }
+    const face = 21 * 4
+    expect(dim(undefined)).toBe(face)
+    expect(dim({ qrQuietZone: 0 })).toBe(face)
+    expect(dim({ qrQuietZone: 4 })).toBe(face + 2 * 4 * 4)
+    // 负数按 0 处理（静区不可能为负），非法值回退默认 0
+    expect(dim({ qrQuietZone: -3 })).toBe(face)
+    expect(dim({ qrQuietZone: Number.NaN })).toBe(face)
+  })
 })
 
 describe('browserCodeRenderer 条形码', () => {
