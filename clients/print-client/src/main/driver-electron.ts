@@ -29,11 +29,22 @@ export function createElectronDriverFactory(): DriverFactory {
       })
       let currentFile = ''
       let injected = false
+      let booted = false
 
       const clearFile = (): void => {
         if (!currentFile) return
         rmSync(currentFile, { force: true })
         currentFile = ''
+      }
+
+      // 窗口的首个 executeJavaScript 必须发生在已有文档之后：Electron 会把脚本排队等一次
+      // 提交，而「从未加载过页面」的隐藏窗口永远不提交，调用便静默挂到会话超时。
+      // 码值阶段先于任何 setContent 到达（core 要先把条码/二维码 SVG 填进 HTML 再测量），
+      // 所以这里先给一个空白文档。
+      const ensureDocument = async (): Promise<void> => {
+        if (booted) return
+        await win.loadURL('about:blank')
+        booted = true
       }
 
       return {
@@ -46,10 +57,12 @@ export function createElectronDriverFactory(): DriverFactory {
           currentFile = join(DOM_HOST_DIR, `${randomUUID()}.html`)
           writeFileSync(currentFile, html, 'utf8')
           await win.loadFile(currentFile)
+          booted = true
           injected = false
         },
         async injectExecutor(bundle: ExecutorBundle): Promise<void> {
           if (injected) return
+          await ensureDocument()
           await win.webContents.executeJavaScript(bundle.source, true)
           injected = true
         },
