@@ -461,13 +461,13 @@ function onConfirm() {
 }
 
 .ee-nav-tab:not(.active) {
-  background: white;
+  background: var(--pd-surface, white);
   border: 1px solid var(--pd-border);
   color: var(--pd-text);
 }
 
 .ee-nav-tab:hover:not(.active) {
-  background: #ecf5ff;
+  background: var(--pd-hover-tint, #ecf5ff);
   border-color: var(--pd-accent);
 }
 
@@ -547,7 +547,7 @@ function onConfirm() {
 }
 
 .ee-list-item:hover {
-  background: #ecf5ff;
+  background: var(--pd-hover-tint, #ecf5ff);
 }
 
 /* 右侧编辑区 */
@@ -603,9 +603,9 @@ function onConfirm() {
 }
 
 .ee-preview-error {
-  color: #e53e3e;
-  background: #fef2f2;
-  border-color: #fecaca;
+  color: var(--pd-danger, #e53e3e);
+  background: var(--pd-danger-bg, #fef2f2);
+  border-color: var(--pd-danger-border, #fecaca);
 }
 
 /* 帮助信息 */
@@ -648,39 +648,39 @@ function onConfirm() {
 }
 
 .ee-help-field {
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
+  background: var(--pd-help-field-bg, #f0f9ff);
+  border: 1px solid var(--pd-help-field-line, #bae6fd);
 }
 
 .ee-help-field .ee-help-card-title {
-  color: #0369a1;
+  color: var(--pd-help-field-ink, #0369a1);
 }
 
 .ee-help-function {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: var(--pd-help-function-bg, #f0fdf4);
+  border: 1px solid var(--pd-help-function-line, #bbf7d0);
 }
 
 .ee-help-function .ee-help-card-title {
-  color: #166534;
+  color: var(--pd-help-function-ink, #166534);
 }
 
 .ee-help-variable {
-  background: #fefce8;
-  border: 1px solid #fde68a;
+  background: var(--pd-help-variable-bg, #fefce8);
+  border: 1px solid var(--pd-help-variable-line, #fde68a);
 }
 
 .ee-help-variable .ee-help-card-title {
-  color: #854d0e;
+  color: var(--pd-help-variable-ink, #854d0e);
 }
 
 .ee-help-conditional {
-  background: #fdf2f8;
-  border: 1px solid #fbcfe8;
+  background: var(--pd-help-conditional-bg, #fdf2f8);
+  border: 1px solid var(--pd-help-conditional-line, #fbcfe8);
 }
 
 .ee-help-conditional .ee-help-card-title {
-  color: #9d174d;
+  color: var(--pd-help-conditional-ink, #9d174d);
 }
 
 /* 弹窗内容区域 */

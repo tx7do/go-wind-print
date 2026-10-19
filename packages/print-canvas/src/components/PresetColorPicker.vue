@@ -1,6 +1,7 @@
 <template>
   <button
     ref="triggerRef"
+    v-bind="$attrs"
     type="button"
     class="preset-color-trigger"
     :aria-expanded="visible"
@@ -95,6 +96,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { PRESET_COLORS } from '@worm-vue3-print/core/designer'
+
+// 根节点为 button + Teleport 双根，Vue 无法自动继承宿主传入的 class：显式关闭并绑到触发器
+defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(defineProps<{
   modelValue?: string
@@ -362,7 +366,7 @@ onBeforeUnmount(() => {
   padding: 1px;
   border: 1px solid var(--pd-border, #d9dde6);
   border-radius: 6px;
-  background: #fff;
+  background: var(--pd-surface, #fff);
   cursor: pointer;
   transition: border-color .14s ease, box-shadow .14s ease;
 }
@@ -394,7 +398,7 @@ onBeforeUnmount(() => {
   padding: 10px;
   border: 1px solid var(--pd-border, #d9dde6);
   border-radius: 8px;
-  background: #fff;
+  background: var(--pd-surface, #fff);
   box-shadow: 0 8px 24px rgb(23 32 60 / 16%);
 }
 

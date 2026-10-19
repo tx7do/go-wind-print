@@ -40,6 +40,7 @@
                 v-else-if="cell.cellType === 'image'"
                 :value="cell.formatter || ''"
                 :fit="cell.fit"
+                :object-position="cell.objectPosition"
                 :max-width="cell.maxWidth"
                 :max-height="cell.maxHeight"
                 :design-mode="designMode"
@@ -271,6 +272,8 @@ function cellStyle(_row: TableRow, cell: TableCell): Record<string, string> {
   return {
     fontFamily: cell.fontFamily || 'inherit',
     textAlign: cell.align ?? 'left',
+    // justify 不拉伸段落末行，单行单元格需显式声明才撑满列宽（与出纸/common 同策）
+    ...(cell.align === 'justify' ? { textAlignLast: 'justify' } : {}),
     verticalAlign: cell.valign ?? 'middle',
     fontSize: (cell.fontSize ?? defaultFontSize.value) + 'pt',
     fontWeight: cell.fontWeight ?? 'normal',

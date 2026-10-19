@@ -98,7 +98,7 @@ export type ElementType =
   | 'pageNumber'
 
 /** 对齐方式 */
-export type TextAlign = 'left' | 'center' | 'right'
+export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 
 /**
  * 文字超出可用空间时的显示形式（文本类元素与表格单元格共用）：
@@ -212,6 +212,7 @@ export interface TableCell {
   shrinkMinFontSize?: number
   // 图片类型特有属性
   fit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'  // 缩放模式，默认 contain
+  objectPosition?: string   // 裁剪锚点（CSS object-position 值），仅 cellType='image' 生效；缺省居中
   maxWidth?: number     // 最大宽度（mm）
   maxHeight?: number    // 最大高度（mm）
 }
@@ -309,6 +310,8 @@ export interface ElementOptions {
   src?: string
   /** 内容缩放模式（image/qrcode）：contain | cover | fill | none | scale-down。条形码不接受拉伸——尺寸已由结算确定 */
   fit?: string
+  /** 裁剪锚点（image）：CSS object-position 值透传，如 'center 20%'；含 ; 引号 url() 等非法字符则整条丢弃；缺省不输出，按 50% 50% 居中 */
+  objectPosition?: string
   /** 内容最大宽度（mm，image/barcode/qrcode）；缺省不限制 */
   maxWidth?: number
   /** 内容最大高度（mm，image/barcode/qrcode）；缺省不限制 */
@@ -338,10 +341,8 @@ export interface ElementOptions {
   formatter?: string
   styler?: string
   rowStyler?: string
-  // 长文本特有
+  // 长文本特有：首行缩进，单位 em（随字号，textFit='shrink' 缩小后缩进同步变窄）
   longTextIndent?: number
-  leftSpaceRemoved?: boolean
-  lHeight?: number
 }
 
 /** 元素类型元数据 */

@@ -93,8 +93,8 @@ function emitAction(name: string, payload?: string) {
   z-index: 3000;
   min-width: 140px;
   padding: 4px 0;
-  background: #fff;
-  border: 1px solid #dcdfe6;
+  background: var(--pd-surface, #fff);
+  border: 1px solid var(--pd-menu-border, #dcdfe6);
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   font-size: 13px;
@@ -102,26 +102,26 @@ function emitAction(name: string, payload?: string) {
 .menu-item {
   padding: 5px 14px;
   cursor: pointer;
-  color: #333;
+  color: var(--pd-menu-text, #333);
 }
 .menu-item:hover {
-  background: #f5f7fa;
+  background: var(--pd-menu-hover, #f5f7fa);
 }
 .menu-item.disabled {
-  color: #c0c4cc;
+  color: var(--pd-menu-disabled, #c0c4cc);
   cursor: not-allowed;
 }
 .menu-item.active {
-  color: #165DFF;
+  color: var(--pd-accent, #165DFF);
 }
 .menu-divider {
   height: 1px;
   margin: 4px 0;
-  background: #ebeef5;
+  background: var(--pd-menu-divider, #ebeef5);
 }
 .menu-group-title {
   padding: 4px 14px;
   font-size: 12px;
-  color: #909399;
+  color: var(--pd-menu-muted, #909399);
 }
 </style>

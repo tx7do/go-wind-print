@@ -98,7 +98,7 @@
     </Teleport>
     <!-- 收纳入口：仅在确有单元被收起时可见，面板常驻以承载各单元落位槽 -->
     <ToolbarMore />
-    <div class="tb-spacer" />
+    <div class="tb-spacer" data-overflow-spacer />
     <div class="tb-group" v-if="showHelp">
       <HelpButton @click="$emit('help')" />
     </div>

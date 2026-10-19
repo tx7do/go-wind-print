@@ -44,9 +44,11 @@ const textStyle = computed(() => {
     color: o.color || '#333',
     backgroundColor: o.backgroundColor || 'transparent',
     textAlign: o.textAlign || 'left',
+    // justify 不拉伸段落末行，单行文本需显式声明才撑满行宽（与出纸/common 同策）
+    ...(o.textAlign === 'justify' ? { textAlignLast: 'justify' as const } : {}),
     lineHeight: o.lineHeight ? o.lineHeight + 'pt' : '1.5',
     letterSpacing: o.letterSpacing ? o.letterSpacing + 'pt' : 'normal',
-    textIndent: o.longTextIndent ? o.longTextIndent + 'pt' : '0',
+    textIndent: o.longTextIndent ? o.longTextIndent + 'em' : '0',
     width: '100%',
     // 自适应行高：不锁定高度，内容撑开；其余形式锁高度并裁剪
     height: autoHeight ? 'auto' : '100%',
@@ -57,8 +59,9 @@ const textStyle = computed(() => {
     ...(o.verticalAlign
       ? {
           display: 'flex',
-          alignItems: V_ALIGN_FLEX[o.verticalAlign] ?? 'flex-start',
-          justifyContent: H_ALIGN_FLEX[o.textAlign || 'left'] ?? 'flex-start',
+          ...(o.textAlign === 'justify'
+            ? { flexDirection: 'column' as const, justifyContent: V_ALIGN_FLEX[o.verticalAlign] ?? 'flex-start' }
+            : { alignItems: V_ALIGN_FLEX[o.verticalAlign] ?? 'flex-start', justifyContent: H_ALIGN_FLEX[o.textAlign || 'left'] ?? 'flex-start' }),
         }
       : {}),
   }

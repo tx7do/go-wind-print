@@ -266,7 +266,7 @@ export default function App() {
       <header className="demo-topbar">
         <span className="demo-project">worm-vue3-print</span>
         <span className="demo-logo">打印模板设计器 Demo</span>
-        <details className="demo-host-switch">
+        <span className="demo-ou" data-overflow-unit="host-switch"><details className="demo-host-switch">
           <summary>宿主示例：React</summary>
           <nav className="demo-host-switch-menu" aria-label="宿主示例互跳">
             <a href="http://localhost:9303/">Vue3 canvas（demo 权威示例）</a>
@@ -275,21 +275,39 @@ export default function App() {
             <a className="on" href="http://localhost:9335/" title="当前页面">React 宿主</a>
             <a href="http://localhost:9334/">jQuery 宿主</a>
           </nav>
-        </details>
-        <span className="demo-badge">业务类型：{currentSample ? currentSample.name : '空白模板'}</span>
-        <span className="demo-badge">宿主：React + Web Component</span>
-        <button type="button" className="demo-print-btn" onClick={() => setCustomDialogVisible(true)}>自定义字段与数据</button>
-        <button type="button" className="demo-print-btn" onClick={() => setGalleryVisible(true)}>加载示例</button>
-        <button type="button" className="demo-print-btn" onClick={onExportTemplate}>导出模板</button>
-        <button type="button" className="demo-print-btn" onClick={() => fileInputRef.current?.click()}>导入模板</button>
-        <button type="button" className="demo-print-btn" onClick={onClearTemplate}>清空</button>
-        <label
+        </details></span>
+        <span className="demo-ou" data-overflow-unit="biz"><span className="demo-badge">业务类型：{currentSample ? currentSample.name : '空白模板'}</span></span>
+        <span className="demo-ou" data-overflow-unit="host-badge"><span className="demo-badge">宿主：React + Web Component</span></span>
+        <span className="demo-ou" data-overflow-unit="custom"><button type="button" className="demo-print-btn" onClick={() => setCustomDialogVisible(true)}>自定义字段与数据</button></span>
+        <span className="demo-ou" data-overflow-unit="gallery"><button type="button" className="demo-print-btn" onClick={() => setGalleryVisible(true)}>加载示例</button></span>
+        <span className="demo-ou" data-overflow-unit="export"><button type="button" className="demo-print-btn" onClick={onExportTemplate}>导出模板</button></span>
+        <span className="demo-ou" data-overflow-unit="import"><button type="button" className="demo-print-btn" onClick={() => fileInputRef.current?.click()}>导入模板</button></span>
+        <span className="demo-ou" data-overflow-unit="clear"><button type="button" className="demo-print-btn" onClick={onClearTemplate}>清空</button></span>
+        <span className="demo-ou" data-overflow-unit="batch"><label
           className={`demo-batch-switch${batchEnabled ? ' on' : ''}`}
           title={`开启后浏览器预览/打印、客户端静默打印、服务端 PDF 均传入 ${batchDataList.length} 份数据数组，由打印插件合并为一个作业`}
         >
           <input type="checkbox" checked={batchEnabled} onChange={e => setBatchEnabled(e.target.checked)} />
           <span>批量打印（{batchDataList.length} 份）</span>
-        </label>
+        </label></span>
+        <span className="demo-more-group" data-overflow-more hidden>
+          <button type="button" className="demo-print-btn demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
+            <svg className="demo-more-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" /></svg>
+            <span>更多</span><span className="demo-more-caret" aria-hidden="true"></span>
+          </button>
+          <span className="demo-more-panel" hidden>
+            <p className="demo-more-note">仅在横向空间不足时，顶部操作才会折叠到这里</p>
+          <div className="demo-more-item" data-unit="biz"><span className="demo-more-label">业务类型</span><span className="demo-more-slot" data-overflow-slot="biz"></span></div>
+          <div className="demo-more-item" data-unit="host-switch"><span className="demo-more-label">宿主示例</span><span className="demo-more-slot" data-overflow-slot="host-switch"></span></div>
+          <div className="demo-more-item" data-unit="host-badge"><span className="demo-more-label">宿主标识</span><span className="demo-more-slot" data-overflow-slot="host-badge"></span></div>
+          <div className="demo-more-item" data-unit="clear"><span className="demo-more-label">清空</span><span className="demo-more-slot" data-overflow-slot="clear"></span></div>
+          <div className="demo-more-item" data-unit="import"><span className="demo-more-label">导入模板</span><span className="demo-more-slot" data-overflow-slot="import"></span></div>
+          <div className="demo-more-item" data-unit="export"><span className="demo-more-label">导出模板</span><span className="demo-more-slot" data-overflow-slot="export"></span></div>
+          <div className="demo-more-item" data-unit="custom"><span className="demo-more-label">自定义字段与数据</span><span className="demo-more-slot" data-overflow-slot="custom"></span></div>
+          <div className="demo-more-item" data-unit="batch"><span className="demo-more-label">批量打印</span><span className="demo-more-slot" data-overflow-slot="batch"></span></div>
+          <div className="demo-more-item" data-unit="gallery"><span className="demo-more-label">加载示例</span><span className="demo-more-slot" data-overflow-slot="gallery"></span></div>
+          </span>
+        </span>
         <button type="button" className="demo-print-btn" onClick={() => setPrintDialogVisible(true)}>打印输出</button>
         <input ref={fileInputRef} type="file" accept="application/json,.json" className="demo-file-input" onChange={onImportTemplate} />
       </header>

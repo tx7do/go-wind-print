@@ -85,6 +85,14 @@ agent_created: true
 | `code` | `barcodeType` | `dpi` | `printerDpi` |
 | `level` | `qrCodeLevel` | `cols`/`rows`/`source` | 表格三件套 |
 | `quiet` | `qrQuietZone`（二维码静区白边，模块 0~8，缺省 0＝码面铺满元素框） |  |  |
+| `indent` | `longTextIndent`（长文本首行缩进，**单位 em＝字符数**，仅 `longText` 消费） | `anchor` | `objectPosition`（图片裁剪锚点，CSS 值原样，如 `center 20%`） |
+
+**排版三项的版本与判据**（生成模板前先看宿主用的是哪个包版本）：
+
+- `align: justify`、`indent`、`anchor` 与「`fit` 真的落纸」都是 **1.3.7 起**的行为；1.3.6 及更早里 `fit` 只影响画布显示、`text-indent` 不出纸、`justify` 与 `valign` 同时给会静默退成左对齐、单元格 `align: justify` 只在多行时部分生效。
+- 本项目的 `justify` 口径是**撑满行宽含末行**（打印设计器同行形态，非 Word 的「两端对齐」）：渲染端成对输出 `text-align:justify;text-align-last:justify`。判据：出纸 HTML 里只出现 `text-align:justify` 而没有 `text-align-last:justify`，单行文本必然不生效——CSS 的 `justify` 永不拉伸段落末行。表格单元格 `align: justify` 同口径（`<td>` 上无需 flex 改造，只有末行这一条规则），生成模板时两者可共用同一判据。
+- 判据（对着出纸 HTML 量，不靠猜）：长文本那层 `div.print-element` 的 `style` 里应出现 `text-indent:<N>em`；被裁切的 `<img>` 应出现 `object-fit:cover;object-position:center 20%`。
+- 边界豁免：`anchor` 含 `;`、引号、`url()` 等字符时**整条不输出**（防往 style 里追加声明），此时按上面判据查不到属正常，不是丢了配置；`indent` 写在普通 `text` 元素上不生效也属设计口径。
 
 表格行类型：`header`（表头）、`data`（明细，按 `source` 迭代）、`subtotal`（本页小计）、`summary`（总计）。
 `colspan`/`rowspan` 的占位格由脚本自动补齐。多页面模板用 `{"pages": [scene, scene]}`。

@@ -52,7 +52,7 @@ export function elementStyle(el: RuntimeElement): Record<string, string> {
 }
 
 /** 文本与长文本共用的行内样式：与 canvas 的 TextElement / LongTextElement 逐项一致（差异按类型分支） */
-function textLikeStyle(el: RuntimeElement) {
+export function textLikeStyle(el: RuntimeElement) {
   const o = el.options
   const isLong = el.printElementType.type === 'longText'
   const fit = resolveElementTextFit(el.printElementType.type, o)
@@ -65,6 +65,8 @@ function textLikeStyle(el: RuntimeElement) {
     color: o.color || '#333',
     backgroundColor: o.backgroundColor || 'transparent',
     textAlign: o.textAlign || 'left',
+    // justify 不拉伸段落末行，单行文本需显式声明才撑满行宽（与画布/出纸同策）
+    ...(o.textAlign === 'justify' ? { textAlignLast: 'justify' } : {}),
     // 长文本默认 1.5 倍行高（canvas 同口径），普通文本走浏览器 normal
     lineHeight: o.lineHeight ? `${o.lineHeight}pt` : isLong ? '1.5' : 'normal',
     letterSpacing: o.letterSpacing ? `${o.letterSpacing}pt` : 'normal',
@@ -73,7 +75,7 @@ function textLikeStyle(el: RuntimeElement) {
     boxSizing: 'border-box',
     overflow: autoHeight ? 'visible' : 'hidden',
     ...(isLong
-      ? { wordBreak: 'break-all', textIndent: o.longTextIndent ? `${o.longTextIndent}pt` : '0' }
+      ? { wordBreak: 'break-all', textIndent: o.longTextIndent ? `${o.longTextIndent}em` : '0' }
       : {
           textDecoration: o.textDecoration || 'none',
           padding: `${o.contentPaddingTop || 0}pt ${o.contentPaddingRight || 0}pt ${o.contentPaddingBottom || 0}pt ${o.contentPaddingLeft || 0}pt`,
@@ -84,9 +86,15 @@ function textLikeStyle(el: RuntimeElement) {
     style.textOverflow = 'ellipsis'
   }
   if (o.verticalAlign) {
+    // justify 要行盒满宽：横向 flex 的匿名文本项拉不伸，改纵向主轴（垂直交给 justify-content，交叉轴 stretch 占满宽）
     style.display = 'flex'
-    style.alignItems = V_ALIGN_FLEX[o.verticalAlign] ?? 'flex-start'
-    style.justifyContent = H_ALIGN_FLEX[o.textAlign || 'left'] ?? 'flex-start'
+    if (o.textAlign === 'justify') {
+      style.flexDirection = 'column'
+      style.justifyContent = V_ALIGN_FLEX[o.verticalAlign] ?? 'flex-start'
+    } else {
+      style.alignItems = V_ALIGN_FLEX[o.verticalAlign] ?? 'flex-start'
+      style.justifyContent = H_ALIGN_FLEX[o.textAlign || 'left'] ?? 'flex-start'
+    }
   }
   return { style, fit }
 }
@@ -116,9 +124,11 @@ function shapeStyle(el: RuntimeElement): Record<string, string> {
   }
 }
 
-function imageStyle(el: RuntimeElement): Record<string, string> {  const o = el.options
+export function imageStyle(el: RuntimeElement): Record<string, string> {
+  const o = el.options
   return {
     objectFit: o.fit || 'contain',
+    ...(o.objectPosition ? { objectPosition: o.objectPosition } : {}),
     maxWidth: o.maxWidth ? `${o.maxWidth}mm` : '100%',
     maxHeight: o.maxHeight ? `${o.maxHeight}mm` : '100%',
   }
@@ -195,6 +205,7 @@ function content(el: RuntimeElement, designMode: boolean, host?: { store: Design
           fontFamily: o.fontFamily || 'inherit',
           color: o.color || '#333',
           textAlign: o.textAlign || 'left',
+          ...(o.textAlign === 'justify' ? { textAlignLast: 'justify' } : {}),
         },
         text: designMode ? (o.title || '{pageIndex}/{totalPages}') : String(o.title || ''),
       })

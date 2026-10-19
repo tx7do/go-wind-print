@@ -76,6 +76,9 @@
           <option value="scale-down">缩小（保持比例）</option>
         </select>
       </div>
+      <div class="pd-field" v-if="isImageCell"><span class="pd-label">裁剪锚点</span>
+        <input class="pd-input" type="text" :value="mainCell.objectPosition ?? ''" placeholder="缺省居中，如 center 20%" @change="write(c => { c.objectPosition = ($event.target as HTMLInputElement).value.trim() || undefined })" />
+      </div>
       <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label">最大宽度 (mm)</span>
         <StepperInput :model-value="mainCell.maxWidth"
           :min="1"
@@ -101,6 +104,7 @@
           <label class="pd-radio"><input type="radio" value="left" :checked="mainCell.align === 'left'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>左</span></label>
           <label class="pd-radio"><input type="radio" value="center" :checked="mainCell.align === 'center'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>中</span></label>
           <label class="pd-radio"><input type="radio" value="right" :checked="mainCell.align === 'right'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>右</span></label>
+          <label class="pd-radio"><input type="radio" value="justify" :checked="mainCell.align === 'justify'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>两端</span></label>
         </div>
       </div>
       <div class="pd-field"><span class="pd-label">垂直对齐</span>

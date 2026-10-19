@@ -345,11 +345,36 @@ function textStyle(opts: Record<string, any>): string {
   if (opts.lineHeight) parts.push(`line-height:${opts.lineHeight}pt`)
   if (opts.letterSpacing) parts.push(`letter-spacing:${opts.letterSpacing}pt`)
   if (opts.verticalAlign) {
-    parts.push(`display:flex;align-items:${V_ALIGN_FLEX[opts.verticalAlign] ?? 'flex-start'}`)
-    parts.push(`justify-content:${H_ALIGN_FLEX[opts.textAlign ?? 'left'] ?? 'flex-start'}`)
+    // justify 要行盒取满宽才生效：横向 flex 里的匿名文本项无法拉伸，故改纵向主轴——
+    // 垂直交给 justify-content，交叉轴默认 stretch 让文本占满宽，text-align:justify 才不空转
+    if (opts.textAlign === 'justify') {
+      parts.push(`display:flex;flex-direction:column;justify-content:${V_ALIGN_FLEX[opts.verticalAlign] ?? 'flex-start'}`)
+    } else {
+      parts.push(`display:flex;align-items:${V_ALIGN_FLEX[opts.verticalAlign] ?? 'flex-start'}`)
+      parts.push(`justify-content:${H_ALIGN_FLEX[opts.textAlign ?? 'left'] ?? 'flex-start'}`)
+    }
   }
   if (opts.textAlign) parts.push(`text-align:${opts.textAlign}`)
+  // justify 不拉伸段落末行；单行文本里那一行就是末行，不显式声明 text-align-last 则整条 justify 空转
+  if (opts.textAlign === 'justify') parts.push('text-align-last:justify')
   return parts.length ? parts.join(';') + ';' : ''
+}
+
+/** 长文本首行缩进：仅 longText 分支消费，与画布/common 同口径（em 随字号走） */
+function indentStyle(opts: Record<string, any>): string {
+  return opts.longTextIndent ? `text-indent:${opts.longTextIndent}em;` : ''
+}
+
+/**
+ * 裁剪锚点：仅在模板给出合法 objectPosition 时输出，缺省时逐字保持存量模板的居中裁剪。
+ * objectPosition 是自由 CSS 值，escapeInlineStyleValue 只处理 & 与引号，挡不住用 ';' 追加声明，
+ * 故这里按角色白名单净化：命中非法字符即整条丢弃（宿主侧 CSSOM 同样会丢弃非法值，两端行为一致）。
+ */
+const OBJECT_POSITION_UNSAFE = /[;"'<>\\(){}\[\]@!#]/
+function positionStyle(objectPosition?: string): string {
+  const v = (objectPosition ?? '').trim()
+  if (!v || v.length > 64 || OBJECT_POSITION_UNSAFE.test(v)) return ''
+  return `object-position:${escapeInlineStyleValue(v)};`
 }
 
 /**
@@ -409,7 +434,7 @@ function renderElement(el: TemplateElement, isMeasure: boolean, containerStyle?:
       return renderTableElement(el, isMeasure, measureAttr, ctx)
     case 'image':
       return `<div class="print-element" style="${style}"${measureAttr}>
-  <img src="${esc(opts.src ?? '')}" style="width:100%;height:100%;object-fit:contain;" />
+  <img src="${esc(opts.src ?? '')}" style="width:100%;height:100%;object-fit:${opts.fit || 'contain'};${positionStyle(opts.objectPosition)}" />
 </div>`
     case 'barcode':
     case 'qrcode': {
@@ -436,7 +461,7 @@ function renderElement(el: TemplateElement, isMeasure: boolean, containerStyle?:
     case 'oval':
       return `<div class="print-element" style="${style};border:${opts.borderWidth || 1}pt ${opts.borderStyle || 'solid'} ${opts.borderColor || '#333'};border-radius:50%;"${measureAttr}></div>`
     case 'longText':
-      return `<div class="print-element" style="${style}${textStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
+      return `<div class="print-element" style="${style}${textStyle(opts)}${indentStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
     case 'html':
       return `<div class="print-element" style="${style}"${measureAttr}>${opts.testData ?? opts.title ?? ''}</div>`
     default:
@@ -543,6 +568,8 @@ function matrixCellStyle(cell: RenderCell, opts: Record<string, any>): string {
   if (color) parts.push(`color:${color}`)
   if (cell.backgroundColor) parts.push(`background-color:${cell.backgroundColor}`)
   parts.push(`text-align:${cell.align ?? 'left'}`)
+  // 与文本元素同口径：justify 不拉伸段落末行，单行单元格否则毫无变化
+  if (cell.align === 'justify') parts.push('text-align-last:justify')
   parts.push(`vertical-align:${cell.valign ?? 'middle'}`)
   parts.push(`padding:${padding}mm`)
   parts.push(cell.wordWrap === false
@@ -609,7 +636,7 @@ function renderMatrixRows(
           const fit = cell.fit || 'contain'
           const maxWidth = cell.maxWidth ? `max-width:${cell.maxWidth}mm;` : 'max-width:100%;'
           const maxHeight = cell.maxHeight ? `max-height:${cell.maxHeight}mm;` : 'max-height:100%;'
-          inner = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${esc(resolveCellContent(cell, ctx))}" style="object-fit:${fit};${maxWidth}${maxHeight}display:block;" /></div>`
+          inner = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${esc(resolveCellContent(cell, ctx))}" style="object-fit:${fit};${positionStyle(cell.objectPosition)}${maxWidth}${maxHeight}display:block;" /></div>`
         } else {
           inner = renderTextCellInner(renderRows, r, colIndex, cell, opts, fitOwner, defaultPadding, ctx)
         }

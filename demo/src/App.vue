@@ -1,29 +1,67 @@
 <template>
   <div class="demo-app">
-    <header class="demo-topbar">
+    <header ref="topbarRef" class="demo-topbar" :class="{ 'is-tight': overflow.overflowRemains.value }">
       <span class="demo-project">worm-vue3-print</span>
       <span class="demo-logo">打印模板设计器 Demo</span>
-      <details class="demo-host-switch">
-        <summary>宿主示例：Vue3 canvas</summary>
-        <nav class="demo-host-switch-menu" aria-label="宿主示例互跳">
-          <a class="on" href="http://localhost:9303/" title="当前页面">Vue3 canvas（本仓库权威示例）</a>
-          <a href="http://localhost:9331/">Vue3 宿主</a>
-          <a href="http://localhost:9332/">Vue2 宿主</a>
-          <a href="http://localhost:9335/">React 宿主</a>
-          <a href="http://localhost:9334/">jQuery 宿主</a>
-        </nav>
-      </details>
-      <span class="demo-badge">模板 ID：{{ TEMPLATE_ID }}</span>
-      <span class="demo-badge">业务类型：{{ currentSample ? currentSample.name : '空白模板' }}</span>
-      <button type="button" class="demo-print-btn" @click="customDialogVisible = true">自定义字段与数据</button>
-      <button type="button" class="demo-print-btn" @click="onLoadSample">加载示例</button>
-      <button type="button" class="demo-print-btn" @click="onExportTemplate">导出模板</button>
-      <button type="button" class="demo-print-btn" @click="fileInputRef?.click()">导入模板</button>
-      <button type="button" class="demo-print-btn" @click="onClearTemplate">清空</button>
-      <label class="demo-batch-switch" :class="{ on: batchEnabled }" title="开启后浏览器预览/打印、客户端静默打印、服务端 PDF 均传入 3 份数据数组，由打印插件合并为一个作业">
-        <input v-model="batchEnabled" type="checkbox" />
-        <span>批量打印（{{ batchDataList.length }} 份）</span>
-      </label>
+      <Teleport :to="overflow.slotEl('host-switch')" :disabled="!overflow.moved('host-switch')">
+        <div v-overflow-unit="{ id: 'host-switch', order: 3, label: '宿主示例' }" class="demo-ou">
+          <details class="demo-host-switch">
+            <summary>宿主示例：Vue3 canvas</summary>
+            <nav class="demo-host-switch-menu" aria-label="宿主示例互跳">
+              <a class="on" href="http://localhost:9303/" title="当前页面">Vue3 canvas（本仓库权威示例）</a>
+              <a href="http://localhost:9331/">Vue3 宿主</a>
+              <a href="http://localhost:9332/">Vue2 宿主</a>
+              <a href="http://localhost:9335/">React 宿主</a>
+              <a href="http://localhost:9334/">jQuery 宿主</a>
+            </nav>
+          </details>
+        </div>
+      </Teleport>
+      <Teleport :to="overflow.slotEl('badge-template')" :disabled="!overflow.moved('badge-template')">
+        <div v-overflow-unit="{ id: 'badge-template', order: 1, label: '模板 ID' }" class="demo-ou">
+          <span class="demo-badge">模板 ID：{{ TEMPLATE_ID }}</span>
+        </div>
+      </Teleport>
+      <Teleport :to="overflow.slotEl('badge-business')" :disabled="!overflow.moved('badge-business')">
+        <div v-overflow-unit="{ id: 'badge-business', order: 2, label: '业务类型' }" class="demo-ou">
+          <span class="demo-badge">业务类型：{{ currentSample ? currentSample.name : '空白模板' }}</span>
+        </div>
+      </Teleport>
+      <span class="demo-spacer" data-overflow-spacer />
+      <Teleport :to="overflow.slotEl('custom-fields')" :disabled="!overflow.moved('custom-fields')">
+        <div v-overflow-unit="{ id: 'custom-fields', order: 7, label: '自定义字段与数据' }" class="demo-ou">
+          <button type="button" class="demo-print-btn" @click="customDialogVisible = true">自定义字段与数据</button>
+        </div>
+      </Teleport>
+      <Teleport :to="overflow.slotEl('load-sample')" :disabled="!overflow.moved('load-sample')">
+        <div v-overflow-unit="{ id: 'load-sample', order: 9, label: '加载示例' }" class="demo-ou">
+          <button type="button" class="demo-print-btn" @click="onLoadSample">加载示例</button>
+        </div>
+      </Teleport>
+      <Teleport :to="overflow.slotEl('export')" :disabled="!overflow.moved('export')">
+        <div v-overflow-unit="{ id: 'export', order: 6, label: '导出模板' }" class="demo-ou">
+          <button type="button" class="demo-print-btn" @click="onExportTemplate">导出模板</button>
+        </div>
+      </Teleport>
+      <Teleport :to="overflow.slotEl('import')" :disabled="!overflow.moved('import')">
+        <div v-overflow-unit="{ id: 'import', order: 5, label: '导入模板' }" class="demo-ou">
+          <button type="button" class="demo-print-btn" @click="fileInputRef?.click()">导入模板</button>
+        </div>
+      </Teleport>
+      <Teleport :to="overflow.slotEl('clear')" :disabled="!overflow.moved('clear')">
+        <div v-overflow-unit="{ id: 'clear', order: 4, label: '清空' }" class="demo-ou">
+          <button type="button" class="demo-print-btn" @click="onClearTemplate">清空</button>
+        </div>
+      </Teleport>
+      <Teleport :to="overflow.slotEl('batch')" :disabled="!overflow.moved('batch')">
+        <div v-overflow-unit="{ id: 'batch', order: 8, label: '批量打印' }" class="demo-ou">
+          <label class="demo-batch-switch" :class="{ on: batchEnabled }" title="开启后浏览器预览/打印、客户端静默打印、服务端 PDF 均传入 3 份数据数组，由打印插件合并为一个作业">
+            <input v-model="batchEnabled" type="checkbox" />
+            <span>批量打印（{{ batchDataList.length }} 份）</span>
+          </label>
+        </div>
+      </Teleport>
+      <DemoTopbarMore />
       <button type="button" class="demo-print-btn" @click="printDialogVisible = true">打印输出</button>
       <input ref="fileInputRef" type="file" accept="application/json,.json" class="demo-file-input" @change="onImportTemplate($event)" />
     </header>
@@ -104,6 +142,8 @@ import {
   PrintHtmlPreview,
   DEFAULT_DEMO_DATA,
   createDefaultTemplate,
+  provideToolbarOverflow,
+  createOverflowUnitDirective,
 } from '@worm-vue3-print/canvas'
 import type { PrintBusinessField, TemplateData, MultiPageTemplateData } from '@worm-vue3-print/canvas'
 import { isMultiPageTemplate, mergeFontDeclarations } from '@worm-vue3-print/core'
@@ -113,6 +153,7 @@ import type {
   MultiPageTemplateData as PrintMultiPageTemplateData,
 } from '@worm-vue3-print/core'
 import PrintOutputDialog from './components/PrintOutputDialog.vue'
+import DemoTopbarMore from './components/DemoTopbarMore.vue'
 import TemplateGalleryDialog from './components/TemplateGalleryDialog.vue'
 import CustomDataDialog from './components/CustomDataDialog.vue'
 import type { SampleTemplate } from './samples'
@@ -136,6 +177,12 @@ const RENDER_BASE_URL = (import.meta.env.VITE_RENDER_BASE_URL as string | undefi
 const FONT_BASE_URL = (import.meta.env.VITE_FONT_BASE_URL as string | undefined) || `${window.location.origin}${import.meta.env.BASE_URL}`.replace(/\/$/, '')
 
 /** 打印输出弹窗开关 */
+/** 顶部区收纳：与设计器工具栏共用同一机制（判定在 core，链序由本宿主自己声明） */
+const overflow = provideToolbarOverflow()
+const vOverflowUnit = createOverflowUnitDirective(overflow)
+const topbarRef = ref<HTMLElement | null>(null)
+onMounted(() => overflow.attachRoot(topbarRef.value))
+
 const printDialogVisible = ref(false)
 
 // 页面初始为空白模板；挂载后自动载入综合示例模板，点击「加载示例」可从示例库另选
@@ -407,6 +454,31 @@ body,
   color: #2a2e37;
   flex-shrink: 0;
 }
+/* 收纳单元与其内文本一律不压缩：压缩会让自然宽度量不准，收纳判定随之失真 */
+.demo-topbar > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.demo-ou {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.demo-spacer {
+  flex: 1 0 0;
+  min-width: 0;
+}
+/* 9 项全收进「更多」后仍放不下：标题区省略号兜底，不再让顶部条溢出 */
+.demo-topbar.is-tight .demo-logo,
+.demo-topbar.is-tight .demo-project {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.demo-topbar.is-tight .demo-project {
+  flex-shrink: 1;
+  min-width: 0;
+}
 .demo-logo {
   font-weight: 600;
   color: #165dff;
@@ -514,9 +586,7 @@ body,
 .demo-print-btn:hover {
   background: #eef3ff;
 }
-.demo-topbar > .demo-print-btn:first-of-type {
-  margin-left: auto;
-}
+/* 左右分隔由 .demo-spacer 承担：按钮被包进收纳单元后，:first-of-type 选不到它们了 */
 .demo-batch-switch {
   display: inline-flex;
   align-items: center;

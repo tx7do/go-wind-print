@@ -93,7 +93,7 @@ textarea.pd-input {
   padding: 3px 6px;
   border: 1px solid var(--pd-border, #d9dde6);
   border-radius: 6px;
-  background: #fff;
+  background: var(--pd-input-bg, #fff);
   color: inherit;
   font: inherit;
   box-sizing: border-box;
@@ -175,7 +175,7 @@ textarea.pd-input {
   padding: 0 7px;
   border: 1px solid var(--pd-border, #d9dde6);
   border-radius: 6px;
-  background: #fff;
+  background: var(--pd-input-bg, #fff);
   cursor: pointer;
   transition: border-color .14s ease, background .14s ease, color .14s ease;
 }
@@ -285,7 +285,7 @@ textarea.pd-input {
   width: min(950px, 90vw);
   max-height: 90vh;
   overflow: hidden;
-  background: #fff;
+  background: var(--pd-surface, #fff);
   border-radius: 12px;
   box-shadow: var(--pd-shadow-md, 0 12px 40px rgba(23, 32, 60, .18));
 }
@@ -324,9 +324,16 @@ textarea.pd-input {
 
 
 /* ── 工作台级打磨：细滚动条 / 键盘聚焦 / 减弱动效（仅作用于设计器内部）── */
+/* 「更多」收纳面板内的下拉子面板（如「边框」）实测 218px 宽，比父面板 186px 还宽，
+   会向右戳出父面板约 49px（GitHub issue #4 附带项 T-07a）。按实测抬高最小宽：
+   子面板左边距 17 + 宽 218 + 右边距 9 = 244px。 */
+.tb-more-panel {
+  min-width: 244px;
+}
+
 .designer-container {
   scrollbar-width: thin;
-  scrollbar-color: rgba(23, 32, 60, .18) transparent;
+  scrollbar-color: var(--pd-scrollbar, rgba(23, 32, 60, .18)) transparent;
 }
 .designer-container ::-webkit-scrollbar {
   width: 9px;
@@ -336,13 +343,13 @@ textarea.pd-input {
   background: transparent;
 }
 .designer-container ::-webkit-scrollbar-thumb {
-  background: rgba(23, 32, 60, .16);
+  background: var(--pd-scrollbar-thumb, rgba(23, 32, 60, .16));
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 .designer-container ::-webkit-scrollbar-thumb:hover {
-  background: rgba(23, 32, 60, .30);
+  background: var(--pd-scrollbar-thumb-hover, rgba(23, 32, 60, .30));
   border: 2px solid transparent;
   background-clip: content-box;
 }

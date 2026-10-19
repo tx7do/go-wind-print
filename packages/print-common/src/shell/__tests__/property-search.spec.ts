@@ -162,3 +162,31 @@ describe('property-search 门控（对照 filteredGroups / matchedKeys / searchi
     expect(groups).toEqual(['position-size', 'appearance', 'binding', 'border-bg', 'pagination', 'advanced'])
   })
 })
+
+describe('issue #4 新增字段：首行缩进与图片缩放/锚点', () => {
+  it('长文本出「首行缩进 (字符)」，普通文本不出（该字段仅 longText 消费）', () => {
+    expect(visibleItemKeys(paint('longText').host)).toContain('ap-long-text-indent')
+    expect(visibleItemKeys(paint('text').host)).not.toContain('ap-long-text-indent')
+  })
+
+  it('图片出缩放模式与裁剪锚点两行——嵌套数组曾让 paint 抛 TypeError，必须能平铺渲染', () => {
+    const { host } = paint('image')
+    const keys = visibleItemKeys(host)
+    expect(keys).toContain('ap-img-fit')
+    expect(keys).toContain('ap-img-object-position')
+    const labels = [...host.querySelectorAll<HTMLElement>('.pd-field')].filter(visible)
+      .map(el => el.querySelector('.pd-label')?.textContent ?? '')
+    expect(labels.some(l => l.includes('缩放模式'))).toBe(true)
+    expect(labels.some(l => l.includes('裁剪锚点'))).toBe(true)
+    const tips = [...host.querySelectorAll<HTMLElement>('.pd-help[data-tip]')].map(el => el.dataset.tip ?? '')
+    expect(tips.some(t => t.includes('object-position'))).toBe(true)
+    expect(tips.some(t => t.includes('缩放方式'))).toBe(true)
+  })
+
+  it('搜「裁剪锚点」只点亮外观组；搜「位置」仍只命中位置与尺寸组（关键字不得越组撞车）', () => {
+    expect(visibleGroups(paint('image', '裁剪锚点').host)).toEqual(['外观'])
+    const pos = paint('text', '位置')
+    expect(visibleGroups(pos.host)).toEqual(['位置与尺寸'])
+    expect(visibleItemKeys(pos.host)).toEqual(['ps-left', 'ps-top', 'ps-width', 'ps-height'])
+  })
+})

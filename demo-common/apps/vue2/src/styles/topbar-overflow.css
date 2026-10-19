@@ -1,0 +1,119 @@
+/* 顶部操作区自适应收纳（issue #4 拆解项 T-10 的 jQuery 宿主形态）。
+   宿主视觉样式 demo-ui.css 由 sync-demo-styles 从 demo 逐字抽取、禁止手改，
+   故这里只补收纳机制自身需要的布局约束，不改任何一个既有像素值。 */
+.demo-topbar {
+  flex-wrap: nowrap;
+}
+/* 常驻文案（项目名/标题）：不许折行，空间收尽时走省略号兜底（与 D-4 口径一致） */
+.demo-topbar .demo-project,
+.demo-topbar .demo-logo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 收纳单元必须是 flex 且不许压缩：block 化会让徽章与按钮换行、字号被竖向排开 */
+.demo-ou {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.demo-topbar .demo-ou,
+.demo-topbar .demo-print-btn,
+.demo-topbar .demo-badge,
+.demo-topbar .demo-more-trigger {
+  white-space: nowrap;
+}
+.demo-more-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.demo-more-group[hidden] {
+  display: none;
+}
+.demo-more-icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.demo-more-caret {
+  width: 7px;
+  height: 7px;
+  margin-left: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-2px, -2px);
+}
+.demo-more-trigger[aria-expanded="true"] .demo-more-caret {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+.demo-more-panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  right: 0;
+  /* 面板内的下拉子面板实测 218px 宽（含 17px 左边距），244px 才容得下（T-07a 同源结论） */
+  min-width: 244px;
+  max-height: min(70vh, 520px);
+  padding: 6px 0;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #d9dde6;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(23, 32, 60, .14);
+}
+.demo-more-panel[hidden] {
+  display: none;
+}
+.demo-more-note {
+  margin: 0 0 6px;
+  padding: 4px 10px 6px;
+  color: #8b909c;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.demo-more-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 10px;
+}
+.demo-more-item:empty {
+  display: none;
+}
+.demo-more-label {
+  color: #2a2e37;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.demo-more-slot {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+/* 实测发现（与收纳无关，但同一顶栏内）：宿主示例下拉只有作者规则 display:flex，
+   它盖掉了 <details> 闭合时 UA 的隐藏，导致菜单常驻可见并压在画布上。
+   demo-ui.css 是从 demo 逐字抽取的产物、禁止手改，故在此补闭合态隐藏；
+   根治应在 demo/src/App.vue 的样式源里补同一条，再重跑 sync-demo-styles。 */
+.demo-host-switch:not([open]) > .demo-host-switch-menu {
+  display: none;
+}
+
+/* 面板与落位槽的显式布局：包裹层是 span（宿主模板里为避免 div-in-span 的重排风险统一用 span），
+   必须显式给出 flex 列，否则内部 block 子节点会脱离行内盒 */
+.demo-more-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.demo-more-panel[hidden] {
+  display: none;
+}
+.demo-more-slot {
+  display: inline-flex;
+  align-items: center;
+}

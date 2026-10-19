@@ -4,7 +4,7 @@
     <header class="demo-topbar">
       <span class="demo-project">worm-vue3-print</span>
       <span class="demo-logo">打印模板设计器 Demo</span>
-      <details class="demo-host-switch">
+      <span class="demo-ou" data-overflow-unit="host-switch"><details class="demo-host-switch">
         <summary>宿主示例：Vue3</summary>
         <nav class="demo-host-switch-menu" aria-label="宿主示例互跳">
           <a href="http://localhost:9303/">Vue3 canvas（demo 权威示例）</a>
@@ -13,18 +13,36 @@
           <a href="http://localhost:9335/">React 宿主</a>
           <a href="http://localhost:9334/">jQuery 宿主</a>
         </nav>
-      </details>
-      <span class="demo-badge">业务类型：{{ currentSample ? currentSample.name : '空白模板' }}</span>
-      <span class="demo-badge">宿主：Vue 3 + Web Component</span>
-      <button type="button" class="demo-print-btn" @click="customDialogVisible = true">自定义字段与数据</button>
-      <button type="button" class="demo-print-btn" @click="galleryVisible = true">加载示例</button>
-      <button type="button" class="demo-print-btn" @click="onExportTemplate">导出模板</button>
-      <button type="button" class="demo-print-btn" @click="fileInputRef?.click()">导入模板</button>
-      <button type="button" class="demo-print-btn" @click="onClearTemplate">清空</button>
-      <label class="demo-batch-switch" :class="{ on: batchEnabled }" :title="`开启后浏览器预览/打印、客户端静默打印、服务端 PDF 均传入 ${batchDataList.length} 份数据数组，由打印插件合并为一个作业`">
+      </details></span>
+      <span class="demo-ou" data-overflow-unit="biz"><span class="demo-badge">业务类型：{{ currentSample ? currentSample.name : '空白模板' }}</span></span>
+      <span class="demo-ou" data-overflow-unit="host-badge"><span class="demo-badge">宿主：Vue 3 + Web Component</span></span>
+      <span class="demo-ou" data-overflow-unit="custom"><button type="button" class="demo-print-btn" @click="customDialogVisible = true">自定义字段与数据</button></span>
+      <span class="demo-ou" data-overflow-unit="gallery"><button type="button" class="demo-print-btn" @click="galleryVisible = true">加载示例</button></span>
+      <span class="demo-ou" data-overflow-unit="export"><button type="button" class="demo-print-btn" @click="onExportTemplate">导出模板</button></span>
+      <span class="demo-ou" data-overflow-unit="import"><button type="button" class="demo-print-btn" @click="fileInputRef?.click()">导入模板</button></span>
+      <span class="demo-ou" data-overflow-unit="clear"><button type="button" class="demo-print-btn" @click="onClearTemplate">清空</button></span>
+      <span class="demo-ou" data-overflow-unit="batch"><label class="demo-batch-switch" :class="{ on: batchEnabled }" :title="`开启后浏览器预览/打印、客户端静默打印、服务端 PDF 均传入 ${batchDataList.length} 份数据数组，由打印插件合并为一个作业`">
         <input v-model="batchEnabled" type="checkbox" />
         <span>批量打印（{{ batchDataList.length }} 份）</span>
-      </label>
+      </label></span>
+      <span class="demo-more-group" data-overflow-more hidden>
+        <button type="button" class="demo-print-btn demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
+          <svg class="demo-more-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" /></svg>
+          <span>更多</span><span class="demo-more-caret" aria-hidden="true"></span>
+        </button>
+        <span class="demo-more-panel" hidden>
+          <p class="demo-more-note">仅在横向空间不足时，顶部操作才会折叠到这里</p>
+          <div class="demo-more-item" data-unit="biz"><span class="demo-more-label">业务类型</span><span class="demo-more-slot" data-overflow-slot="biz"></span></div>
+          <div class="demo-more-item" data-unit="host-switch"><span class="demo-more-label">宿主示例</span><span class="demo-more-slot" data-overflow-slot="host-switch"></span></div>
+          <div class="demo-more-item" data-unit="host-badge"><span class="demo-more-label">宿主标识</span><span class="demo-more-slot" data-overflow-slot="host-badge"></span></div>
+          <div class="demo-more-item" data-unit="clear"><span class="demo-more-label">清空</span><span class="demo-more-slot" data-overflow-slot="clear"></span></div>
+          <div class="demo-more-item" data-unit="import"><span class="demo-more-label">导入模板</span><span class="demo-more-slot" data-overflow-slot="import"></span></div>
+          <div class="demo-more-item" data-unit="export"><span class="demo-more-label">导出模板</span><span class="demo-more-slot" data-overflow-slot="export"></span></div>
+          <div class="demo-more-item" data-unit="custom"><span class="demo-more-label">自定义字段与数据</span><span class="demo-more-slot" data-overflow-slot="custom"></span></div>
+          <div class="demo-more-item" data-unit="batch"><span class="demo-more-label">批量打印</span><span class="demo-more-slot" data-overflow-slot="batch"></span></div>
+          <div class="demo-more-item" data-unit="gallery"><span class="demo-more-label">加载示例</span><span class="demo-more-slot" data-overflow-slot="gallery"></span></div>
+        </span>
+      </span>
       <button type="button" class="demo-print-btn" @click="printDialogVisible = true">打印输出</button>
       <input ref="fileInputRef" type="file" accept="application/json,.json" class="demo-file-input" @change="onImportTemplate($event)" />
     </header>
@@ -209,6 +227,7 @@
 // 版式与 ./demo（Vue 3 设计器示例）完全一致：样式由 sync-demo-styles.mjs 从 demo 逐字抽取生成，
 // 本文件不写任何私有样式；事件不走侧栏面板，而是与 demo 同口径写控制台 + 下载 + alert。
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { initTopbarOverflow } from './topbar-overflow.js'
 import { createDefaultTemplate } from '@worm-vue3-print/common'
 import { PrintClient, WormPrintError } from '@worm-vue3-print/core/client'
 import { SAMPLES } from './templates'
@@ -675,6 +694,7 @@ async function onClientPrint() {
 }
 
 onMounted(() => {
+  initTopbarOverflow()
   const el = designerRef.value
   // 上传能力同样是 property（函数无法走 attribute）
   el.uploadImage = uploadImage
@@ -693,3 +713,4 @@ onBeforeUnmount(() => {
 
 
 <style src="./styles/demo-ui.css"></style>
+<style src="./styles/topbar-overflow.css"></style>

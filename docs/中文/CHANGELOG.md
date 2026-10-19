@@ -2,14 +2,24 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
-## 未发布
+## V1.3.7(2026-10-19)
 
 ### 新增
 
+- demo-common 四个子 demo 的顶部操作区接入**同一套自适应收纳**（[GitHub issue #4](https://github.com/worm-longliu/worm-vue3-print/issues/4) 拆解项 T-10）：jquery / vue2 / react / vue3 宿主各自新增 `src/topbar-overflow.js`（判定与 core `resolveToolbarOverflow` 一致；直挂形态没有打包器，拿不到 core 子路径，故就地实现同一算法）与 `src/styles/topbar-overflow.css`（`demo-ui.css` 是同源产物、禁止手改，收纳布局另起一份），可折叠项统一包 `.demo-ou`、面板内给 `data-overflow-slot` 落位。四宿主实测 1600/1280/900/700/640 五档：文本折行 0、内容溢出条底 0、顶栏恒 45px、收纳数 0/0/3/5/8；被移进面板的复选框仍随框架状态更新（class 加 `on`、文案改「3 份」）且不回到行内。
+
+- 文本**两端对齐** `justify`（[GitHub issue #4](https://github.com/worm-longliu/worm-vue3-print/issues/4)）：`TextAlign` 增档，属性台「对齐」加「两端」radio、格式工具栏对齐面板加第四格（canvas 与 print-common 同图标 `TextAlignJustify`，common 图标表由 canvas 导入自动派生），tip 写明「撑满行宽，含末行」。出纸端与画布/common 同策两处：一是 `justify` 与垂直对齐组合时把 flex 主轴改成纵向，让行盒取满宽（横向 flex 的匿名文本项无法拉伸，改前会静默回落成左对齐）；二是随 `text-align:justify` 一并输出 `text-align-last:justify`——CSS 的 `justify` 不拉伸段落末行，而文本元素通常只有一行、那一行就是末行，改前单行设两端对齐毫无变化（真实设计器实测：元素盒 349px 宽而单行行盒只有 140px，改后行盒撑满 349px）。语义按打印设计器同行取「撑满行宽」，与 Word 的「两端对齐」有别：多行文本的末行同样被拉开（Word 中该形态叫「分散对齐」）。
+- 表格**单元格两端对齐**：属性台「水平对齐」补第 4 档「两端」（canvas 与 print-common 同位同文案）。此前格式工具栏的第 4 格在单元格上下文里已经能写入 `align: 'justify'`（`useFormatToolbar` 在 `context==='cells'` 复用同一对齐面板），但属性台看不到也点不到，且出纸只输出 `text-align:justify`——真实设计器实测 83px 宽的表头格里内容仍停在 48px。现三端补齐：core `matrixCellStyle()` 成对输出 `text-align-last:justify`，canvas `TableElement` 与 print-common `table.ts` 的单元格样式同步；真实设计器点「两端」后同一格行盒 48px → 撑满内容宽 73px。缺省仍按 `left`/`center` 走，存量模板零变化（仅 `align === 'justify'` 时多这一条声明）。
+- 长文本**首行缩进** `longTextIndent` 真正落纸（属性台「外观」组同时补上「首行缩进 (字符)」入口与说明）：`text-indent` 以 **em** 输出（随字号走，`textFit='shrink'` 把字号缩小后缩进同步变窄），与 Word/WPS「首行缩进 2 字符」同形态；画布与 print-common 两处由 `pt` 同步改为 `em`。仅 `longText` 元素消费，给 `text` 元素塞该键不生效——与画布语义对齐。
+- 图片**裁剪锚点** `objectPosition`：独立 image 与表格单元格图片的 `<img>` 输出 `object-position`（如 `center 20%`，证件照保住头顶）；属性台「外观」组为 image 新增「缩放模式」与「裁剪锚点」，表格单元格属性面板同步补「裁剪锚点」（仅图片单元格显示）（canvas 与 print-common 同位同文案，说明挂 `button.pd-help`，文案单一来源是 core 的 `PROPERTY_REGISTRY`）。含 `;`、引号、`url()` 等非法字符的值整条丢弃（宿主侧 CSSOM 同样丢弃，两端行为一致）。
+
 - 桌面客户端出纸通路：**HTML 直打**。core 产出的最终 HTML 直接交给 `webContents.print({ silent: true })`，与浏览器 `window.print()` 同源：纸张按渲染管线算出的 `paperMm` 以**微米**显式声明，边距恒 `none`，出纸前把 `deviceName/pageSize/copies/landscape` 落日志（`Chromium 原生打印参数`）。三端都不再依赖外部命令。勾选「保留生成的 PDF」时才额外产出同一份 `printToPDF` 结果作为比对**参考件**（不勾选则渲染停在准备阶段，省一次出图）；任务记录新增 `printRoute` 留痕，旧记录按 `pdf` 理解。macOS 实测（支持自定义尺寸的标签队列）：落盘介质精确等于声明值（60×40 / 80×60 / 100×80 mm，`/Rotate=0`、内容正立），比 PDF 通路 `printToPDF` 的取整结果（60.4×40.2 mm）更准；`silent` 未弹交互框，60s 回调兜底未触发。
 - 设计器顶部工具栏**自适应收纳**：宽度不足以容纳全部按钮组时，按固定优先级链（剪贴板 → 格式刷 → 缩放 → 排列/视图 → 边框 → 颜色 → 对齐 → 文字样式 → 字体与字号）从链首起把按钮组收进新出现的「更多」下拉，面板内保留原有分组标题与图标网格形态；全部收完仍放不下时品牌区文字转为省略号截断。判定函数 `resolveToolbarOverflow` 落在 `@worm-vue3-print/core/designer`，canvas 与 print-common 两套宿主共用同一链序。canvas 侧用 `Teleport` 搬运，组件实例不重挂载，因此「边框」面板里选好的线型/粗细/颜色在窗口反复缩放后存活；common 侧因整树重建模型改为重绘后置遍搬运，并新增 `openMore` 状态使「更多」与内层下拉能同时展开。
+- demo 顶部操作区接入同一套收纳：常驻「worm-vue3-print」标识、标题与「打印输出」，其余 9 项按 模板 ID → 业务类型 → 宿主示例切换 → 清空 → 导入模板 → 导出模板 → 自定义字段与数据 → 批量打印 → 加载示例 的顺序收进「更多」，面板用 demo 自身视觉、宿主自持 DOM。改前实测 640px 宽时顶部条只有 45px 高而「自定义字段与数据」按钮被压到 156px 高（逐字竖排），11 个文本项全部折行并溢出条底 55px；改后同宽度全部收进面板，无一项竖排、无溢出。左右分隔改由显式 `.demo-spacer` 承担（原 `.demo-print-btn:first-of-type { margin-left: auto }` 在按钮被包成收纳单元后已选不中）。
+- 收纳机制提升为 canvas 公开 API：新增导出 `provideToolbarOverflow` / `useToolbarOverflow` / `emptyToolbarOverflow` / `createOverflowUnitDirective` / `TOOLBAR_OVERFLOW` 与 `ToolbarOverflowContext` / `OverflowUnitDef` 类型，宿主自己的工具栏可复用同一链序与判定；落位容器改按 `data-overflow-slot` 属性配对、自然宽排除项按 `data-overflow-more` / `data-overflow-spacer` 属性识别，不再与 canvas 的类名耦合。
+
 - 桌面客户端窗口与托盘图标改用与安装包同源的 `build/icon.png`（该图随之进 asar，安装包约 +1 MB），任务栏、Alt-Tab 与快捷方式图形一致；macOS 托盘仍用单色模板图以适配菜单栏深浅色。
-- 属性台新增「**静区 (模块)**」：二维码四周留出的空白格数，二维码**元素**与**表格单元格**都能设，canvas 与 print-common 两套宿主同口径，范围 0~8、**缺省 0**（此前出纸固定 4 模块，因此既有模板的码面占框比例从 72.4% 变 100%）。0 即不留白边、码面等比铺满元素框，扫码所需静区由元素框外的白纸充当；需要 ISO/IEC 18004 推荐的合规静区时显式填 4。属性搜索可用「静区 / 白边 / 留白 / 铺满」命中。说明文字挂在标签后的帮助图标上（悬浮或点击才浮出，文案单一来源在 core 的属性注册表），不常驻占用属性台纵向空间。
+- 属性台新增「**静区 (模块)**」（[Gitee issue #IKN95F](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)）：二维码四周留出的空白格数，二维码**元素**与**表格单元格**都能设，canvas 与 print-common 两套宿主同口径，范围 0~8、**缺省 0**（此前出纸固定 4 模块，因此既有模板的码面占框比例从 72.4% 变 100%）。0 即不留白边、码面等比铺满元素框，扫码所需静区由元素框外的白纸充当；需要 ISO/IEC 18004 推荐的合规静区时显式填 4。属性搜索可用「静区 / 白边 / 留白 / 铺满」命中。说明文字挂在标签后的帮助图标上（悬浮或点击才浮出，文案单一来源在 core 的属性注册表），不常驻占用属性台纵向空间。
 
 ### 变更
 
@@ -22,16 +32,29 @@
 
 ### 移除（破坏性）
 
+- 移除从未被消费的可选字段 `lHeight`（与 `lineHeight` 语义重复）与 `leftSpaceRemoved`：全仓零消费，模板里残留同名键被忽略，渲染行为零变化。
+
 - 桌面客户端 Windows 侧的 **SumatraPDF 出纸通路整体移除**：`print-backend.ts`（三处安装位置探测）、`sumatra-installer.ts`（官方便携版下载 + sha256 校验 + 一键安装）、设置页的出纸后端状态条与 `worm:settings:install-print-backend` IPC 均不再存在，`printPdfFile` 在 win32 直接报错。此前该通路的口径（只发份数与方向、不发任何纸张参数）随代码删除，Windows 不再需要安装外部工具。
 - 随之失效的参数口径：`paperName`（驱动纸型名）与 `margins` 在当前出纸通路**不被消费**（协议保留以兼容）。要按驱动纸型出纸请设驱动/队列首选项；`-o media=<名称>` 那条通路只在 macOS / Linux 保留。
 
 ### 修复
 
+- 桌面客户端：**含条码或二维码的模板此前一张都打不出来**，任务固定以 `PRINT_FAILED：码值渲染超过 ~30000ms` 结束（无码模板不受影响）。渲染管线要先在页面里生成码值 SVG、再把它填进 HTML 去做测量，即**码值阶段早于任何一次 `setContent`**；而客户端的 Electron driver 在窗口从未提交过任何文档时就调 `webContents.executeJavaScript`——Electron 会把这段脚本排队等一次文档提交，隐藏窗口永远不提交，调用于是静默挂到超时。现 driver 在首次注入执行器前先载入一个空白文档。实测（本机 PDFwriter 虚拟队列）：出厂面单模板（条码 + 二维码、自定义纸 100×150mm）由超时失败变为 **2.5s 出纸**，落盘介质精确 100.00×150.00 mm、`/Rotate=0`；单条码 1.5s、单二维码（静区 4）1.5s、含两端对齐/首行缩进/裁剪锚点/双二维码的排版探针模板 1.9s。**该缺陷自 1.3.5 起即存在**（同一台机器上用户已装的 1.3.5 客户端跑同一模板同样超时，已实测对照），非 V1.3.7 引入，随本版安装包一并修复——升级前用桌面客户端打条码/二维码的用户，此前只能改用浏览器打印或服务端 PDF。
+- 子 demo 顶栏的「宿主示例」互跳下拉**常驻可见**并压在画布上：`demo-ui.css` 里 `.demo-host-switch-menu { display: flex }` 这条作者规则盖住了 `<details>` 闭合态的 UA 隐藏。四宿主的 `topbar-overflow.css` 各补一条 `.demo-host-switch:not([open]) > .demo-host-switch-menu { display: none }`；根治应落到 demo 样式源后重跑 `npm run styles:demo-common`。
+- common 宿主的属性台**字段帮助气泡与 canvas/vue3 不一致**：canvas `DesignerToolbar.vue` 里裸选择器 `[data-tip]::after`（`bottom:-32px; left:50%; translateX(-50%); padding:4px 8px; white-space:nowrap; z-index:100`）在派生 common 样式表时被剥掉 `[data-v-*]`，连带命中属性台的 `.pd-help::after`——90 多字的「静区 (模块)」说明因此不换行、被拉成超宽长条且左偏居中、层级从 120 掉到 100。`scope-patches.css` 按 `native-controls.css` 的 `.pd-help::after` 逐条还原（top/bottom/left/transform/padding/white-space/z-index）。A/B 实测：同一探针元素两侧现均为 `left:0 / transform:none / padding:5px 7px / white-space:normal / width:196px / z-index:120`，仅 `top` 差 1px（气泡定位基座是 `.pd-label`，其行高两宿主本就有 ±1px 记录内差异）。
+
+- 「更多」收纳面板内的下拉子面板（如「边框」）向右戳出父面板：1000px 视口实测父面板 186px、子面板 218px 且左边距 17px，**溢出 48px**（[GitHub issue #4](https://github.com/worm-longliu/worm-vue3-print/issues/4) 附带项 T-07a）。`.tb-more-panel` 现按实测抬高 `min-width: 244px`（17 + 218 + 9），改后父面板 246px、溢出归 0；print-common 侧「更多」面板本就 282px 容得下 218px 子面板，规则无副作用。
+
+- 独立 image 元素的 `fit` 在出纸端被写死 `object-fit:contain`（画布按 `cover` 裁剪显示，预览/PDF/客户端三路都不一致）：改为读取 `opts.fit`，未设时仍 `contain`，存量模板输出逐字不变。
+- 主题变量接通：`native-controls.css` 输入类控件/选项 chip/`​.pd-dialog`、`ExpressionEditor` 类型页签与 hover 与预览错误态与四张帮助卡片、`TableContextMenu` 全量、`PresetColorPicker` 触发器与浮层，以及滚动条三档（含 hover）统一改 `var(--pd-*, 原值)`；26 个新令牌集中登记在 `PrintDesigner.vue` 的 `.designer-container`，浅色默认逐像素不变（浏览器实测 `.pd-input`/`.pd-select`/`.pd-radio` 计算值仍 `rgb(255, 255, 255)`；`.pd-switch::after` 开关滑块白底属正确形态，显式保留）。
+- `PresetColorPicker` 双根（button + Teleport）导致 `Extraneous non-props attributes (class)` 告警且样式落空：组件 `inheritAttrs: false` + 显式 `v-bind="$attrs"` 绑到触发器；`.page-bg-picker` 的 `flex: 1` 改由真实节点承载——fragment 根拿不到宿主 scoped 属性，class 即使落位也匹配不上 `.page-bg-picker[data-v-*]`。
+
 - 桌面客户端（macOS）：**回退的 PDF 出纸通路上，横向标签被打成纵向**。V1.3.6 登记的「`-o orientation-requested=4` 的实现是**交换介质长宽**，故 macOS 的 `Custom.` 也按纵向序（短边×长边）声明」**结论有误**——该观测来自 PostScript 通路（`cgpdftops`）的 `do_rotate` 日志，而 driverless / `_ib` 这类**直接收 PDF 的队列走 `cgpdftopdf`**，其语义是「按你声明的介质朝向，把内容转过去贴它」，并不交换介质。实测（macOS 15.7.8 + CUPS 2.3.4，开源 RWTS-PDFwriter 虚拟队列，9 种纸型 × 3 种下发形态共 27 例）：100×75 标签按 `Custom.212.6x283.46` 加方向请求下发时，落盘介质为 212×283pt 的**纵向页**且内容被补 90°；改按 `Custom.283.46x212.6` 真序声明则介质=100×75 mm、内容正立、产物字节与输入一致。现 **`Custom.` 与 Linux 统一按页面真实朝向声明，macOS 不再为它补方向请求**；方向请求只保留给「命中标准纸型名（`A4` / `Letter` 本身就是纵向介质）的横向页」，该场景实测行为不变（在纵向纸上正立出横向）。**行为变更**：仅影响 macOS 上把 `ACTIVE_PRINT_ROUTE` 改回 `pdf` 的回退构建；默认的 HTML 直打不消费 `media=`，不受本条影响。接单前可用 `grep -m1 CustomPageSize /etc/cups/ppd/<队列>.ppd` 确认队列认不认自定义尺寸——不支持时 `Custom.` 仍会被静默忽略并回落驱动默认纸型，标签只能靠驱动内已定义的 `paperName`（仅在 PDF 通路可用）。
 
-- 设计器顶部工具栏**不再折行压画**（GitHub issue #4 评论 1）：此前按钮组与其文字标签可被 flex 压缩，实测自然宽合计超出可用宽即出现文字逐字换行，标题区被压到 13px 宽 / 62px 高、整块 146px 高并溢出工具栏底边 47px 叠到画布上；触发点比反馈更靠前——**1520–1600 CSS px 之间**就开始折行（1080p / 2K 屏 100% 缩放即命中），并非只有明显缩小视口才会出现。现由上面的自适应收纳承接：子项一律禁止压缩（仅品牌区可收缩），放不下先收按钮组，收尽仍不足才让品牌区文字走省略号。
+- 设计器顶部工具栏**不再折行压画**（[GitHub issue #4 评论 1](https://github.com/worm-longliu/worm-vue3-print/issues/4)）：此前按钮组与其文字标签可被 flex 压缩，实测自然宽合计超出可用宽即出现文字逐字换行，标题区被压到 13px 宽 / 62px 高、整块 146px 高并溢出工具栏底边 47px 叠到画布上；触发点比反馈更靠前——**1520–1600 CSS px 之间**就开始折行（1080p / 2K 屏 100% 缩放即命中），并非只有明显缩小视口才会出现。现由上面的自适应收纳承接：子项一律禁止压缩（仅品牌区可收缩），放不下先收按钮组，收尽仍不足才让品牌区文字走省略号。
 
 - 二维码**不再小一圈，铺满元素框与单元格**（[Gitee issue #IKN95F](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)）：二维码走 `<img>`，但出图端只写了 `max-width/max-height:100%` 而没有 `width/height:100%`——替换元素因此按内在尺寸绘制，而 SVG 的内在尺寸是「模块数 × 4 + 4 模块静区」（默认码值 116px ≈ 30.7mm），与元素框的 mm 完全无关，框一旦大于它就明显不铺满、`object-fit` 也随之空转（真实 Chromium 实测：60mm 框只画 65.3%、80mm 框 48.9%；24mm 框恰好被 `max-width` 压满，所以小二维码看不出来）。出图端现补 `width:100%;height:100%`，`fit` 未设置时按属性面板默认输出 `object-fit:contain`（此前预览写 contain、出纸不写，两边口径分裂）。设计态四处实现（canvas 的 `QrcodeElement` / `CellBarcode`、print-common 的 `shell/code.ts` / `shell/table.ts`）改用 `@worm-vue3-print/core/browser` 的同一份 SVG：canvas 此前把 mm 数值当 px 传给 `qrcode` 库的 `toDataURL({ width })`，28.2mm 的框只出 28px 的图（实测占容器 26.3%）且模块宽落在非整数像素上；print-common 元素级用 `margin: 0`、单元格用 `margin: 1`、出纸用 4 模块，静区三处各不相同。**静区**：此前出纸固定 4 模块、canvas 预览 1 模块、print-common 预览 0 模块，三处各说各话；现统一由新属性 `qrQuietZone`（属性台「静区 (模块)」）决定，缺省 0 模块（码面即等比铺满元素框），缩放元素框也不再重出图。
+
 
 ## V1.3.6(2026-10-16)
 

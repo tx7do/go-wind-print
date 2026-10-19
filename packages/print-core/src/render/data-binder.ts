@@ -190,6 +190,7 @@ function makeRenderRow(
       showBarcodeText: cell.showBarcodeText,
       printerDpi: cell.printerDpi,
       fit: cell.fit,
+      objectPosition: cell.objectPosition,
       maxWidth: cell.maxWidth,
       maxHeight: cell.maxHeight,
       rowspan: cell.rowspan ?? 1,

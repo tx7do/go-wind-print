@@ -60,3 +60,17 @@
 .pd-help {
   position: static;
 }
+
+/* 同一条泄漏也命中气泡本体：[data-tip]::after 的 bottom/left/transform/padding/white-space/z-index
+   与 canvas 属性台的气泡形态不同（其中 white-space:nowrap 会让 90 多字的说明变成一条超宽长条）。
+   canvas 侧这些声明带 [data-v-*] 只作用于顶部栏按钮，故按 native-controls.css 的 .pd-help::after
+   逐条还原（单一来源就是那份共享样式，改它时这里要同步）。 */
+.pd-help::after {
+  top: calc(100% + 6px);
+  bottom: auto;
+  left: 0;
+  transform: none;
+  padding: 5px 7px;
+  white-space: normal;
+  z-index: 120;
+}

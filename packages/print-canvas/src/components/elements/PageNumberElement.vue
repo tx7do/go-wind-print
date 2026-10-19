@@ -21,7 +21,9 @@ const textStyle = computed(() => {
     fontWeight: o.fontWeight || 'normal',
     fontFamily: o.fontFamily || 'inherit',
     color: o.color || '#333',
-    textAlign: (o.textAlign || 'left') as 'left' | 'center' | 'right',
+    textAlign: (o.textAlign || 'left') as 'left' | 'center' | 'right' | 'justify',
+    // justify 不拉伸段落末行，单行页码需显式声明才撑满行宽（出纸走 core textStyle，画布不能落后）
+    ...(o.textAlign === 'justify' ? { textAlignLast: 'justify' as const } : {}),
     lineHeight: o.lineHeight ? o.lineHeight + 'pt' : 'normal',
     letterSpacing: o.letterSpacing ? o.letterSpacing + 'pt' : 'normal',
   }

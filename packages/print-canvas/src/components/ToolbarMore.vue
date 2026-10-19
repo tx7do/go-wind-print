@@ -1,7 +1,7 @@
 <!-- 「更多」下拉：承载被收纳单元的落位槽。
      面板必须常驻 DOM（keep-mounted），否则 Teleport 目标随开合消失，收纳单元会被丢回行内。 -->
 <template>
-  <div v-if="ctx" v-show="hasMoved" class="tb-group tb-more-group">
+  <div v-if="ctx" v-show="hasMoved" class="tb-group tb-more-group" data-overflow-more>
     <ToolbarDropdown test-id="more-dd" tip="更多" keep-mounted panel-class="tb-more-panel">
       <template #trigger>
         <Ellipsis :size="15" />
@@ -16,7 +16,7 @@
           :data-unit="unit.id"
         >
           <div class="tb-menu-label">{{ unit.label }}</div>
-          <div :id="moreSlotId(unit.id)" class="tb-more-slot" :data-unit="unit.id" />
+          <div :id="moreSlotId(unit.id)" class="tb-more-slot" :data-overflow-slot="unit.id" :data-unit="unit.id" />
         </div>
       </div>
     </ToolbarDropdown>

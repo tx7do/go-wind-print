@@ -315,6 +315,10 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       isBarcodeCell ? hint('单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限') : '',
       (isQrcodeCell || isImageCell) ? selectRow('缩放模式', cell0.fit || 'contain', FIT_OPTIONS,
         v => write(c => { c.fit = v as NonNullable<TableCell['fit']> })) : '',
+      isImageCell ? fieldHelp('裁剪锚点', h('input', {
+        class: 'pd-input', type: 'text', value: String(cell0.objectPosition ?? ''), placeholder: '缺省居中，如 center 20%',
+        onBlur: (ev: FocusEvent) => write(c => { c.objectPosition = ((ev.target as HTMLInputElement).value || '').trim() || undefined }),
+      }), propertyTip('ap-img-object-position')) : '',
       (isBarcodeCell || isQrcodeCell || isImageCell)
         ? numField('最大宽度 (mm)', optNum(cell0.maxWidth), (c, v) => { c.maxWidth = v }, { min: 0, max: 200, placeholder: '默认' })
         : '',
@@ -336,7 +340,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       h('div', { class: 'pd-field' }, [
         h('span', { class: 'pd-label', text: '水平对齐' }),
         radioGroup('cell-align', [
-          { value: 'left', label: '左' }, { value: 'center', label: '中' }, { value: 'right', label: '右' },
+          { value: 'left', label: '左' }, { value: 'center', label: '中' }, { value: 'right', label: '右' }, { value: 'justify', label: '两端' },
         ], cell0.align || 'left', v => write(c => { c.align = v as TextAlign })),
       ]),
       h('div', { class: 'pd-field' }, [

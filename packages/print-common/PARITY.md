@@ -12,7 +12,7 @@
 
 | 手段 | 命令 | 覆盖 |
 |---|---|---|
-| 逻辑单测 | `npm run test -w @worm-vue3-print/common` | 120 项（10 个 spec）：三区摊平与序列化往返、默认页名与重排、拼版闸门、对齐、层级、撤销重做、参考线、粘贴偏移与组 id 重映射、Ctrl+D 复制、方向键微移会话、落点归区与类型拒绝、拖拽结束归区、Alt 拖拽克隆、格式刷（选中集变化即刷 / 双击锁定 + Esc 退出）、混选 MIXED、字体只落文本元素、加粗回落、表格矩阵 10 项、取色器 15 项、字体下拉 13 项、帮助弹窗 14 项、属性台搜索门控 14 项、拖拽视觉态与步进/下拉细节 9 项、右键菜单 10 项、双击表达式编辑 8 项、吸附拖拽 3 项 |
+| 逻辑单测 | `npm run test -w @worm-vue3-print/common` | 149 项（13 个 spec，含 issue #4 排版契约：缩进 em、justify 纵向主轴 + `text-align-last:justify`、单元格两端对齐四档、image fit/锚点）：三区摊平与序列化往返、默认页名与重排、拼版闸门、对齐、层级、撤销重做、参考线、粘贴偏移与组 id 重映射、Ctrl+D 复制、方向键微移会话、落点归区与类型拒绝、拖拽结束归区、Alt 拖拽克隆、格式刷（选中集变化即刷 / 双击锁定 + Esc 退出）、混选 MIXED、字体只落文本元素、加粗回落、表格矩阵 10 项、取色器 15 项、字体下拉 13 项、帮助弹窗 14 项、属性台搜索门控 14 项、拖拽视觉态与步进/下拉细节 9 项、右键菜单 10 项、双击表达式编辑 8 项、吸附拖拽 3 项 |
 | 类名覆盖率审计 | `node demo-common/scripts/class-audit.mjs` | 把 canvas 50 个组件模板里出现的类名逐个回查本包源码：「派生 CSS 有该规则 + 本包源码无挂点」= 掉样式或缺功能 |
 | 派生 CSS 泄漏审计 | `node demo-common/scripts/style-scope-audit.mjs` | 列两类嫌疑（纯泄漏：类只在一个组件 scoped 定义却被别处用；多组件同名声明不同），裁决须两侧实测 computed style |
 | 宿主样式同源 | `npm run styles:demo-common` | `demo-common/scripts/sync-demo-styles.mjs` 从 `demo/src/App.vue` + 三个弹窗 + `SampleThumb` + 本仓 `PrintHtmlPreview` 逐字抽取 style，合成四个宿主工程同 MD5 的 `src/styles/demo-ui.css`；四个子 demo 的宿主版式因此与 Vue3 版 demo **完全一致**（工程内不再写私有布局样式） |
@@ -51,7 +51,7 @@
 | 排列下拉：对齐 8 + 层级 4 + 组合 2，无选中常驻置灰 | ✅ | `data-tip` 全量覆盖（含禁用原因） |
 | 视图下拉：标尺/网格/虚框/吸附 | ✅ | 1.3.5 起不再有「首页专属」与「叠层对比」 |
 | 格式刷：单击刷一次、双击连续刷、Esc 退出 | ✅ | `core/format.ts`（移植自 `useFormatToolbar` + `useFormatPainter`） |
-| 字体 / 字号 / 粗 / 下划线 / 删除线 / 字色 / 底色 / 对齐 / 边框面板 | ✅ | 混选占位、单元格上下文、hline/vline 只吃边框等口径照抄 |
+| 字体 / 字号 / 粗 / 下划线 / 删除线 / 字色 / 底色 / 对齐 / 边框面板 | ✅ | 混选占位、单元格上下文、hline/vline 只吃边框等口径照抄。单元格上下文的对齐面板与属性台「水平对齐」同为 左/中/右/两端 四档，`justify` 三端成对输出 `text-align-last:justify`（`TableCellGroup` / `table-props.ts` / core `matrixCellStyle` / 本包 `table.ts` 单元格样式） |
 | 颜色选择 | ✅ | `shell/color-picker.ts` 整段移植 `PresetColorPicker.vue`：`.preset-color-trigger` + `.preset-color-panel`（`.picker-preview` / `.picker-current` / `.picker-hex` / `.picker-area` + `.picker-handle` / `.picker-hue` / `.picker-heading` / `.picker-clear` / `.preset-color-grid` 逐项同结构同类名），单测 15 项覆盖 hex↔hsv 往返、非法输入不回写、清除/收起/Esc/外部点击与重绘保活 |
 | 字体候选列表 | ✅ | `shell/font-select.ts` + `core/font-catalog.ts` 移植 `FontSelect.vue` / `useFontCatalog` 纯函数（族名大小写不敏感去重、保留声明顺序、相等>前缀>子串>子序列分档模糊匹配）；候选来自宿主 `designer.fonts` 注入，未注入时仍可自由输入并保留「清除 / 自定义」行 |
 | 页签：新增/复制/删除/重命名/前移后移、拼版模板拦截 | ✅ | 拦截文案与 canvas 同串 |
@@ -110,6 +110,8 @@
 | 位置与尺寸 X/Y/W/H | ✅ | `.position-grid` + 步进框；`stepper()` 与 canvas `StepperInput.vue` 同口径：小数位由 step 推导（0.5→1 位、0.25→2 位、1→0 位），显示与提交都按该精度取整（存量模板的 0.35 显示为 0.3），夹取到 [min,max]，值未变化不提交；**提交后一律把夹取/规范化结果写回输入框**（canvas 是 `draft.value = String(next)`）—— 早期本包只在值变化时重绘，越界输入被夹回原值后框里仍留着刚打的数字（如列数上限 1 时输入 6 显示 6） |
 | 外观（字体、字号、粗细、对齐、垂直对齐、颜色/背景色、行高、字间距、文字溢出、最小字号、自动换行） | ✅ | 字段与顺序逐项对齐 `AppearanceGroup.vue`：`.color-row` 两色并列；「字体粗细」沿用 canvas 的 `v-model` 语义 —— 未设置时 `selectedIndex = -1`，下拉框留空而不是擅自显示「正常」（其余下拉两侧都显式给默认值）；「文字溢出」三选（截断 / 自动缩小 / 自适应行高）取值走 core `resolveElementTextFit`，选中 shrink 才出现「最小字号」；不支持外观的元素类型渲染 `当前元素不支持外观设置` 空态（canvas 同串），分组本身常驻不隐藏 |
 | 码制设置（条码 / 二维码分支） | ✅ | 从 `CodeGroup.vue` 逐项移植：条码为码制（6 选项，选 CODE128 写 `undefined`）+ 打印机分辨率（203/300/600 及提示）+ 条宽（倍率）（2–4，步长 .5）+ 显示文本 + 文本字号（5–24，占位「默认 10」）；二维码为纠错级别 + 静区 (模块)（0–8，占位「默认 0」＝码面铺满；单元格侧不走 `numField`，它经 `orUndef` 会把 0 归成 `undefined`，而 0 正是缺省那一档）；静区说明的单一来源是 core 的 `PROPERTY_REGISTRY`（`propertyTip('cd-quiet-zone')`），挂在标签后的 `button.pd-help` 上、悬浮或点击聚焦才浮出，不再常驻 `.pd-hint` 行；共用 `自定义设置` 分隔线 + 缩放模式（非条码）+ 最大宽/高（1–200）。码制统一大写归一化，存量小写模板下拉框不会空选 |
+| 图片缩放与裁剪锚点 | ✅ | issue #4 新增：image 类型在「外观」组出「缩放模式」（5 档，`selectField` 加 tip 形参走 `fieldHelp`）与「裁剪锚点」（`objectPosition`，blur 时 `trim() || undefined`，含 `;`/引号/`url()` 的值渲染侧整条丢弃）；长文本在「外观」组出「首行缩进 (字符)」（em，仅 `longText` 显示）。三处说明文案单一来源 core `PROPERTY_REGISTRY`（`ap-long-text-indent` / `ap-img-fit` / `ap-img-object-position`），搜索门控 `gateItem` 同 key |
+| 属性台字段帮助气泡（`.pd-help`） | ✅ | canvas 顶部栏的裸 `[data-tip]::after` 派生后会命中属性台 `.pd-help::after`（气泡居中/不换行/层级降低），`scope-patches.css` 已按 native-controls 逐条还原；A/B 同探针实测两侧 `left/transform/padding/white-space/width/z-index` 全等，`top` 差 1px 源于 `.pd-label` 行高既有 ±1px |
 | 内容（core 绑定注册表驱动） | ✅ | `shell/binding.ts` = canvas 的 `bindingDescriptors` + `BindingControl` + `ImageContentUpload` 等价实现：项与标签由 `getElementBindings` / `getTableCellBindings` 给出（表格有选区时只出选中单元格），写回走同一 `parsePath` 末段赋值；双击打开表达式编辑器。DOM 壳同 canvas：绑定行直接进 `.group-content`，不套 `form.pd-form`。canvas 属性台本就没有「元素名称」输入，故本包不再自造该字段 |
 | 表达式编辑器（三处入口） | ✅ | `shell/expression-editor.ts`：画布双击元素/单元格、内容框双击、水印「编辑表达式」；写回路径统一用注册表的 `targetPath`（含 `options.tableRows[r].cells[c].formatter` 下标形），成对验收 12/12 |
 | 边框与背景（宽、色 + 背景色） | ✅ | `.border-row` 内「边框宽度 / 边框颜色」并列 + 独立「背景色」行；canvas 该分组本就没有「线型」下拉（`borderStyle` 只由表格单元格边框预设写入），本包不再自造 |

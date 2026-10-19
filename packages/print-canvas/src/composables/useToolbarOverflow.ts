@@ -79,8 +79,8 @@ export function createToolbarOverflow(): ToolbarOverflowContext {
     const padR = Number.parseFloat(cs.paddingRight) || 0
     let total = 0
     for (const child of Array.from(el.children) as HTMLElement[]) {
-      // 弹性占位与收纳触发钮不计入自然宽：前者吸收余量，后者仅在发生收纳后才出现
-      if (child.classList.contains('tb-spacer') || child.classList.contains('tb-more-group')) continue
+      // 收纳面板与弹性占位不计入自然宽：前者只在发生收纳时才出现，后者吸收余量
+      if (child.hasAttribute('data-overflow-more') || child.hasAttribute('data-overflow-spacer')) continue
       const w = Math.max(child.offsetWidth, child.scrollWidth)
       if (w <= 0) continue
       total += w + gap
@@ -158,8 +158,9 @@ export function createToolbarOverflow(): ToolbarOverflowContext {
 
   function slotEl(id: string) {
     void movedIds.value
-    // 从本实例的工具栏根节点查槽，避免同页多设计器时 document 级 id 撞车
-    return root.value?.querySelector<HTMLElement>(`.tb-more-slot[data-unit="${id}"]`) ?? orphanSlot
+    // 用 data-overflow-slot 属性而不是类名做契约：宿主可以完全自定义面板样式，
+    // 只要落位容器带上这个属性就能被找到（同页多设计器时用本实例根节点收窄范围）。
+    return root.value?.querySelector<HTMLElement>(`[data-overflow-slot="${id}"]`) ?? orphanSlot
   }
 
   onUnmounted(() => resizeObserver?.disconnect())

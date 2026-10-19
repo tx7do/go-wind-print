@@ -88,6 +88,9 @@
             <button type="button" class="ft-cell-btn" data-test="align-right" :class="{ on: values.textAlign === 'right' }" data-tip="右对齐" @click="format.applyStyle({ textAlign: 'right' })">
               <TextAlignEnd :size="15" />
             </button>
+            <button type="button" class="ft-cell-btn" data-test="align-justify" :class="{ on: values.textAlign === 'justify' }" data-tip="两端对齐（撑满行宽，含末行）" @click="format.applyStyle({ textAlign: 'justify' })">
+              <TextAlignJustify :size="15" />
+            </button>
           </div>
           <div class="ft-align-row">
             <button type="button" class="ft-cell-btn" data-test="valign-top" :class="{ on: values.verticalAlign === 'top' }" data-tip="顶端对齐" @click="format.applyStyle({ verticalAlign: 'top' })">
@@ -193,7 +196,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
-  Bold, Underline, Strikethrough, TextAlignStart, TextAlignCenter, TextAlignEnd,
+  Bold, Underline, Strikethrough, TextAlignStart, TextAlignCenter, TextAlignEnd, TextAlignJustify,
   ArrowUpToLine, ChevronsUpDown, ArrowDownToLine, Grid3x3,
   PaintBucket, Paintbrush,
 } from 'lucide-vue-next'
@@ -262,7 +265,8 @@ const bgColor = computed(() => (values.value.backgroundColor === MIXED ? undefin
 const alignIcon = computed(() =>
   values.value.textAlign === 'center' ? TextAlignCenter
     : values.value.textAlign === 'right' ? TextAlignEnd
-      : TextAlignStart)
+      : values.value.textAlign === 'justify' ? TextAlignJustify
+        : TextAlignStart)
 
 /* 禁用态 tip 附带原因（提示在置灰按钮上也会显示） */
 const alignTip = computed(() => fontDisabled.value ? '对齐（需选中文本元素或单元格）' : '对齐')

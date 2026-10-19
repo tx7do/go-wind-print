@@ -194,6 +194,8 @@ function cellStyle(ctx: TableCtx, cell: TableCell): Record<string, string> {
   return {
     fontFamily: cell.fontFamily || 'inherit',
     textAlign: cell.align ?? 'left',
+    // justify 不拉伸段落末行，单行单元格需显式声明才撑满列宽（与画布/出纸同策）
+    ...(cell.align === 'justify' ? { textAlignLast: 'justify' } : {}),
     verticalAlign: cell.valign ?? 'middle',
     fontSize: (cell.fontSize ?? defaultFontSize(ctx)) + 'pt',
     fontWeight: cell.fontWeight ?? 'normal',
@@ -355,6 +357,7 @@ function cellCodeNode(ctx: TableCtx, ri: number, ci: number, cell: TableCell): H
     img.style.width = '100%'
     img.style.height = '100%'
     img.style.objectFit = cell.fit || 'contain'
+    if (cell.objectPosition) img.style.objectPosition = cell.objectPosition
     img.style.maxWidth = cell.maxWidth ? `${cell.maxWidth}mm` : '100%'
     img.style.maxHeight = cell.maxHeight ? `${cell.maxHeight}mm` : '100%'
     holder.appendChild(img)
@@ -387,6 +390,7 @@ function cellImageNode(cell: TableCell): HTMLElement {
   const img = document.createElement('img')
   img.setAttribute('src', src)
   img.style.objectFit = cell.fit || 'contain'
+  if (cell.objectPosition) img.style.objectPosition = cell.objectPosition
   img.style.maxWidth = cell.maxWidth ? `${cell.maxWidth}mm` : '100%'
   img.style.maxHeight = cell.maxHeight ? `${cell.maxHeight}mm` : '100%'
   img.addEventListener('error', () => {

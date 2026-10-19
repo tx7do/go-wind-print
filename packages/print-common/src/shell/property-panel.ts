@@ -25,7 +25,7 @@ function numField(_ctx: ShellCtx, label: string, value: number | undefined, onCo
 
 /** 下拉属性行 */
 /** 下拉属性行（导出仅供单测断言未设置态，包公开入口不导出） */
-export function selectField(_ctx: ShellCtx, label: string, value: string, options: { value: string; label: string }[], onCommit: (v: string) => void) {
+export function selectField(_ctx: ShellCtx, label: string, value: string, options: { value: string; label: string }[], onCommit: (v: string) => void, tip?: string) {
   // canvas 的字体粗细用 v-model：值匹配不到选项时 selectedIndex 变 -1，下拉框显示空白。
   // 这里必须建真节点才能复现该语义（h() 只是描述，选中态要按赋值顺序生效）。
   const select = document.createElement('select')
@@ -40,7 +40,7 @@ export function selectField(_ctx: ShellCtx, label: string, value: string, option
   select.value = value
   // 与 Vue 的 v-model 同动作：匹配不到选项时显式置 -1，不依赖各引擎对 `value=` 赋空的处理
   if (!options.some(o => o.value === value)) select.selectedIndex = -1
-  return field(label, select)
+  return tip ? fieldHelp(label, select, tip) : field(label, select)
 }
 
 function switchField(_ctx: ShellCtx, label: string, checked: boolean, onCommit: (v: boolean) => void) {
@@ -94,7 +94,7 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
         { value: 'bolder', label: '更粗' }, { value: 'lighter', label: '细体' },
       ], v => patch({ fontWeight: v }))),
       gateItem(ctx, 'ap-align', field('对齐', radioGroup('ta', [
-        { value: 'left', label: '左' }, { value: 'center', label: '中' }, { value: 'right', label: '右' },
+        { value: 'left', label: '左' }, { value: 'center', label: '中' }, { value: 'right', label: '右' }, { value: 'justify', label: '两端' },
       ], o.textAlign || 'left', v => patch({ textAlign: v })))),
       gateItem(ctx, 'ap-vertical-align', field('垂直对齐', radioGroup('va', [
         { value: 'top', label: '顶' }, { value: 'middle', label: '中' }, { value: 'bottom', label: '底' },
@@ -113,9 +113,20 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
         value: o.shrinkMinFontSize, min: 1, max: 72, step: 0.5, placeholder: '默认 6',
         onCommit: v => patch({ shrinkMinFontSize: v || undefined }),
       }))) : '',
+      type === 'longText' ? gateItem(ctx, 'ap-long-text-indent', fieldHelp('首行缩进 (字符)', stepper({ value: o.longTextIndent, min: 0, max: 10, placeholder: '默认 0', onCommit: v => patch({ longTextIndent: v || undefined }) }), propertyTip('ap-long-text-indent'))) : '',
       gateItem(ctx, 'ap-word-wrap', switchField(ctx, '自动换行', o.wordWrap !== false, v => patch({ wordWrap: v ? undefined : false }))),
     ] : [
-      isTable ? '' : h('p', { class: 'pd-empty', text: '当前元素不支持外观设置' }),
+      // 平铺条件项：不能在这里套数组，common 的 h() 不摊平嵌套子节点（会让 paint 递归抛 TypeError）
+      type === 'image' ? gateItem(ctx, 'ap-img-fit', selectField(ctx, '缩放模式', String(o.fit ?? 'contain'), [
+        { value: 'contain', label: '包含（保持比例）' }, { value: 'cover', label: '覆盖（保持比例）' },
+        { value: 'fill', label: '拉伸填满' }, { value: 'none', label: '原始尺寸' },
+        { value: 'scale-down', label: '缩小（保持比例）' },
+      ], v => patch({ fit: v }), propertyTip('ap-img-fit'))) : '',
+      type === 'image' ? gateItem(ctx, 'ap-img-object-position', fieldHelp('裁剪锚点', h('input', {
+        class: 'pd-input', type: 'text', value: String(o.objectPosition ?? ''), placeholder: '缺省居中，如 center 20%',
+        onBlur: (ev: FocusEvent) => patch({ objectPosition: ((ev.target as HTMLInputElement).value || '').trim() || undefined }),
+      }), propertyTip('ap-img-object-position'))) : '',
+      !isTable && type !== 'image' ? h('p', { class: 'pd-empty', text: '当前元素不支持外观设置' }) : '',
     ].filter(Boolean)),
   ]))
 

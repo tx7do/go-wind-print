@@ -590,3 +590,41 @@ describe('TableElement 右键菜单', () => {
     expect(tableSelection.value).toBe(null)
   })
 })
+
+describe('TableElement 单元格两端对齐', () => {
+  function mountCell(align: string) {
+    const element: RuntimeElement = {
+      id: 'el-table',
+      options: {
+        left: 0, top: 0, width: 50, height: 10,
+        tableColWidths: [50],
+        tableRows: [{
+          id: 'row-1', type: 'header', height: 10,
+          cells: [{ id: 'cell-1', formatter: '收货人张先生', align: align as any }],
+        }],
+      },
+      printElementType: { type: 'table', title: '表格' },
+    }
+    const wrapper = mount(TableElement, {
+      props: { element, designMode: true },
+      global: {
+        provide: {
+          [TABLE_EDIT_KEY]: {
+            tableSelection: ref<TableSelection | null>(null),
+            setTableSelection: () => {}, recordHistory: () => {}, maxTableWidth: ref(Infinity),
+          },
+        },
+      },
+    })
+    return (wrapper.find('td').attributes('style') ?? '').replace(/\s/g, '')
+  }
+
+  it('justify 单元格补 text-align-last（与出纸/common 同策）', () => {
+    const s = mountCell('justify')
+    expect(s).toContain('text-align:justify')
+    expect(s).toContain('text-align-last:justify')
+  })
+  it('存量 center 单元格不输出 text-align-last', () => {
+    expect(mountCell('center')).not.toContain('text-align-last')
+  })
+})

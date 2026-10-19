@@ -82,7 +82,7 @@ const layout = await page.evaluate(() => {
   const dRect = el.getBoundingClientRect()
   return {
     topbar: !!document.querySelector('.demo-topbar'),
-    btnCount: document.querySelectorAll('.demo-topbar .demo-print-btn').length,
+    btnCount: [...document.querySelectorAll('.demo-topbar button')].filter(b => !b.classList.contains('demo-more-trigger')).length,
     batchSwitch: !!document.querySelector('.demo-batch-switch'),
     hostSwitch: (() => {
       const box = document.querySelector('.demo-host-switch')
@@ -106,7 +106,17 @@ const layout = await page.evaluate(() => {
   }
 })
 check('顶栏与画布容器沿用 demo 类名', layout.topbar && layout.container.w > 0, '.demo-topbar/.demo-container')
-check('顶栏动作数=6（与 demo 相同的按钮数）', layout.btnCount === 6, `实际 ${layout.btnCount}`)
+check('顶栏动作数=6（与 demo 相同的按钮数，排除收纳触发钮）', layout.btnCount === 6, `实际 ${layout.btnCount}`)
+// 收纳机制（T-10）：顶栏需具备「更多」组、9 个可折叠单元与对应落位槽；宽视口下默认不收纳
+const overflow = await page.evaluate(() => ({
+  group: !!document.querySelector('.demo-topbar [data-overflow-more]'),
+  units: document.querySelectorAll('.demo-topbar [data-overflow-unit]').length,
+  slots: document.querySelectorAll('.demo-topbar [data-overflow-slot]').length,
+  moved: [...document.querySelectorAll('.demo-topbar [data-overflow-unit]')].filter(e => !!e.closest('.demo-more-panel')).length,
+  groupHidden: !!document.querySelector('.demo-topbar [data-overflow-more]')?.hidden,
+}))
+check('顶栏接入自适应收纳（T-10）', overflow.group && overflow.units === 9 && overflow.slots === 9, `组=${overflow.group} 单元=${overflow.units} 槽=${overflow.slots}`)
+check('收纳数与「更多」组显隐一致', (overflow.moved === 0) === overflow.groupHidden, `收纳=${overflow.moved} 组隐藏=${overflow.groupHidden}`)
 // 顶栏「宿主示例」下拉：默认收起，五个工程入口齐备（链接用 <a>，不计入上面的按钮数），summary 标出当前宿主
 const HOST_PORTS = ['9303', '9331', '9332', '9335', '9334']
 const SWITCH_NAME_BY_PORT = { '9303': 'Vue3 canvas', '9331': 'Vue3', '9332': 'Vue2', '9335': 'React', '9334': 'jQuery' }

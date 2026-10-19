@@ -43,6 +43,7 @@ watch(imageSrc, () => {
 
 const imgStyle = computed(() => ({
   objectFit: (props.element.options.fit || 'contain') as any,
+  ...(props.element.options.objectPosition ? { objectPosition: props.element.options.objectPosition } : {}),
 }))
 </script>
 

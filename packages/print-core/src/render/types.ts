@@ -156,6 +156,8 @@ export interface RenderCell {
   printerDpi?: number
   /** 图片缩放模式，仅 cellType='image' 时生效 */
   fit?: string
+  /** 裁剪锚点（CSS object-position 值），仅 cellType=image 生效；含非法字符则整条不输出 */
+  objectPosition?: string
   /** 图片最大宽度（mm），仅 cellType='image' 时生效 */
   maxWidth?: number
   /** 图片最大高度（mm），仅 cellType='image' 时生效 */

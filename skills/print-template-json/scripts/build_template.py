@@ -66,6 +66,7 @@ TYPE_ALIAS = {
     },
     'image': {
         'src': 'src',
+        'anchor': 'objectPosition',  # 裁剪锚点（CSS object-position 值，如 center 20%）
         'maxWidth': 'maxWidth',
         'maxHeight': 'maxHeight',
     },

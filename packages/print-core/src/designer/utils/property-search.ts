@@ -39,6 +39,21 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
       { key: 'ap-text-fit', keywords: ['溢出', '溢出显示', '截断', '自动缩小', '自适应行高', 'textfit', 'overflow'] },
       { key: 'ap-shrink-min', keywords: ['最小字号', '缩放下限', 'shrinkminfontsize'] },
       { key: 'ap-word-wrap', keywords: ['自动换行', '不换行', 'wordwrap'] },
+      {
+        key: 'ap-long-text-indent',
+        keywords: ['首行缩进', '缩进', 'indent', 'longtextindent', '两字符', '段首'],
+        tip: '长文本每段首行空出的宽度，单位「字符」：填 2 即缩进两个汉字宽（中文排版惯例），按 em 落纸——字号被「自动缩小」压小时缩进同步变窄。仅长文本元素生效，写在普通文本上不生效',
+      },
+      {
+        key: 'ap-img-fit',
+        keywords: ['缩放模式', '拉伸', '等比', 'fit', 'contain', 'cover', '填充', '裁剪'],
+        tip: '图片在元素框内的缩放方式：包含＝完整显示可能留白；覆盖＝铺满框可能裁边；拉伸＝填满框会变形；原始尺寸/缩小不放大。画布与三条出纸链路同一口径（缺省包含）',
+      },
+      {
+        key: 'ap-img-object-position',
+        keywords: ['裁剪锚点', '锚点', 'objectposition', 'object-position', '对齐点', '上移', '头顶'],
+        tip: "裁剪时保留框内的哪一部分，CSS object-position 值原样生效（如 center 20% 让画面上移、保住证件照头顶）；只在发生裁切时可见，缺省按 50% 50% 居中。含分号、引号、url() 的值会被整条丢弃",
+      },
     ],
   },
   {

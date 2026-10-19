@@ -155,6 +155,8 @@ client.pair('粘贴配置窗口展示的 token')
 | `PRINT_FAILED` | 客户端 | 系统打印接口返回失败 |
 | `INTERNAL` | 客户端 | 其他内部错误 |
 
+> **只有含条码/二维码的模板超时（`PRINT_FAILED：码值渲染超过 …`）**：桌面客户端 1.3.5–1.3.6 的 Electron driver 在窗口尚未提交任何文档时就注入 DOM 执行器，脚本被排队等一次永不到来的导航，码值阶段因此挂满 30s 预算（无码模板不受影响）。1.3.7 起已修复；宿主侧无法绕过，只能升级客户端，或改用浏览器打印 / 服务端 PDF。
+
 ```ts
 try {
   await client.print(template, data, opts)

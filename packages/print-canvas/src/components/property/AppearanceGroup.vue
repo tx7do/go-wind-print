@@ -23,6 +23,7 @@
             <label class="pd-radio"><input type="radio" v-model="element.options.textAlign" value="left"><span>左</span></label>
             <label class="pd-radio"><input type="radio" v-model="element.options.textAlign" value="center"><span>中</span></label>
             <label class="pd-radio"><input type="radio" v-model="element.options.textAlign" value="right"><span>右</span></label>
+            <label class="pd-radio"><input type="radio" v-model="element.options.textAlign" value="justify"><span>两端</span></label>
           </div>
         </div>
         <div class="pd-field" v-show="showItem('ap-vertical-align')"><span class="pd-label">垂直对齐</span>
@@ -66,13 +67,33 @@
             placeholder="默认 6"
             @update:model-value="element.options.shrinkMinFontSize = $event ?? undefined" />
         </div>
+        <div class="pd-field" v-if="isLongText" v-show="showItem('ap-long-text-indent')"><span class="pd-label">首行缩进 (字符)<button type="button" class="pd-help" :data-tip="indentTip" aria-label="字段说明" /></span>
+          <StepperInput v-model="element.options.longTextIndent"
+            :min="0"
+            :max="10"
+            placeholder="默认 0" />
+        </div>
         <div class="pd-field" v-show="showItem('ap-word-wrap')"><span class="pd-label">自动换行</span>
           <input :checked="element.options.wordWrap !== false" type="checkbox" class="pd-switch"
             @input="element.options.wordWrap = ($event.target as HTMLInputElement).checked ? undefined : false" />
         </div>
       </template>
 
-      <p class="pd-empty" v-if="!isTextType && !isTableType">当前元素不支持外观设置</p>
+      <template v-if="isImageType">
+        <div class="pd-field" v-show="showItem('ap-img-fit')"><span class="pd-label">缩放模式<button type="button" class="pd-help" :data-tip="fitTip" aria-label="字段说明" /></span>
+          <select class="pd-select" v-model="element.options.fit" style="width: 100%">
+            <option value="contain">包含（保持比例）</option>
+            <option value="cover">覆盖（保持比例）</option>
+            <option value="fill">拉伸填满</option>
+            <option value="none">原始尺寸</option>
+            <option value="scale-down">缩小（保持比例）</option>
+          </select>
+        </div>
+        <div class="pd-field" v-show="showItem('ap-img-object-position')"><span class="pd-label">裁剪锚点<button type="button" class="pd-help" :data-tip="anchorTip" aria-label="字段说明" /></span>
+          <input class="pd-input" type="text" v-model="anchorModel" placeholder="缺省居中，如 center 20%" />
+        </div>
+      </template>
+      <p class="pd-empty" v-if="!isTextType && !isImageType && !isTableType">当前元素不支持外观设置</p>
     </form>
   </PropertyGroup>
 </template>
@@ -80,7 +101,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { resolveElementTextFit, type TextFit } from '@worm-vue3-print/core/designer'
+import { resolveElementTextFit, propertyTip, type TextFit } from '@worm-vue3-print/core/designer'
 import PresetColorPicker from '../PresetColorPicker.vue'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
@@ -102,6 +123,18 @@ function showItem(key: string): boolean {
 
 const isTableType = computed(() => {
   return props.element.printElementType.type === 'table'
+})
+
+const isLongText = computed(() => props.element.printElementType.type === 'longText')
+const isImageType = computed(() => props.element.printElementType.type === 'image')
+const indentTip = propertyTip('ap-long-text-indent')
+const fitTip = propertyTip('ap-img-fit')
+const anchorTip = propertyTip('ap-img-object-position')
+
+/** 裁剪锚点：留空即回到「不输出该声明」的缺省态，不能存成空串（空串会覆盖默认居中） */
+const anchorModel = computed({
+  get: () => props.element.options.objectPosition ?? '',
+  set: (v: string) => { props.element.options.objectPosition = v.trim() || undefined },
 })
 
 /** 溢出形式：未配置时按元素类型取默认（文本=截断、长文本=自适应行高） */

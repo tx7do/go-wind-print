@@ -72,7 +72,8 @@
 | `fontSize` | 字号 pt |
 | `fontWeight` | `bold` / `normal` |
 | `fontFamily` / `color` / `backgroundColor` | 字体、前景、背景 |
-| `textAlign` | `left` / `center` / `right` |
+| `textAlign` | `left` / `center` / `right` / `justify` |
+
 | `verticalAlign` | `top` / `middle` / `bottom` |
 | `textDecoration` | `underline` / `line-through` |
 | `wordWrap` / `textFit` | 换行；溢出形式 `clip` / `shrink` |
@@ -85,8 +86,13 @@
 |---|---|
 | `barcode` | `barcodeType`（`code128`/`ean13`/`code39`/`itf14`，默认 code128）、`barWidth`（模块倍率 2~4）、`printerDpi`（203/300/600，给出则吸附整数打印点，热敏强烈建议给）、`hideTitle` |
 | `qrcode` | `qrCodeLevel`（`L`/`M`/`Q`/`H`）、`qrQuietZone`（静区白边，单位「模块」，0~8，缺省 0＝不留白边、码面等比铺满元素框）、`fit`（缺省 `contain`）、`maxWidth`/`maxHeight` |
-| `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`）、`maxWidth`/`maxHeight` |
+| `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`，缺省 `contain`）、`objectPosition`（裁剪锚点，CSS `object-position` 值原样透传，如 `center 20%`；缺省不输出＝按 `50% 50%` 居中）、`maxWidth`/`maxHeight` |
+| `longText` | `longTextIndent`（首行缩进，单位 **em**＝「N 个字符宽」，随字号走；仅 `longText` 消费，写在 `text` 上不生效） |
 | `hline`/`vline` | `borderWidth` + `borderColor`（元素高度常取 0.2） |
+
+**排版口径**：`textAlign` 支持 `justify`（两端对齐 = 撑满行宽，含末行；渲染端会同时输出 `text-align-last:justify`，因为 CSS 的 `justify` 不拉伸段落末行，单行文本否则毫无变化）。与 `verticalAlign` 同时给出时，渲染端把 flex 主轴改成纵向让行盒取满宽，右缘才真正齐平——三端（画布/浏览器打印/PDF/客户端）同策。
+证件照这类「竖版自拍按居中裁剪会切头顶」的场景，给 `fit: 'cover'` 再配 `objectPosition: 'center 20%'` 把画面上移；
+`objectPosition` 含 `;`、引号、`url()` 等字符时整条丢弃（防往 style 里追加声明），只在确实发生裁切时可见。
 
 **条码尺寸口径**：每模块首选宽 = `barWidth/2 × 0.25mm`；给了 `printerDpi` 就吸附到整数打印点
 （dpi 优先），可用框放不下则整体等比缩小，绝不溢出。热敏出纸「条宽忽宽忽窄」的根因就是没给 dpi。
@@ -94,6 +100,7 @@
 **二维码铺满口径**：图形走 `<img>`，写 `width/height:100%` 再配 `object-fit`（缺省 `contain`），码面等比贴住元素框短边；
 框内那圈白边就是 `qrQuietZone`（单位「模块」，与元素框大小无关，**缺省 0**）。21 模块的码：`0`→码面占框 100%、`2`→84%、`4`→72%。
 需要 ISO/IEC 18004 推荐的静区时显式写 `qrQuietZone: 4`——0 档靠元素框外的白纸充当静区，密集排版（紧邻文字或表格线）可能扫不出。
+
 
 ## 5. 表格模型
 
@@ -120,7 +127,7 @@
   `subtotal`（**本页**小计，`SUM` 只聚合当前页）、`summary`（总计，聚合全部）
 - **每行 `cells` 长度恒等于列数**：`colspan`/`rowspan` 覆盖的格必须补 `{ "id": "...", "merged": true }` 占位格
 - 列宽和应等于 `width`、行高和应等于 `height`（设计器加载会按实际渲染尺寸回写，但手写时应自洽）
-- 单元格常用字段：`formatter`、`cellType`（`text`/`barcode`/`qrcode`/`image`）、`align`、`valign`、
+- 单元格常用字段：`formatter`、`cellType`（`text`/`barcode`/`qrcode`/`image`）、`align`（`left`/`center`/`right`/`justify`，`justify` = 撑满列宽含末行，渲染端成对输出 `text-align:justify;text-align-last:justify`）、`valign`、
   `fontSize`、`fontWeight`、`color`、`backgroundColor`、`padding`、`borders`（`{top,right,bottom,left}`，
   每边 `{width(pt), style, color}`）、`colspan`、`rowspan`
 - 单元格条码另支持 `barcodeType` / `barWidth` / `printerDpi` / `showBarcodeText` / `barFontSize`

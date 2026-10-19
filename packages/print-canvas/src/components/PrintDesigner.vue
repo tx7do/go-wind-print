@@ -535,6 +535,33 @@ function handleSave() {
   --pd-text-faint: #b4b9c4;
   --pd-border: #d9dde6;
   --pd-border-soft: #e9ecf2;
+  /* ── 控件与浮层表面令牌：原写死值登记在此，浅色默认逐像素不变，深色主题方可逐位覆盖 ── */
+  --pd-input-bg: #ffffff;        /* 输入框 / 下拉 / textarea / 选项 chip 衬底 */
+  --pd-hover-tint: #ecf5ff;      /* 未激活页签与列表项 hover 蓝调 */
+  --pd-danger: #e53e3e;          /* 表达式预览错误态：文字 / 底 / 描边 */
+  --pd-danger-bg: #fef2f2;
+  --pd-danger-border: #fecaca;
+  --pd-menu-text: #333;          /* 表格右键菜单：文字 / 描边 / hover / 分隔线 / 禁用 / 分组标题 */
+  --pd-menu-hover: #f5f7fa;
+  --pd-menu-border: #dcdfe6;
+  --pd-menu-divider: #ebeef5;
+  --pd-menu-muted: #909399;
+  --pd-menu-disabled: #c0c4cc;
+  --pd-scrollbar: rgba(23, 32, 60, .18);        /* scrollbar-color（Firefox 通路） */
+  --pd-scrollbar-thumb: rgba(23, 32, 60, .16);  /* WebKit 滚动条滑块 */
+  --pd-scrollbar-thumb-hover: rgba(23, 32, 60, .30);
+  --pd-help-field-bg: #f0f9ff;   /* 表达式弹窗四张帮助卡片：底色 / 描边 / 标题字色 */
+  --pd-help-field-line: #bae6fd;
+  --pd-help-field-ink: #0369a1;
+  --pd-help-function-bg: #f0fdf4;
+  --pd-help-function-line: #bbf7d0;
+  --pd-help-function-ink: #166534;
+  --pd-help-variable-bg: #fefce8;
+  --pd-help-variable-line: #fde68a;
+  --pd-help-variable-ink: #854d0e;
+  --pd-help-conditional-bg: #fdf2f8;
+  --pd-help-conditional-line: #fbcfe8;
+  --pd-help-conditional-ink: #9d174d;
   --pd-handle: #165DFF;
   --pd-ruler: #9aa1af;
   --pd-ruler-bg: #f8f9fc;

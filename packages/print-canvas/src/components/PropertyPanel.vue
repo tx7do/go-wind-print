@@ -116,7 +116,7 @@
           </div>
           <div class="pd-field"><span class="pd-label">页面背景色</span>
             <div class="page-bg-row">
-              <PresetColorPicker v-model="pageBackgroundModel" class="page-bg-picker" />
+              <div class="page-bg-picker"><PresetColorPicker v-model="pageBackgroundModel" /></div>
               <button type="button" class="pd-reset" title="恢复为默认白色" @click="onPageBackgroundReset">默认</button>
             </div>
           </div>

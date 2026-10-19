@@ -23,7 +23,7 @@ const LINE_STYLES = [
 ]
 
 const ALIGN_ICON: Record<string, string> = {
-  left: 'TextAlignStart', center: 'TextAlignCenter', right: 'TextAlignEnd',
+  left: 'TextAlignStart', center: 'TextAlignCenter', right: 'TextAlignEnd', justify: 'TextAlignJustify',
 }
 
 /** 边框格子按钮：内联 18×18 示意 SVG，与 canvas 逐格同形 */
@@ -96,7 +96,7 @@ export function renderFormatBar(ctx: FormatCtx) {
   const alignPanel = [
     h('div', { class: 'ft-align-panel', dataset: { test: 'align-panel' } }, [
       h('div', { class: 'ft-align-row' }, [
-        ['left', '左对齐', 'TextAlignStart'], ['center', '水平居中', 'TextAlignCenter'], ['right', '右对齐', 'TextAlignEnd'],
+        ['left', '左对齐', 'TextAlignStart'], ['center', '水平居中', 'TextAlignCenter'], ['right', '右对齐', 'TextAlignEnd'], ['justify', '两端对齐（撑满行宽，含末行）', 'TextAlignJustify'],
       ].map(([v, tip, icon]) => h('button', {
         type: 'button',
         class: `ft-cell-btn${values.textAlign === v ? ' on' : ''}`,

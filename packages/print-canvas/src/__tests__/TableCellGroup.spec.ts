@@ -124,3 +124,51 @@ describe('TableCellGroup 条形码单元格打印机分辨率', () => {
     expect(cell.printerDpi).toBeUndefined()
   })
 })
+
+describe('issue #4 单元格图片裁剪锚点', () => {
+  it('图片单元格出「裁剪锚点」：写入去空格，清空即回未设置', async () => {
+    const el = makeElement({ cellType: 'image', formatter: 'data:image/gif;base64,R0lGOD' })
+    const w = mountGroup(el)
+    const row = w.findAll('.pd-field').find(f => (f.find('.pd-label').text() || '').includes('裁剪锚点'))
+    expect(row).toBeTruthy()
+    const input = row!.find('input[type="text"]').element as HTMLInputElement
+    input.value = ' center 20% '
+    await input.dispatchEvent(new Event('change'))
+    const cells = (el.options.tableRows![0] as any).cells
+    expect(cells[0].objectPosition).toBe('center 20%')
+    input.value = ''
+    await input.dispatchEvent(new Event('change'))
+    expect(cells[0].objectPosition).toBeUndefined()
+  })
+
+  it('文本单元格不出该行（锚点只对图片生效）', () => {
+    const w = mountGroup(makeElement({ cellType: undefined, content: '文本' }))
+    expect(w.findAll('.pd-field').some(f => (f.find('.pd-label').text() || '').includes('裁剪锚点'))).toBe(false)
+  })
+})
+
+describe('单元格水平对齐第 4 档（两端）', () => {
+  function alignField(w: ReturnType<typeof mountGroup>) {
+    return w.findAll('.pd-field').find(f => (f.find('.pd-label').text() || '').includes('水平对齐'))!
+  }
+
+  it('档位为 左/中/右/两端，值依次 left/center/right/justify', () => {
+    const field = alignField(mountGroup(makeElement({ formatter: '名称' })))
+    expect(field.findAll('input[type="radio"]').map(i => (i.element as HTMLInputElement).value))
+      .toEqual(['left', 'center', 'right', 'justify'])
+    expect(field.findAll('label span').map(s => s.text())).toEqual(['左', '中', '右', '两端'])
+  })
+
+  it('选「两端」把 justify 写进被选单元格', async () => {
+    const el = makeElement({ formatter: '名称' })
+    const w = mountGroup(el)
+    await alignField(w).findAll('input[type="radio"]')[3].setValue('justify')
+    expect((el.options.tableRows![0] as any).cells[0].align).toBe('justify')
+  })
+
+  it('已设为 justify 时第 4 档呈选中态（工具栏写入的值在面板可见）', () => {
+    const field = alignField(mountGroup(makeElement({ formatter: '名称', align: 'justify' })))
+    const checked = field.findAll('input[type="radio"]').filter(i => (i.element as HTMLInputElement).checked)
+    expect(checked.map(i => (i.element as HTMLInputElement).value)).toEqual(['justify'])
+  })
+})

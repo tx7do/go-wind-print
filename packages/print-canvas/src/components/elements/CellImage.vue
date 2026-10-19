@@ -14,6 +14,7 @@ import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
 const props = defineProps<{
   value: string
   fit?: string
+  objectPosition?: string
   maxWidth?: number
   maxHeight?: number
   designMode?: boolean
@@ -48,6 +49,7 @@ watch(imageSrc, () => {
 
 const imgStyle = computed(() => ({
   objectFit: (props.fit || 'contain') as any,
+  ...(props.objectPosition ? { objectPosition: props.objectPosition } : {}),
   maxWidth: props.maxWidth ? `${props.maxWidth}mm` : '100%',
   maxHeight: props.maxHeight ? `${props.maxHeight}mm` : '100%',
 }))

@@ -7,6 +7,7 @@ import { initGallery, openGallery } from './gallery.js'
 import { initPrintDialog, openPrintDialog } from './print-dialog.js'
 import { renderInBrowser, writeHtmlToFrame } from './browser-render.js'
 import { setVisible, setNotice, downloadJson, nextFrame } from './ui.js'
+import { initTopbarOverflow } from './topbar-overflow.js'
 
 const W = window.WormPrintCommon
 
@@ -333,6 +334,7 @@ $(function () {
     currentSampleName: () => state.currentSample?.name,
   })
   bindTopbar()
+  initTopbarOverflow()
   // 自定义弹窗：点遮罩空白处等同于取消
   $('#custom-close, #custom-cancel').on('click', closeCustomDialog)
   $('#custom-mask').on('click', e => {
