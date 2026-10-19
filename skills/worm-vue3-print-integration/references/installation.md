@@ -23,6 +23,18 @@ npm install @worm-vue3-print/core@^1.3.0 @worm-vue3-print/canvas@^1.3.0
 - 建议提交锁文件，避免 NPM 侧依赖升级引入构建差异。
 - 已发布的当前版本为 `1.3.0`（canvas 与 core 版本号同步发布；canvas 内部以 `^1.0.0` 声明对 core 的依赖，宿主显式安装同版本 core 即可，锁文件会统一解析）。
 
+### 非 Vue 3 宿主使用可视化设计器（预览版）
+
+```bash
+npm install @worm-vue3-print/common@next @worm-vue3-print/core
+```
+
+- `common` 只发**预览版**：dist-tag `next`，版本号形如 `1.3.7-beta.N`，npm 上还没有 `latest`，省略 `@next` 会报 `No matching version found`；判据 `npm view @worm-vue3-print/common dist-tags --json` 应出现 `next`。
+- 零框架运行时（原生 Custom Elements + Shadow DOM，无 `vue` peer 依赖）：`<print-designer>` 用 property / attribute 注入 `fields`、`template`，宿主能力与事件走 property 赋值和 `CustomEvent`。
+- 样式默认由组件内联注入，**Shadow DOM 形态不引样式文件**；只有渲染进 light DOM 才 `import '@worm-vue3-print/common/style.css'`（→ `dist/common.css`）。
+- 无打包器宿主走子路径 `@worm-vue3-print/common/browser`（UMD `dist/common.js`，core 与码制库已内联，挂 `window.WormPrintCommon`）。
+- **边界**：该包尚未完成稳定性测试，生产项目先告知用户风险；Vue 3 宿主仍用 `@worm-vue3-print/canvas`。NPM 安装时不要写深路径 `@worm-vue3-print/common/dist/...`——`exports` 只开放 `.`、`./browser`、`./style.css`。
+
 ### 静默打印浏览器端 SDK
 
 需要无打印对话框的静默出纸时，SDK 随 core 提供，无需单独安装（从子路径 `@worm-vue3-print/core/client` 导入），需另配本机运行的桌面打印客户端。

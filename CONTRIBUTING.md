@@ -35,6 +35,7 @@ npm test
 
 ```bash
 # 1. 更新四个包的版本号（必须一致：根包、print-core、print-canvas、demo）
+#    print-common 不在其中——它走独立的预览号（主线号-beta.N），见方式三
 #    可用命令，例如发布 1.2.3：
 npm version 1.2.3 -w @worm-vue3-print/core
 npm version 1.2.3 -w @worm-vue3-print/canvas
@@ -67,7 +68,7 @@ git push origin vx.y.z
 
 注意：
 
-- 标签号必须与 core、canvas 的 `version` 完全一致，工作流会强制校验并在不一致时失败；
+- 标签号必须与 core、canvas 的 `version` 完全一致，工作流会强制校验并在不一致时失败（`common` 不参与该校验，它按方式三单独发预览版）；
 - canvas 依赖 core，工作流固定按 **core → canvas** 顺序发布；
 - 只有推送到 **GitHub** 的标签会触发发布（Gitee 无 Actions），Gitee 发行版需手工创建；
 - 在仓库 Actions 页面可查看发布进度与日志；npm registry 有缓存延迟，发布成功后版本号可能需 1～2 分钟才可查询。
@@ -94,7 +95,36 @@ npm publish -w @worm-vue3-print/core
 npm publish -w @worm-vue3-print/canvas
 ```
 
-> 范围说明：渲染微服务为本仓库私有 workspace 包 `services/print-render`（`@worm-vue3-print/render`），不发布 npm。
+> 范围说明：渲染微服务为本仓库私有 workspace 包 `services/print-render`（`@worm-vue3-print/render`），不发布 npm。`packages/print-common` 是唯一例外——只发**预览版**，见方式三。
+
+### 方式三：发布 `@worm-vue3-print/common` 预览版（本地手工）
+
+`common`（零框架宿主适配设计器）尚未完成稳定性测试，因此**不进 `latest`**：版本号取 `主线号-beta.N`，dist-tag 固定 `next`，不接 GitHub Actions（避免和正式 tag 的节奏绑在一起）。
+
+```bash
+# 1. 切预览号：手改两处（与主线发版同口径，npm version 不保证同步 lock）
+#    - packages/print-common/package.json 的 "version"
+#    - package-lock.json 里 "packages/print-common" 条目的 "version"
+#    例：主线 1.3.7 的第 2 轮预览 → 1.3.7-beta.1
+
+# 2. 登录并演练（脚本按 core → canvas → common 构建，跑三套测试，再打印 tarball 与实际使用的 tag）
+npm login --registry=https://registry.npmjs.org
+npm run publish:common:dry-run
+
+# 3. 正式发布（同一条链，去掉 --dry-run）
+npm run publish:common:beta
+
+# 4. 发完自查：预览版只应挂在 next 上
+npm view @worm-vue3-print/common dist-tags --json
+```
+
+要点：
+
+- **构建顺序不能调**：`scripts/gen-styles.mjs` 从 `packages/print-canvas/dist/canvas.css` 派生样式，canvas 没构建时 common 直接报错退出；
+- **`--tag next` 是脚本内的硬约束**：手敲 `npm publish` 漏掉它会把实验包挂上 `latest`，非 Vue3 宿主一句 `npm i @worm-vue3-print/common` 就吃到预览版；
+- 主线发版（方式一/二）不动 `common` 的 `version`，避免它被 `1.3.7` 这类正式号带上 `latest`；
+- npm 账号若开启 2FA，最后一步会交互式索取验证码（新包首次发布同样需要），照着 Authenticator 填即可；
+- 转正条件满足后：`version` 去掉 `-beta.N`，改用 `npm publish -w @worm-vue3-print/common --access public`（不带 `--tag`，落 `latest`），并把该包补进 `publish:npm`、`release.yml` 的标签校验与 README / AGENTS.md 的发布口径。
 
 ## 代码规范
 

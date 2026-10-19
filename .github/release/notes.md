@@ -16,7 +16,7 @@
 npm install @worm-vue3-print/core@^1.3.7 @worm-vue3-print/canvas@^1.3.7
 ```
 
-发布到 npm 的仍然只有 `core`（渲染引擎与表达式系统）与 `canvas`（Vue 3 设计器）两个包。渲染服务 `services/print-render`、桌面客户端 `clients/print-client` 与实验性的 `packages/print-common` 在仓库内维护，不发布 npm。
+发布到 npm 的正式包仍然只有 `core`（渲染引擎与表达式系统）与 `canvas`（Vue 3 设计器）两个。实验性的 `packages/print-common` 自本版起**以预览版发布**：dist-tag `next`、版本 `1.3.7-beta.0`，**不进 `latest`**，安装必须写 `npm i @worm-vue3-print/common@next`。渲染服务 `services/print-render` 与桌面客户端 `clients/print-client` 仍在仓库内维护，不发布 npm。
 
 > ⚠️ **排版口径住在「渲染端」而不是模板里**：客户端与渲染服务各自打包一份 `core`。1.3.7 模板里的 `textAlign / align: 'justify'`、`longTextIndent`、`objectPosition`、`qrQuietZone` 交给 **1.3.6 及更早**的客户端或渲染服务出纸时会**静默降级**（单行不撑满、缩进不生效、锚点与静区丢失）。宿主 npm 包、`print-render` 服务、桌面客户端安装包三者要一起升到 1.3.7 才谈得上一致。
 
@@ -97,7 +97,7 @@ npm install @worm-vue3-print/core@^1.3.7 @worm-vue3-print/canvas@^1.3.7
 npm install @worm-vue3-print/core@^1.3.7 @worm-vue3-print/canvas@^1.3.7
 ```
 
-Only `core` and `canvas` are published to npm. `services/print-render`, `clients/print-client` and the experimental `packages/print-common` are maintained in-repo and not published.
+Only `core` and `canvas` have stable releases on npm. The experimental `packages/print-common` is published from this version on as a **preview**: dist-tag `next`, version `1.3.7-beta.0`, **not `latest`** — install it as `npm i @worm-vue3-print/common@next`. `services/print-render` and `clients/print-client` stay in-repo and are not published.
 
 > ⚠️ **Typography semantics live in the rendering side, not in the template.** The client and the render service each bundle their own copy of `core`. A 1.3.7 template carrying `textAlign / align: 'justify'`, `longTextIndent`, `objectPosition` or `qrQuietZone` printed by a **1.3.6 or older** client or render service **silently degrades** (single lines never stretch, indent ignored, anchor and quiet zone lost). Upgrade host packages, the `print-render` service and the desktop installers together.
 

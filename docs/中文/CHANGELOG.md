@@ -20,6 +20,7 @@
 
 - 桌面客户端窗口与托盘图标改用与安装包同源的 `build/icon.png`（该图随之进 asar，安装包约 +1 MB），任务栏、Alt-Tab 与快捷方式图形一致；macOS 托盘仍用单色模板图以适配菜单栏深浅色。
 - 属性台新增「**静区 (模块)**」（[Gitee issue #IKN95F](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKN95F)）：二维码四周留出的空白格数，二维码**元素**与**表格单元格**都能设，canvas 与 print-common 两套宿主同口径，范围 0~8、**缺省 0**（此前出纸固定 4 模块，因此既有模板的码面占框比例从 72.4% 变 100%）。0 即不留白边、码面等比铺满元素框，扫码所需静区由元素框外的白纸充当；需要 ISO/IEC 18004 推荐的合规静区时显式填 4。属性搜索可用「静区 / 白边 / 留白 / 铺满」命中。说明文字挂在标签后的帮助图标上（悬浮或点击才浮出，文案单一来源在 core 的属性注册表），不常驻占用属性台纵向空间。
+- **`@worm-vue3-print/common` 以预览版发布到 npm**：此前该包只在工作区内构建，非 Vue3 宿主只能走源码安装。本版起发布**预发布版本**——dist-tag `next`、版本 `1.3.7-beta.0`、**不占 `latest`**，安装必须写 `npm i @worm-vue3-print/common@next @worm-vue3-print/core`（npm 上还没有 `latest`，省略 `@next` 会报 `No matching version found`）。同时补开样式公开子路径 `@worm-vue3-print/common/style.css`（→ `dist/common.css`，只有渲染进 light DOM 才需要它；此前 `exports` 只开放 `.` 与 `./browser`，打包器侧引不到这份 CSS）。发布通路**不进 GitHub Actions**，改由本地脚本：演练 `npm run publish:common:dry-run`、正式发布 `npm run publish:common:beta`（固定按 core → canvas → common 构建，再跑 core / canvas / common 三套测试；演练 exit 0，tarball 43 文件 / 380.0 kB / 解包 1.3 MB），步骤与红线见 `CONTRIBUTING.md`「方式三」。**该包仍是实验性质、尚未完成稳定性测试，不建议用于生产**；Vue 3 项目请继续用 `@worm-vue3-print/canvas`。
 
 ### 变更
 

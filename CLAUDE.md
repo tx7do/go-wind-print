@@ -35,9 +35,10 @@ cd demo && npm run dev                       # demo 不在根 workspaces 内，�
 npm run pack:client        # 打包 Electron 客户端安装包（mac/win）
 npm run pack:client:linux  # 客户端 Linux 安装包（deb/rpm/AppImage），走 Docker 容器交叉构建
 npm run publish:dry-run    # 发版演练；正式发布流程见 CONTRIBUTING.md
+npm run publish:common:dry-run  # 预览版（common）发版演练；正式发该预览版用 publish:common:beta
 ```
 
-发版注意：版本号必须四处同步（根包、core、canvas、demo），CHANGELOG 三处同步（中文、en、canvas 帮助弹窗 `help-content/changelog.ts`），打 `v` 标签推 GitHub 触发自动发布。
+发版注意：版本号必须四处同步（根包、core、canvas、demo），CHANGELOG 三处同步（中文、en、canvas 帮助弹窗 `help-content/changelog.ts`，common 侧有一份同源拷贝要一起改），打 `v` 标签推 GitHub 触发自动发布。帮助弹窗只写设计器使用者看得懂的行为变化，**纯发布/工程口径（包名、dist-tag、npm 安装命令）不进帮助弹窗**，只登记中英 CHANGELOG。`@worm-vue3-print/common` 例外：它是**预览版**，版本号为 `主线号-beta.N`（如 `1.3.7-beta.0`），dist-tag `next`、不进 `latest`，由本地 `npm run publish:common:beta` 手工发，不进 release.yml 的标签校验与自动发布。
 
 ## 架构（需跨多文件才能理解的全局）
 
