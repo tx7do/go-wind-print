@@ -81,6 +81,12 @@ describe('CodeGroup 条形码元素：码制与自定义设置', () => {
     expect(element.options.maxWidth).toBe(30)
     expect(element.options.maxHeight).toBe(10)
   })
+
+  it('二维码缩放模式与图片同一档位表：cover 对用户叫「剪裁」', () => {
+    const w = mountCodeGroup(makeElement('qrcode', {}))
+    expect(w.findAll('select').some(s => s.text().includes('剪裁（等比铺满后裁边）'))).toBe(true)
+    expect(w.text()).not.toContain('覆盖（保持比例）')
+  })
 })
 
 describe('CodeGroup 打印机分辨率（条宽点对齐）', () => {

@@ -86,13 +86,18 @@
 |---|---|
 | `barcode` | `barcodeType`（`code128`/`ean13`/`code39`/`itf14`，默认 code128）、`barWidth`（模块倍率 2~4）、`printerDpi`（203/300/600，给出则吸附整数打印点，热敏强烈建议给）、`hideTitle` |
 | `qrcode` | `qrCodeLevel`（`L`/`M`/`Q`/`H`）、`qrQuietZone`（静区白边，单位「模块」，0~8，缺省 0＝不留白边、码面等比铺满元素框）、`fit`（缺省 `contain`）、`maxWidth`/`maxHeight` |
-| `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`，缺省 `contain`）、`objectPosition`（裁剪锚点，CSS `object-position` 值原样透传，如 `center 20%`；缺省不输出＝按 `50% 50%` 居中）、`maxWidth`/`maxHeight` |
+| `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`，缺省 `contain`；属性台里 `cover` 显示为「剪裁（等比铺满后裁边）」）、`objectPosition`（裁剪锚点，**建议写 `<x>% <y>%`**，如 `50% 0%` 取图顶端；缺省不输出＝`50% 50%` 居中）、`maxWidth`/`maxHeight` |
 | `longText` | `longTextIndent`（首行缩进，单位 **em**＝「N 个字符宽」，随字号走；仅 `longText` 消费，写在 `text` 上不生效） |
 | `hline`/`vline` | `borderWidth` + `borderColor`（元素高度常取 0.2） |
 
 **排版口径**：`textAlign` 支持 `justify`（两端对齐 = 撑满行宽，含末行；渲染端会同时输出 `text-align-last:justify`，因为 CSS 的 `justify` 不拉伸段落末行，单行文本否则毫无变化）。与 `verticalAlign` 同时给出时，渲染端把 flex 主轴改成纵向让行盒取满宽，右缘才真正齐平——三端（画布/浏览器打印/PDF/客户端）同策。
-证件照这类「竖版自拍按居中裁剪会切头顶」的场景，给 `fit: 'cover'` 再配 `objectPosition: 'center 20%'` 把画面上移；
+证件照这类「竖版自拍按居中裁剪会切头顶」的场景，给 `fit: 'cover'` 再配 `objectPosition: '50% 0%'` 取画面顶端（`'center 20%'` 等价于 `'50% 20%'`，两种写法都吃）；
 `objectPosition` 含 `;`、引号、`url()` 等字符时整条丢弃（防往 style 里追加声明），只在确实发生裁切时可见。
+
+**锚点只有一个轴真的能挪**：`cover` 是等比铺满，贴满框的那一轴没有溢出，它的百分比填 0 还是 100 出纸相同——竖图放 35×45mm 框只有垂直能动（上下共 7.5mm），横图进同框只有水平能动。
+所以生成模板时只给「能裁的那一轴」写非 50 的值，另一轴留 50；属性台会据此只出一个数字框（拿不到图片自然尺寸时才两个都给）。
+**表格图片单元格的锚点无效，别写**：td 高度由内容决定，声明行高不是硬约束，图片先把行撑高，`<img>` 盒再等于整张图 → 可裁余量 0（实测给 img 补 `width/height:100%` 前后盒尺寸完全一致，143.6×215.5，属空操作）。需要按画面取位就改用独立图片元素压在该位置上，或给图片单元格设 `maxWidth`/`maxHeight` 控制上限。
+判据：`npm test -w @worm-vue3-print/core -- src/render/__tests__/crop-anchor.test.ts`（声明级，含上面这条已知限制）；`scripts/validate_template.py` 不校验 `fit` 枚举，写错档位不报错、由浏览器忽略（要精确出纸就照上表取值）。
 
 **条码尺寸口径**：每模块首选宽 = `barWidth/2 × 0.25mm`；给了 `printerDpi` 就吸附到整数打印点
 （dpi 优先），可用框放不下则整体等比缩小，绝不溢出。热敏出纸「条宽忽宽忽窄」的根因就是没给 dpi。

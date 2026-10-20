@@ -125,25 +125,41 @@ describe('TableCellGroup 条形码单元格打印机分辨率', () => {
   })
 })
 
-describe('issue #4 单元格图片裁剪锚点', () => {
-  it('图片单元格出「裁剪锚点」：写入去空格，清空即回未设置', async () => {
-    const el = makeElement({ cellType: 'image', formatter: 'data:image/gif;base64,R0lGOD' })
-    const w = mountGroup(el)
-    const row = w.findAll('.pd-field').find(f => (f.find('.pd-label').text() || '').includes('裁剪锚点'))
-    expect(row).toBeTruthy()
-    const input = row!.find('input[type="text"]').element as HTMLInputElement
-    input.value = ' center 20% '
-    await input.dispatchEvent(new Event('change'))
-    const cells = (el.options.tableRows![0] as any).cells
-    expect(cells[0].objectPosition).toBe('center 20%')
-    input.value = ''
-    await input.dispatchEvent(new Event('change'))
-    expect(cells[0].objectPosition).toBeUndefined()
+describe('单元格图片裁剪锚点（仅剪裁档）', () => {
+  const anchorRow = (w: ReturnType<typeof mountGroup>) =>
+    w.findAll('.pd-field').find(f => (f.find('.pd-label').text() || '').includes('裁剪锚点'))
+  const cellOf = (el: RuntimeElement) => (el.options.tableRows![0] as any).cells[0] as TableCell
+
+  it('未选剪裁时锚点行整个不出现', () => {
+    const w = mountGroup(makeElement({ cellType: 'image', formatter: 'data:image/gif;base64,R0lGOD' }))
+    expect(anchorRow(w)).toBeUndefined()
   })
 
-  it('文本单元格不出该行（锚点只对图片生效）', () => {
-    const w = mountGroup(makeElement({ cellType: undefined, content: '文本' }))
-    expect(w.findAll('.pd-field').some(f => (f.find('.pd-label').text() || '').includes('裁剪锚点'))).toBe(false)
+  it('缩放模式里 cover 叫「剪裁」，旧文案不再出现', () => {
+    const w = mountGroup(makeElement({ cellType: 'image' }))
+    const fit = w.findAll('select').find(s => s.text().includes('剪裁（等比铺满后裁边）'))!
+    expect(fit).toBeTruthy()
+    expect(w.text()).not.toContain('覆盖（保持比例）')
+  })
+
+  it('选了剪裁才出锚点控件，选档写回 50% 0%', async () => {
+    const el = makeElement({ cellType: 'image', formatter: 'data:image/gif;base64,R0lGOD', fit: 'cover' })
+    const w = mountGroup(el)
+    expect(anchorRow(w)).toBeTruthy()
+    await w.find('[data-field="ap-img-object-position"] select').setValue('50,0')
+    expect(cellOf(el).objectPosition).toBe('50% 0%')
+  })
+
+  it('回到居中即撤掉该属性，而不是留个空串', async () => {
+    const el = makeElement({ cellType: 'image', fit: 'cover', objectPosition: '50% 0%' })
+    const w = mountGroup(el)
+    await w.find('[data-field="ap-img-object-position"] select').setValue('50,50')
+    expect(cellOf(el).objectPosition).toBeUndefined()
+  })
+
+  it('二维码与文本单元格都不出锚点行（只有图片会裁）', () => {
+    expect(anchorRow(mountGroup(makeElement({ cellType: 'qrcode', fit: 'cover' })))).toBeUndefined()
+    expect(anchorRow(mountGroup(makeElement({ content: '文本' })))).toBeUndefined()
   })
 })
 

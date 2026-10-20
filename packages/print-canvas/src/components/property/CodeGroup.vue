@@ -68,11 +68,7 @@
       <p class="pd-hint" v-if="isBarcode">条码尺寸由「条宽」与「打印机分辨率」结算：宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限</p>
       <div class="pd-field" v-if="!isBarcode" v-show="showItem('cd-fit')"><span class="pd-label">缩放模式</span>
         <select class="pd-select" :value="element.options.fit || 'contain'" @change="onFitChange">
-          <option value="contain">包含（保持比例）</option>
-          <option value="cover">覆盖（保持比例）</option>
-          <option value="fill">拉伸填满</option>
-          <option value="none">原始尺寸</option>
-          <option value="scale-down">缩小（保持比例）</option>
+          <option v-for="o in IMAGE_FIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
       </div>
       <div class="pd-field" v-show="showItem('cd-max-width')"><span class="pd-label">最大宽度 (mm)</span>
@@ -96,7 +92,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { propertyTip } from '@worm-vue3-print/core/designer'
+import { propertyTip, IMAGE_FIT_OPTIONS } from '@worm-vue3-print/core/designer'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
 

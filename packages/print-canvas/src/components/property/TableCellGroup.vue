@@ -69,15 +69,17 @@
       <p class="pd-hint" v-if="isBarcodeCell">单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限</p>
       <div class="pd-field" v-if="isQrcodeCell || isImageCell"><span class="pd-label">缩放模式</span>
         <select :value="mainCell.fit || 'contain'" class="pd-select" @change="write(c => { c.fit = ($event.target as HTMLSelectElement).value as any })">
-          <option value="contain">包含（保持比例）</option>
-          <option value="cover">覆盖（保持比例）</option>
-          <option value="fill">拉伸填满</option>
-          <option value="none">原始尺寸</option>
-          <option value="scale-down">缩小（保持比例）</option>
+          <option v-for="o in IMAGE_FIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
       </div>
-      <div class="pd-field" v-if="isImageCell"><span class="pd-label">裁剪锚点</span>
-        <input class="pd-input" type="text" :value="mainCell.objectPosition ?? ''" placeholder="缺省居中，如 center 20%" @change="write(c => { c.objectPosition = ($event.target as HTMLInputElement).value.trim() || undefined })" />
+      <div class="pd-cell-anchor" v-if="isImageCell && mainCell.fit === 'cover'">
+        <CropAnchorField field-key="ap-img-object-position"
+          label="裁剪锚点"
+          :src="cellImageSrc"
+          :width-mm="cellBoxMm.width"
+          :height-mm="cellBoxMm.height"
+          :model-value="mainCell.objectPosition"
+          @update:model-value="write(c => { c.objectPosition = $event })" />
       </div>
       <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label">最大宽度 (mm)</span>
         <StepperInput :model-value="mainCell.maxWidth"
@@ -217,7 +219,7 @@ import type {
 } from '@worm-vue3-print/core/designer'
 import {
   canMergeReason, mergeCells, splitCells, applyBorderPreset, findMainCell, type BorderPreset,
-  resolveCellTextFit, type TextFit, propertyTip,
+  resolveCellTextFit, type TextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA,
 } from '@worm-vue3-print/core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import PropertyGroup from './PropertyGroup.vue'
@@ -225,6 +227,7 @@ import StepperInput from './StepperInput.vue'
 import ExpressionEditor from '../ExpressionEditor.vue'
 import PresetColorPicker from '../PresetColorPicker.vue'
 import FontSelect from './FontSelect.vue'
+import CropAnchorField from './CropAnchorField.vue'
 
 /** 静区说明：文案单一来源在 core 的属性注册表，与元素台、common 宿主共用同一条 */
 const quietTip = propertyTip('cd-quiet-zone')
@@ -238,9 +241,24 @@ const ctx = inject(TABLE_EDIT_KEY)!
 
 const rows = computed(() => props.element.options.tableRows!)
 
-const mainCell = computed<TableCell>(() => {
-  const m = findMainCell(rows.value, props.selection.r1, props.selection.c1)
-  return rows.value[m.r]!.cells[m.c]!
+const main = computed(() => findMainCell(rows.value, props.selection.r1, props.selection.c1))
+const mainCell = computed<TableCell>(() => rows.value[main.value.r]!.cells[main.value.c]!)
+
+/** 单元格内容盒近似：列宽合计 × 行高合计（内边距与塌陷边框不计，只用于判哪一轴能挪） */
+const cellBoxMm = computed(() => {
+  const widths = props.element.options.tableColWidths ?? []
+  const cell = mainCell.value
+  let width = 0
+  for (let i = main.value.c; i < main.value.c + (cell.colspan ?? 1); i++) width += widths[i] ?? 0
+  let height = 0
+  for (let i = main.value.r; i < main.value.r + (cell.rowspan ?? 1); i++) height += rows.value[i]?.height ?? 0
+  return { width, height }
+})
+
+/** 示意图取设计态已解析地址：{字段} 用 demo 数据求值，与 CellImage 的 designMode 分支同口径 */
+const cellImageSrc = computed(() => {
+  const raw = String(mainCell.value.formatter ?? '')
+  return raw.includes('{') ? String(evaluateTemplate(raw, DEFAULT_DEMO_DATA)) : raw
 })
 
 const formatterEditorVisible = ref(false)

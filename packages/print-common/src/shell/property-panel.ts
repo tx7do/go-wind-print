@@ -4,7 +4,7 @@
 //  .property-search>input.pd-input / .font-select>.font-select-input+.font-select-list /
 //  .pd-form / .position-grid / .margin-grid / .pd-field>.pd-label / .pd-divider / .pd-empty）。
 // 搜索门控（filteredGroups / matchedKeys / searching）见 shell/property-search.ts，口径同 canvas。
-import { PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip } from '@worm-vue3-print/core/designer'
+import { PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import { colorTrigger, divider, field, fieldHelp, radioGroup, stepper } from './controls'
@@ -12,6 +12,7 @@ import { designBackgroundSection, tilingSection } from './page-extras'
 import { bindingGroup } from './binding'
 import { renderFontSelect } from './font-select'
 import { gateItem, renderPropertySearch } from './property-search'
+import { cropAnchorField } from './crop-anchor'
 import { group } from './prop-group'
 import { paginationGroup, tableCellGroup, tableRowGroup, tableSettingsGroup } from './table-props'
 import { watermarkSection } from './watermark'
@@ -117,15 +118,14 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
       gateItem(ctx, 'ap-word-wrap', switchField(ctx, '自动换行', o.wordWrap !== false, v => patch({ wordWrap: v ? undefined : false }))),
     ] : [
       // 平铺条件项：不能在这里套数组，common 的 h() 不摊平嵌套子节点（会让 paint 递归抛 TypeError）
-      type === 'image' ? gateItem(ctx, 'ap-img-fit', selectField(ctx, '缩放模式', String(o.fit ?? 'contain'), [
-        { value: 'contain', label: '包含（保持比例）' }, { value: 'cover', label: '覆盖（保持比例）' },
-        { value: 'fill', label: '拉伸填满' }, { value: 'none', label: '原始尺寸' },
-        { value: 'scale-down', label: '缩小（保持比例）' },
-      ], v => patch({ fit: v }), propertyTip('ap-img-fit'))) : '',
-      type === 'image' ? gateItem(ctx, 'ap-img-object-position', fieldHelp('裁剪锚点', h('input', {
-        class: 'pd-input', type: 'text', value: String(o.objectPosition ?? ''), placeholder: '缺省居中，如 center 20%',
-        onBlur: (ev: FocusEvent) => patch({ objectPosition: ((ev.target as HTMLInputElement).value || '').trim() || undefined }),
-      }), propertyTip('ap-img-object-position'))) : '',
+      type === 'image' ? gateItem(ctx, 'ap-img-fit', selectField(ctx, '缩放模式', String(o.fit ?? 'contain'), IMAGE_FIT_OPTIONS,
+        v => patch({ fit: v }), propertyTip('ap-img-fit'))) : '',
+      type === 'image' && o.fit === 'cover' ? gateItem(ctx, 'ap-img-object-position', cropAnchorField(ctx, {
+        fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(o.src as string),
+        widthMm: Number(o.width) || 0, heightMm: Number(o.height) || 0,
+        value: o.objectPosition === undefined ? undefined : String(o.objectPosition),
+        onCommit: v => patch({ objectPosition: v }),
+      })) : '',
       !isTable && type !== 'image' ? h('p', { class: 'pd-empty', text: '当前元素不支持外观设置' }) : '',
     ].filter(Boolean)),
   ]))
@@ -178,11 +178,8 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
           class: 'pd-hint',
           text: '条码尺寸由「条宽」与「打印机分辨率」结算：宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限',
         }) : '',
-        !isBarcode ? gateItem(ctx, 'cd-fit', selectField(ctx, '缩放模式', String(o.fit || 'contain'), [
-          { value: 'contain', label: '包含（保持比例）' }, { value: 'cover', label: '覆盖（保持比例）' },
-          { value: 'fill', label: '拉伸填满' }, { value: 'none', label: '原始尺寸' },
-          { value: 'scale-down', label: '缩小（保持比例）' },
-        ], v => patch({ fit: v || undefined }))) : '',
+        !isBarcode ? gateItem(ctx, 'cd-fit', selectField(ctx, '缩放模式', String(o.fit || 'contain'), IMAGE_FIT_OPTIONS,
+          v => patch({ fit: v || undefined }))) : '',
         gateItem(ctx, 'cd-max-width', field('最大宽度 (mm)', stepper({
           value: o.maxWidth, min: 1, max: 200, placeholder: '默认',
           onCommit: v => patch({ maxWidth: v || undefined }),

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import AppearanceGroup from '../components/property/AppearanceGroup.vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
 
 function makeElement(type: string, options: Record<string, any> = {}): RuntimeElement {
   return {
@@ -56,5 +57,63 @@ describe('AppearanceGroup 文字溢出显示形式', () => {
 
     await checkbox.setValue(false)
     expect(element.options.wordWrap).toBe(false)
+  })
+})
+
+/** 图片元素：外观组里是缩放模式 + 裁剪锚点 */
+function mountImage(element: RuntimeElement) {
+  return mount(AppearanceGroup, { props: { element, isTextType: false } })
+}
+
+function makeImage(options: Record<string, any> = {}): RuntimeElement {
+  return makeElement('image', { src: 'data:image/gif;base64,R0lGOD', width: 35, height: 45, ...options })
+}
+
+/** 缩放模式下拉：模板里唯一含「剪裁」选项的 select */
+function imgFitSelect(wrapper: ReturnType<typeof mountImage>) {
+  return wrapper.findAll('select').find(s => s.text().includes('剪裁（等比铺满后裁边）'))!
+}
+
+describe('AppearanceGroup 图片缩放模式与裁剪锚点', () => {
+  it('cover 档对用户叫「剪裁」，不再出现旧文案「覆盖」', () => {
+    const wrapper = mountImage(makeImage())
+    expect(imgFitSelect(wrapper).text()).toContain('剪裁（等比铺满后裁边）')
+    expect(wrapper.text()).not.toContain('覆盖（保持比例）')
+  })
+
+  it('未选剪裁时锚点行整个不出现', () => {
+    const wrapper = mountImage(makeImage())
+    expect(wrapper.text()).not.toContain('裁剪锚点')
+  })
+
+  it('选了剪裁才出锚点控件与示意图', async () => {
+    const element = makeImage({ fit: 'cover' })
+    const wrapper = mountImage(element)
+    expect(wrapper.text()).toContain('裁剪锚点')
+    expect(wrapper.find('.pd-crop-preview').exists()).toBe(true)
+  })
+
+  it('切到剪裁写入 fit=cover 并当场长出锚点行', async () => {
+    const element = makeImage()
+    const wrapper = mountImage(element)
+    await imgFitSelect(wrapper).setValue('cover')
+    expect(element.options.fit).toBe('cover')
+    expect(wrapper.text()).toContain('裁剪锚点')
+  })
+
+  it('锚点控件写回 options.objectPosition，回到居中即撤掉该属性', async () => {
+    const element = makeImage({ fit: 'cover' })
+    const wrapper = mountImage(element)
+    const anchorSelect = wrapper.find('[data-field="ap-img-object-position"] select')
+    await anchorSelect.setValue('50,0')
+    expect(element.options.objectPosition).toBe('50% 0%')
+
+    await anchorSelect.setValue('50,50')
+    expect(element.options.objectPosition).toBeUndefined()
+  })
+
+  it('表达式图片地址按设计态 demo 数据求值后进示意图', () => {
+    const wrapper = mountImage(makeImage({ fit: 'cover', src: '{order.no}' }))
+    expect(wrapper.find('.pd-crop-preview img').attributes('src')).toBe(DEFAULT_DEMO_DATA.order.no)
   })
 })

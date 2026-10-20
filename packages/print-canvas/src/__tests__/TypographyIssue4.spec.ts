@@ -98,23 +98,25 @@ describe('AppearanceGroup 新增入口（issue #4 属性台暴露）', () => {
     const w = mount(AppearanceGroup, { props: { element: makeEl('text', { formatter: '文本' }), isTextType: true } })
     expect([...w.findAll('.pd-label')].some(l => (l.text() || '').includes('首行缩进'))).toBe(false)
   })
-  it('图片元素出现缩放模式与裁剪锚点，且写入 options', async () => {
+  it('图片元素出现缩放模式；选了剪裁才出锚点并写入 options', async () => {
     const w = mount(AppearanceGroup, { props: { element: makeEl('image', { src: 'a' }), isTextType: false } })
+    expect(w.text()).not.toContain('裁剪锚点')
     const select = w.find('select.pd-select').element as HTMLSelectElement
     expect(select.options[1].value).toBe('cover')
     select.value = 'cover'
     await select.dispatchEvent(new Event('change'))
     expect(w.props('element').options.fit).toBe('cover')
-    const anchor = w.find('input.pd-input').element as HTMLInputElement
-    anchor.value = ' center 20% '
-    await anchor.dispatchEvent(new Event('input'))
-    expect(w.props('element').options.objectPosition).toBe('center 20%')
+    expect(w.text()).toContain('裁剪锚点')
+    await w.find('[data-field="ap-img-object-position"] select').setValue('50,0')
+    expect(w.props('element').options.objectPosition).toBe('50% 0%')
   })
-  it('图片锚点清空即回到未设置态，而不是存成空串', async () => {
-    const w = mount(AppearanceGroup, { props: { element: makeEl('image', { src: 'a', objectPosition: 'top left' }), isTextType: false } })
-    const anchor = w.find('input.pd-input').element as HTMLInputElement
-    anchor.value = ''
-    await anchor.dispatchEvent(new Event('input'))
+  it('存量锚点回显进档位，选回居中即撤键而不是存成空串', async () => {
+    const el = makeEl('image', { src: 'a', fit: 'cover', objectPosition: 'top left' })
+    const w = mount(AppearanceGroup, { props: { element: el, isTextType: false } })
+    const anchorSelect = w.find('[data-field="ap-img-object-position"] select')
+    // top left = 水平贴左、垂直贴顶
+    expect(anchorSelect.element.value).toBe('0,0')
+    await anchorSelect.setValue('50,50')
     expect(w.props('element').options.objectPosition).toBeUndefined()
   })
 })

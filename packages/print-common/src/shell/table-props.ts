@@ -9,7 +9,7 @@ import type {
 } from '@worm-vue3-print/core/designer'
 import {
   applyBorderPreset, canMergeReason, findMainCell, mergeCells, resolveCellTextFit, setHeaderRepeat,
-  setRowType, splitCells, propertyTip,
+  setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc,
 } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
@@ -18,6 +18,7 @@ import { colorTrigger, divider, fieldHelp, radioGroup, stepper } from './control
 import type { ShellCtx } from './controls'
 import { renderFontSelect } from './font-select'
 import { gateItem } from './property-search'
+import { cropAnchorField } from './crop-anchor'
 import { group, pdForm } from './prop-group'
 
 /** Common 的 stepper 没有「清空」通道：未设置以 0 呈现，提交时 0 回落 undefined（= 继承表格/全局默认） */
@@ -71,14 +72,6 @@ const QR_LEVEL_OPTIONS: { value: string; label: string }[] = [
   { value: 'M', label: 'M（推荐）' },
   { value: 'Q', label: 'Q' },
   { value: 'H', label: 'H（最高）' },
-]
-
-const FIT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'contain', label: '包含（保持比例）' },
-  { value: 'cover', label: '覆盖（保持比例）' },
-  { value: 'fill', label: '拉伸填满' },
-  { value: 'none', label: '原始尺寸' },
-  { value: 'scale-down', label: '缩小（保持比例）' },
 ]
 
 const TEXT_FIT_OPTIONS: { value: string; label: string }[] = [
@@ -267,6 +260,16 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
     stepper({ value, ...opts, onCommit: v => write(c => writeValue(c, orUndef(v))) }),
   ])
 
+  /** 单元格内容盒近似：列宽合计 × 行高合计（与 canvas 同口径，只用于判哪一轴能挪） */
+  const cellBox = (() => {
+    const widths = el.options.tableColWidths ?? []
+    let width = 0
+    for (let i = main.c; i < main.c + (cell0.colspan ?? 1); i++) width += Number(widths[i]) || 0
+    let height = 0
+    for (let i = main.r; i < main.r + (cell0.rowspan ?? 1); i++) height += Number(rows[i]?.height) || 0
+    return { width, height }
+  })()
+
   return group(ctx, 'table-cell', '单元格', 'Menu', [
     pdForm([
       h('div', { class: 'pd-field' }, [
@@ -313,12 +316,13 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       }), propertyTip('cd-quiet-zone')) : '',
 
       isBarcodeCell ? hint('单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限') : '',
-      (isQrcodeCell || isImageCell) ? selectRow('缩放模式', cell0.fit || 'contain', FIT_OPTIONS,
+      (isQrcodeCell || isImageCell) ? selectRow('缩放模式', cell0.fit || 'contain', IMAGE_FIT_OPTIONS,
         v => write(c => { c.fit = v as NonNullable<TableCell['fit']> })) : '',
-      isImageCell ? fieldHelp('裁剪锚点', h('input', {
-        class: 'pd-input', type: 'text', value: String(cell0.objectPosition ?? ''), placeholder: '缺省居中，如 center 20%',
-        onBlur: (ev: FocusEvent) => write(c => { c.objectPosition = ((ev.target as HTMLInputElement).value || '').trim() || undefined }),
-      }), propertyTip('ap-img-object-position')) : '',
+      isImageCell && cell0.fit === 'cover' ? cropAnchorField(ctx, {
+        fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(cell0.formatter),
+        widthMm: cellBox.width, heightMm: cellBox.height,
+        value: cell0.objectPosition, onCommit: v => write(c => { c.objectPosition = v }),
+      }) : '',
       (isBarcodeCell || isQrcodeCell || isImageCell)
         ? numField('最大宽度 (mm)', optNum(cell0.maxWidth), (c, v) => { c.maxWidth = v }, { min: 0, max: 200, placeholder: '默认' })
         : '',

@@ -85,14 +85,16 @@ agent_created: true
 | `code` | `barcodeType` | `dpi` | `printerDpi` |
 | `level` | `qrCodeLevel` | `cols`/`rows`/`source` | 表格三件套 |
 | `quiet` | `qrQuietZone`（二维码静区白边，模块 0~8，缺省 0＝码面铺满元素框） |  |  |
-| `indent` | `longTextIndent`（长文本首行缩进，**单位 em＝字符数**，仅 `longText` 消费） | `anchor` | `objectPosition`（图片裁剪锚点，CSS 值原样，如 `center 20%`） |
+| `indent` | `longTextIndent`（长文本首行缩进，**单位 em＝字符数**，仅 `longText` 消费） | `anchor` | `objectPosition`（图片裁剪锚点，**建议写 `<x>% <y>%`**，如 `50% 0%` 取图顶端；`center 20%` 等等价写法也吃） |
 
 **排版三项的版本与判据**（生成模板前先看宿主用的是哪个包版本）：
 
 - `align: justify`、`indent`、`anchor` 与「`fit` 真的落纸」都是 **1.3.7 起**的行为；1.3.6 及更早里 `fit` 只影响画布显示、`text-indent` 不出纸、`justify` 与 `valign` 同时给会静默退成左对齐、单元格 `align: justify` 只在多行时部分生效。
 - 本项目的 `justify` 口径是**撑满行宽含末行**（打印设计器同行形态，非 Word 的「两端对齐」）：渲染端成对输出 `text-align:justify;text-align-last:justify`。判据：出纸 HTML 里只出现 `text-align:justify` 而没有 `text-align-last:justify`，单行文本必然不生效——CSS 的 `justify` 永不拉伸段落末行。表格单元格 `align: justify` 同口径（`<td>` 上无需 flex 改造，只有末行这一条规则），生成模板时两者可共用同一判据。
-- 判据（对着出纸 HTML 量，不靠猜）：长文本那层 `div.print-element` 的 `style` 里应出现 `text-indent:<N>em`；被裁切的 `<img>` 应出现 `object-fit:cover;object-position:center 20%`。
-- 边界豁免：`anchor` 含 `;`、引号、`url()` 等字符时**整条不输出**（防往 style 里追加声明），此时按上面判据查不到属正常，不是丢了配置；`indent` 写在普通 `text` 元素上不生效也属设计口径。
+- 判据（对着出纸 HTML 量，不靠猜）：长文本那层 `div.print-element` 的 `style` 里应出现 `text-indent:<N>em`；被裁切的 `<img>` 应出现 `object-fit:cover;object-position:50% 0%`。**只有独立图片元素的锚点真生效**：独立 image 的 `<img>` 撑满元素框（`width:100%;height:100%`），等比铺满后有余量可裁（实测 `50% 0%` 打出图顶端、`50% 100%` 打出底端）。
+- **表格图片单元格的锚点不要用**：td 高度由内容决定，声明行高不是硬约束，图片把行撑高后 `<img>` 盒恰好等于整张图，可裁余量为 0 —— `fit` 与 `objectPosition` 写进单元格只会落纸不显形（给 img 补 `width/height:100%` 也是空操作，实测盒尺寸前后一致）。要按画面取位就改用**独立图片元素**放在表格位置上。
+- 锚点只有一个轴真能挪：`cover` 等比铺满后，贴满框的那一轴没有溢出余量，它的百分比填 0 与 100 出纸相同。竖图进 35×45mm 框只有垂直能动（上下 7.5mm），横图进同框只有水平能动（左右 32.5mm）。所以只给能裁的那一轴写非 50 的值，另一轴留 50。
+- 边界豁免：`anchor` 含 `;`、引号、`url()`、括号（含 `calc()`）等字符时**整条不输出**（防往 style 里追加声明），此时按上面判据查不到属正常，不是丢了配置；属性台遇到这类存量写法会选中「自定义」并保留原值，用户一动档位/数字框即整体替换成 `<x>% <y>%`。`indent` 写在普通 `text` 元素上不生效也属设计口径。
 
 表格行类型：`header`（表头）、`data`（明细，按 `source` 迭代）、`subtotal`（本页小计）、`summary`（总计）。
 `colspan`/`rowspan` 的占位格由脚本自动补齐。多页面模板用 `{"pages": [scene, scene]}`。

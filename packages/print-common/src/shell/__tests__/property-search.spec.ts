@@ -18,9 +18,9 @@ function makeState(): ShellState {
 }
 
 /** 渲染属性台并返回宿主节点（每次调用都是一次「整体重绘」的等价物） */
-function paint(type: ElementType = 'text', propSearch = ''): { host: HTMLElement; ctx: ShellCtx } {
+function paint(type: ElementType = 'text', propSearch = '', options: Record<string, any> = {}): { host: HTMLElement; ctx: ShellCtx } {
   const store = new DesignerStore()
-  store.addElement(type, { left: 10, top: 10, width: 40, height: 10 })
+  store.addElement(type, { left: 10, top: 10, width: 40, height: 10, ...options })
   store.selectOne(store.elements[0]!.id)
   const ctx: ShellCtx = {
     store, format: new FormatToolbar(store), state: { ...makeState(), propSearch },
@@ -169,18 +169,24 @@ describe('issue #4 新增字段：首行缩进与图片缩放/锚点', () => {
     expect(visibleItemKeys(paint('text').host)).not.toContain('ap-long-text-indent')
   })
 
-  it('图片出缩放模式与裁剪锚点两行——嵌套数组曾让 paint 抛 TypeError，必须能平铺渲染', () => {
-    const { host } = paint('image')
+  it('缩放模式常出且 cover 叫剪裁；锚点行只在剪裁档出——嵌套数组曾让 paint 抛 TypeError，必须能平铺渲染', () => {
+    const plain = visibleItemKeys(paint('image').host)
+    expect(plain).toContain('ap-img-fit')
+    expect(plain).not.toContain('ap-img-object-position')
+
+    const { host } = paint('image', '', { fit: 'cover' })
     const keys = visibleItemKeys(host)
-    expect(keys).toContain('ap-img-fit')
     expect(keys).toContain('ap-img-object-position')
     const labels = [...host.querySelectorAll<HTMLElement>('.pd-field')].filter(visible)
       .map(el => el.querySelector('.pd-label')?.textContent ?? '')
     expect(labels.some(l => l.includes('缩放模式'))).toBe(true)
     expect(labels.some(l => l.includes('裁剪锚点'))).toBe(true)
+    expect(host.textContent).toContain('剪裁（等比铺满后裁边）')
+    expect(host.textContent).not.toContain('覆盖（保持比例）')
     const tips = [...host.querySelectorAll<HTMLElement>('.pd-help[data-tip]')].map(el => el.dataset.tip ?? '')
-    expect(tips.some(t => t.includes('object-position'))).toBe(true)
     expect(tips.some(t => t.includes('缩放方式'))).toBe(true)
+    // 说明只讲操作口径，不把 CSS 属性名推给用户
+    expect(tips.every(t => !t.includes('object-position'))).toBe(true)
   })
 
   it('搜「裁剪锚点」只点亮外观组；搜「位置」仍只命中位置与尺寸组（关键字不得越组撞车）', () => {

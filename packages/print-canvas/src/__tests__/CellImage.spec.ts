@@ -33,4 +33,15 @@ describe('CellImage', () => {
     expect(wrapper.find('img').attributes('style')).toContain('max-width: 50mm')
     expect(wrapper.find('img').attributes('style')).toContain('max-height: 30mm')
   })
+
+  it('已知限制：单元格图片不撑满盒（td 高度由内容定，锚点在单元格里裁不动）', () => {
+    const wrapper = mount(CellImage, {
+      props: { value: '/test-image.png', fit: 'cover', objectPosition: '50% 0%' }
+    })
+    // 逐条比对，否则 'max-width: 100%' 会让 'width: 100%' 的断言假绿
+    const decls = wrapper.find('img').attributes('style')!.split(';').map(s => s.trim()).filter(Boolean)
+    expect(decls).not.toContain('width: 100%')
+    expect(decls).not.toContain('height: 100%')
+    expect(decls).toContain('object-position: 50% 0%')
+  })
 })
