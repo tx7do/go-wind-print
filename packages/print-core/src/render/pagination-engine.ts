@@ -107,6 +107,8 @@ interface PaginationUnit {
   ids: string[]
   /** 组内含 pageable:false 元素时整组锁定首页（编组可能跨越可分页性设置） */
   forceFirstPage: boolean
+  /** 组内成员横向占用并集（mm）：纵向预算按列记账的依据 */
+  band: [number, number]
 }
 
 /** 元素纵向占用：设计高度与实测高度取大（长文本溢出由实测高度兜底） */
@@ -115,9 +117,31 @@ function effectiveHeight(el: TemplateElement, measured: Map<string, MeasuredElem
 }
 
 /**
+ * 元素横向占用区间（mm）：[left, left + width]。
+ * 线类元素的编辑盒宽度即其版面占位，与画布所见一致；
+ * 缺省宽度取 100，与渲染端 `opts.width ?? 100` 同口径，避免记账比实际出纸窄。
+ */
+function xRange(el: TemplateElement): [number, number] {
+  const o = el.options ?? {}
+  const x0 = o.left ?? 0
+  return [x0, x0 + (o.width ?? 100)]
+}
+
+/** 横向区间是否相交（边相切不算，与纵向簇口径一致） */
+function xIntersects(a: [number, number], b: [number, number]): boolean {
+  return a[0] < b[1] && b[0] < a[1]
+}
+
+/** 两个横向区间的并集范围 */
+function xUnion(a: [number, number], b: [number, number]): [number, number] {
+  return [Math.min(a[0], b[0]), Math.max(a[1], b[1])]
+}
+
+/**
  * 构建分页单元映射（elementId → 所属单元）。
- * 隐式聚类只看纵向区间是否相交：分页模型是一维纵向流，并排/重叠元素共享纵向预算；
- * 边相切（top 恰等于上一元素底边）不算重叠，保持顺序流式排布结果不变。
+ * 隐式聚类要求横向与纵向区间同时相交：互不相交的元素在纸面上各占一列，
+ * 不必整组同页，也不该互相占用纵向版面（Gitee #IKOUJI）。
+ * 边相切（top 恰等于上一元素底边、或 x 恰相接）不算重叠，保持顺序流式排布结果不变。
  */
 function buildPaginationUnits(
   sorted: TemplateElement[],
@@ -133,6 +157,7 @@ function buildPaginationUnits(
       anchorId: members[0]!.id,
       ids: members.map(m => m.id),
       forceFirstPage: members.some(m => paginationOf(m)?.pageable === false),
+      band: members.map(xRange).reduce(xUnion),
     }
     for (const m of members) unitOf.set(m.id, unit)
   }
@@ -161,8 +186,8 @@ function buildPaginationUnits(
     if (ra !== rb) parent.set(rb, ra)
   }
 
-  // 扫描线：仅与仍可能相交（bottom > 当前 top）的活跃元素做合并
-  const active: Array<{ id: string; top: number; bottom: number }> = []
+  // 扫描线：仅与仍可能相交（bottom > 当前 top）且横向相交的活跃元素做合并
+  const active: Array<{ id: string; top: number; bottom: number; x: [number, number] }> = []
   for (const el of eligible) {
     const top = el.options?.top ?? 0
     // 淘汰底边已在当前 top 之上（含相切）的区间
@@ -170,13 +195,15 @@ function buildPaginationUnits(
       if (active[i]!.bottom <= top) active.splice(i, 1)
     }
     const bottom = top + effectiveHeight(el, measured)
+    const x = xRange(el)
     for (const a of active) {
-      if (a.bottom > top) union(el.id, a.id)
+      if (a.bottom > top && xIntersects(a.x, x)) union(el.id, a.id)
     }
-    active.push({ id: el.id, top, bottom })
+    active.push({ id: el.id, top, bottom, x })
   }
 
   // 收集 size≥2 的连通簇，保持 sorted 顺序，锚点为簇内首个元素
+  const eligibleById = new Map(eligible.map(e => [e.id, e] as const))
   const clusters = new Map<string, string[]>()
   for (const el of eligible) {
     const root = find(el.id)
@@ -186,7 +213,12 @@ function buildPaginationUnits(
   }
   for (const ids of clusters.values()) {
     if (ids.length < 2) continue
-    const unit: PaginationUnit = { anchorId: ids[0]!, ids, forceFirstPage: false }
+    const unit: PaginationUnit = {
+      anchorId: ids[0]!,
+      ids,
+      forceFirstPage: false,
+      band: ids.map(id => xRange(eligibleById.get(id)!)).reduce(xUnion),
+    }
     for (const id of ids) unitOf.set(id, unit)
   }
 
@@ -270,27 +302,53 @@ export function paginate(
 
   const pages: PageLayout[] = []
   let currentPage: PageSection[] = []
-  let remaining = contentHeight - SAFETY_MARGIN
+  /**
+   * 本页已占版面（mm）：二维占用预算的记账单位。
+   * 换页判定看「该元素横向所在列已占的高度合计」，不再把整页所有元素的高度累加——
+   * 横向互不相交的元素各占一列，不互相挤纵向版面（Gitee #IKOUJI 主因）。
+   * 同列内仍沿用既有口径：按内容高度合计扣减（设计坐标间隙不计入，
+   * 底边越过纸面时留本页并标 overflow，由上层阻断，此契约不变）。
+   */
+  let occupied: Array<{ x0: number; x1: number; height: number }> = []
   // 是否已发生换页：换页后内容从新页内容区顶部(0)排布，不再使用设计坐标
   let pageBroken = false
-
-  /** 本节在本页内容区内的定位 top：未换页用元素设计 top，换页后从页顶开始 */
-  function sectionTop(el: TemplateElement): number {
-    return pageBroken ? pageCursorTop() : (el.options?.top ?? 0)
-  }
-
-  /**
-   * 换页后的流式光标：当前页已放置内容的底部。
-   * remaining 逐段扣减，fullPageHeight() − remaining 即已占深度；空页/新页首段为 0。
-   * 修复：此前换页后各段一律锚在 0，表格切片之后的元素/编组会叠压在表格上。
-   */
-  function pageCursorTop(): number {
-    return Math.max(0, fullPageHeight() - remaining)
-  }
 
   /** 当前页完整可用高度（1.3.5 起首页与后续页同预算） */
   function fullPageHeight(): number {
     return contentHeight - SAFETY_MARGIN
+  }
+
+  /** 某横向区间在本列已占的高度合计（mm）；横向相切不算同列 */
+  function depthIn(x: [number, number]): number {
+    let used = 0
+    for (const r of occupied) {
+      if (xIntersects(x, [r.x0, r.x1])) used += r.height
+    }
+    return Math.max(0, used)
+  }
+
+  /** 某横向区间的剩余可用高度（mm） */
+  function remainingIn(x: [number, number]): number {
+    return fullPageHeight() - depthIn(x)
+  }
+
+  /** 记下一块本列已占版面 */
+  function occupy(x: [number, number], height: number): void {
+    occupied.push({ x0: x[0], x1: x[1], height })
+  }
+
+  /** 本节在本页内容区内的定位 top：未换页用元素设计 top，换页后贴本列已占底部 */
+  function sectionTop(el: TemplateElement, x: [number, number] = xRange(el)): number {
+    return pageBroken ? pageCursorTop(x) : (el.options?.top ?? 0)
+  }
+
+  /**
+   * 换页后的流式光标：本列已占内容的底部（= 预算 − 本列剩余）。
+   * 修复：此前一律用全页累加的光标，与自身横向不相交的元素会被别列高度推走，
+   * 且表格切片之后的元素/编组会叠压在表格上。
+   */
+  function pageCursorTop(x: [number, number]): number {
+    return Math.max(0, fullPageHeight() - remainingIn(x))
   }
 
   /**
@@ -328,7 +386,7 @@ export function paginate(
     }
     pushPage()
     currentPage = []
-    remaining = contentHeight - SAFETY_MARGIN
+    occupied = []
     pageBroken = true
     overflowOnCurrent = false
   }
@@ -395,13 +453,19 @@ export function paginate(
     idx: number,
   ): number {
     const elHeight = measured.get(el.id)?.measuredHeight ?? el.options?.height ?? 0
+    const x = xRange(el)
 
-    if (elHeight <= remaining) {
-      // 放得下
-      const top = pageBroken ? pageCursorTop() : (el.options?.top ?? 0)
+    /** 以本列光标（未换页时为设计 top）落位并记账 */
+    const place = (): void => {
+      const top = sectionTop(el, x)
       noteOverflow(top + elHeight)
-      currentPage.push({ elementId: el.id, type: 'element', renderTop: sectionTop(el) })
-      remaining -= elHeight
+      currentPage.push({ elementId: el.id, type: 'element', renderTop: top })
+      occupy(x, elHeight)
+    }
+
+    if (elHeight <= remainingIn(x)) {
+      // 放得下
+      place()
 
       // keepWithNext 处理
       if (paginationOf(el)?.keepWithNext && idx + 1 < sortedList.length) {
@@ -414,12 +478,12 @@ export function paginate(
           return idx + 1
         }
 
-        if (nextHeight > remaining) {
+        if (nextHeight > remainingIn(x)) {
           // 下一元素放不下，当前元素也移到新页（保持一组）
           currentPage.pop()
+          occupied.pop()
           finishPage()
-          currentPage.push({ elementId: el.id, type: 'element', renderTop: sectionTop(el) })
-          remaining -= elHeight
+          place()
         }
       }
 
@@ -427,12 +491,8 @@ export function paginate(
     }
 
     // 放不下，整体移到下一页（空页时不换页，仅按物理边界记录裁切风险）
-    // 先换页再取落位光标：新页/空页均为 0，与 finishPage 的空页防御一致
     finishPage()
-    const top = pageBroken ? pageCursorTop() : (el.options?.top ?? 0)
-    if (top + elHeight > contentHeight) overflowOnCurrent = true
-    currentPage.push({ elementId: el.id, type: 'element', renderTop: sectionTop(el) })
-    remaining -= elHeight
+    place()
     return idx + 1
   }
 
@@ -451,10 +511,11 @@ export function paginate(
       maxBottom = Math.max(maxBottom, top + effectiveHeight(m, measuredElements))
     }
     const unitHeight = Math.max(maxBottom - minTop, 0)
+    const band = unit.band
 
     const place = (): void => {
-      // 首页（未换页）保持设计坐标；换页后整组平移：组顶贴当前页已占底部，组内相对偏移不变
-      const offset = pageBroken ? pageCursorTop() - minTop : 0
+      // 首页（未换页）保持设计坐标；换页后整组平移：组顶贴本列已占底部，组内相对偏移不变
+      const offset = pageBroken ? pageCursorTop(band) - minTop : 0
       noteOverflow(minTop + offset + unitHeight)
       for (const m of members) {
         currentPage.push({
@@ -463,10 +524,10 @@ export function paginate(
           renderTop: (m.options?.top ?? 0) + offset,
         })
       }
-      remaining -= unitHeight
+      occupy(band, unitHeight)
     }
 
-    if (unitHeight <= remaining) {
+    if (unitHeight <= remainingIn(band)) {
       place()
       return idx + 1
     }
@@ -508,7 +569,9 @@ export function paginate(
     const repeatCount: number = opts._repeatHeaderCount ?? 0
     const repeatH = measured.get(el.id)?.repeatHeaderHeight
       ?? rowHeights.slice(0, repeatCount).reduce((s, h) => s + h, 0)
-    const freshAvail = contentHeight - SAFETY_MARGIN
+    const freshAvail = fullPageHeight()
+    // 表格自身横向占用列：本片及后续内容都按该列记账
+    const tb = xRange(el)
 
     // 边界：重复表头段高度 > 整页可用高度 → 报错
     if (repeatH > freshAvail) {
@@ -522,10 +585,10 @@ export function paginate(
       currentPage.push({
         elementId: el.id, type: 'table-slice', startRow: 0, endRow: 0,
         summary: summaryH > 0,
-        renderTop: sectionTop(el),
+        renderTop: sectionTop(el, tb),
       })
-      remaining -= summaryH
-      applyFollowGroup(el, measured)
+      occupy(tb, summaryH)
+      applyFollowGroup(el, measured, tb)
       return idx + 1
     }
 
@@ -534,15 +597,15 @@ export function paginate(
 
     // 表格分页未启用：整表单片不拆（当前页已有内容且放不下才换页，空页上允许溢出）
     if (tablePaginationOf(el)?.enabled === false) {
-      if (totalNeed > remaining && currentPage.length > 0) finishPage()
+      if (totalNeed > remainingIn(tb) && currentPage.length > 0) finishPage()
       currentPage.push({
         elementId: el.id, type: 'table-slice', startRow: 0, endRow: rowCount,
         subtotal: subtotalH > 0,
         summary: summaryH > 0,
-        renderTop: sectionTop(el),
+        renderTop: sectionTop(el, tb),
       })
-      remaining -= totalNeed
-      applyFollowGroup(el, measured)
+      occupy(tb, totalNeed)
+      applyFollowGroup(el, measured, tb)
       return idx + 1
     }
 
@@ -550,66 +613,73 @@ export function paginate(
     const groups = buildRowGroups(bodyRows, rowCount)
     let sliceStart = 0
     let firstSlice = true
-    // 片起点须在行组预算逐段扣减前捕获（循环内 remaining 会被本片自己的行组消耗）
-    let sliceTop = sectionTop(el)
+    // 片起点须在行组记账前捕获（循环内 sliceUsed 会被本片自己的行组推进）
+    let sliceTop = sectionTop(el, tb)
+    // 本片在本列内已消耗的行高合计；换页后归零，重新取本列剩余
+    let sliceUsed = 0
+    const avail = () => remainingIn(tb) - sliceUsed
+
+    /** 收下当前片，并把本片消耗记入本列版面 */
+    const pushSlice = (endRow: number, repeatHeader: boolean): void => {
+      currentPage.push({
+        elementId: el.id, type: 'table-slice', startRow: sliceStart, endRow,
+        subtotal: subtotalH > 0,
+        ...(!firstSlice && repeatHeader ? { repeatHeader: true } : {}),
+        renderTop: sliceTop,
+      })
+      occupy(tb, sliceUsed)
+      // 本片消耗已入账，剩余改由本列记账给出（避免 avail() 重复扣同一段行高）
+      sliceUsed = 0
+    }
 
     for (const g of groups) {
       const gh = bodyHeights.slice(g.start, g.end).reduce((s, h) => s + h, 0)
       // 小计行高度作为页尾预留：本组能放入本页需 gh + subtotalH
-      if (gh + subtotalH <= remaining) {
-        remaining -= gh
+      if (gh + subtotalH <= avail()) {
+        sliceUsed += gh
         continue
       }
       // 组放不下（连同小计）：本页已累积行收尾并附小计，本组（末行）整体滚到下一页
       if (g.start > sliceStart) {
-        currentPage.push({
-          elementId: el.id, type: 'table-slice', startRow: sliceStart, endRow: g.start,
-          subtotal: subtotalH > 0,
-          ...(!firstSlice && repeatCount > 0 ? { repeatHeader: true } : {}),
-          renderTop: sliceTop,
-        })
+        pushSlice(g.start, repeatCount > 0)
         firstSlice = false
         sliceStart = g.start
       }
       finishPage()
-      sliceTop = sectionTop(el)
+      sliceTop = sectionTop(el, tb)
+      sliceUsed = 0
       // 首片本身包含物理表头行（行 0 起），换页时不扣 repeatH；非首片先扣重复表头段
-      if (!firstSlice) remaining -= repeatH
-      remaining -= gh // 组高于整页时允许溢出（可能为负）
+      if (!firstSlice) sliceUsed += repeatH
+      sliceUsed += gh // 组高于整页时允许溢出（剩余可能为负）
     }
 
     // 收尾：剩余行
     if (sliceStart < rowCount) {
-      currentPage.push({
-        elementId: el.id, type: 'table-slice', startRow: sliceStart, endRow: rowCount,
-        subtotal: subtotalH > 0,
-        ...(!firstSlice && repeatCount > 0 ? { repeatHeader: true } : {}),
-        renderTop: sliceTop,
-      })
+      pushSlice(rowCount, repeatCount > 0)
     }
 
     // 汇总行（整表总计）：紧随最后一片的小计行之后；放不下则单独移页
     if (summaryH > 0) {
-      if (summaryH <= remaining) {
+      if (summaryH <= avail()) {
         const lastIdx = currentPage.length - 1
         const last = currentPage[lastIdx]
         if (last && last.type === 'table-slice' && last.elementId === el.id) {
           currentPage[lastIdx] = { ...last, summary: true }
-          remaining -= summaryH
+          occupy(tb, summaryH)
         } else {
           // 防御：最后一片非本表切片（理论不发生）→ 按单独移页处理
           finishPage()
           currentPage.push({ elementId: el.id, type: 'table-slice', startRow: rowCount, endRow: rowCount, summary: true, renderTop: 0 })
-          remaining -= summaryH
+          occupy(tb, summaryH)
         }
       } else {
         finishPage()
         currentPage.push({ elementId: el.id, type: 'table-slice', startRow: rowCount, endRow: rowCount, summary: true, renderTop: 0 })
-        remaining -= summaryH
+        occupy(tb, summaryH)
       }
     }
 
-    applyFollowGroup(el, measured)
+    applyFollowGroup(el, measured, tb)
     return idx + 1
   }
 
@@ -617,10 +687,12 @@ export function paginate(
    * 方案 A+B：处理表格下方跟随区。
    * - 放得下最后一片所在页：把该页最后一个 table-slice 升级为 flow-group（容器起点=表格设计 top）
    * - 放不下：跟随区整体移到下一页（容器起点=新页内容区顶部 0）
+   * @param band 表格横向占用列：跟随区与表格同列，只按本列剩余判定
    */
   function applyFollowGroup(
     el: TemplateElement,
     measured: Map<string, MeasuredElement>,
+    band: [number, number],
   ): void {
     const members = followMap.get(el.id) ?? []
     if (members.length === 0) return
@@ -628,7 +700,7 @@ export function paginate(
     const followH = followGroupHeight(el, members, template, measured)
     const opts = el.options ?? {}
 
-    if (followH <= remaining) {
+    if (followH <= remainingIn(band)) {
       // 与最后一片同页：把当前页最后一个 table-slice 升级为 flow-group
       const lastIdx = currentPage.length - 1
       const last = currentPage[lastIdx]
@@ -640,7 +712,7 @@ export function paginate(
           // 沿用该切片在本页的定位 top（续片已 stamp 为 0）
           groupTop: last.renderTop ?? opts.top ?? 0,
         }
-        remaining -= followH
+        occupy(band, followH)
         return
       }
       // 防御：最后一片不在当前页（理论不发生）→ 按移页处理
@@ -656,7 +728,7 @@ export function paginate(
       followElementIds: members,
       groupTop: 0,
     })
-    remaining -= followH
+    occupy(band, followH)
   }
 }
 
