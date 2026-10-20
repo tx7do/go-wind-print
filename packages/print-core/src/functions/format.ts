@@ -45,71 +45,67 @@ export function formatDate(value: any, fmt: string): string {
     .replace('ss', pad(date.getSeconds()))
 }
 
-/**
- * 数字转大写金额
- */
+const CN_DIGITS = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
+const CN_UNITS = ['', '拾', '佰', '仟']
+const CN_GROUP_UNITS = ['', '万', '亿', '万亿', '亿亿']
+
+/** 四位一节转大写（1~9999）；节内连续缺位只补一个「零」，节尾的零不写 */
+function fourDigitToCapital(n: number): string {
+  let out = ''
+  let zeroPending = false
+  for (let pos = 3; pos >= 0; pos--) {
+    const d = Math.floor(n / 10 ** pos) % 10
+    if (d === 0) {
+      if (out) zeroPending = true
+      continue
+    }
+    if (zeroPending) {
+      out += '零'
+      zeroPending = false
+    }
+    out += CN_DIGITS[d] + CN_UNITS[pos]
+  }
+  return out
+}
+
+/** 数字转大写金额（人民币票据规范：四位一节，万/亿 节单位不可缺） */
 export function toUpperCaseAmount(value: any): string {
   const num = Number(value)
   if (isNaN(num)) return String(value)
 
   if (num === 0) return '零元整'
 
-  const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
-  const units = ['', '拾', '佰', '仟']
-  const bigUnits = ['', '万', '亿']
-
   const sign = num < 0 ? '负' : ''
-  const abs = Math.abs(num)
-  const [intStr, decStr] = abs.toFixed(2).split('.')
-  const intNum = parseInt(intStr, 10)
+  const [intStr, decStr] = Math.abs(num).toFixed(2).split('.')
 
-  // 整数部分
+  // 整数部分按四位一节从高位向下拼；group < 1000 说明本节千位缺失，
+  // 与上一节之间必须补一个「零」，否则「壹亿贰仟…」会被写成「壹贰仟…」。
+  const groupCount = Math.ceil(intStr.length / 4)
   let result = ''
-  if (intNum > 0) {
-    const intChars = intStr.split('').reverse()
-    let groupIdx = 0
-    let lastDigit = 0
-    let needZero = false
-
-    for (let i = 0; i < intChars.length; i++) {
-      const d = parseInt(intChars[i], 10)
-      const unit = units[groupIdx % 4]
-      const bigUnit = bigUnits[Math.floor(groupIdx / 4)]
-
-      if (d === 0) {
-        if (lastDigit !== 0) needZero = true
-      } else {
-        if (needZero) {
-          result = '零' + result
-          needZero = false
-        }
-        result = digits[d] + unit + result
-        lastDigit = d
-      }
-
-      // 在万、亿位后加大单位
-      if (groupIdx % 4 === 3 && groupIdx > 0) {
-        result = bigUnit + result
-      }
-
-      groupIdx++
+  let zeroPending = false
+  for (let groupIdx = groupCount - 1; groupIdx >= 0; groupIdx--) {
+    const end = intStr.length - groupIdx * 4
+    const group = parseInt(intStr.slice(Math.max(0, end - 4), end), 10)
+    if (group === 0) {
+      if (result) zeroPending = true
+      continue
     }
-    result += '元'
+    if (result && (zeroPending || group < 1000)) result += '零'
+    zeroPending = false
+    result += fourDigitToCapital(group) + (CN_GROUP_UNITS[groupIdx] ?? '')
   }
+  result = `${result || '零'}元`
 
-  // 小数部分
   const jiao = parseInt(decStr[0], 10)
   const fen = parseInt(decStr[1], 10)
 
   if (jiao === 0 && fen === 0) {
     result += '整'
   } else {
-    if (jiao > 0) {
-      result += digits[jiao] + '角'
-    }
-    if (fen > 0) {
-      result += digits[fen] + '分'
-    }
+    // 角位为零而分位非零时，「元」后必须写「零」（票据与结算凭证填写规范）
+    if (jiao === 0) result += '零'
+    else result += CN_DIGITS[jiao] + '角'
+    if (fen > 0) result += CN_DIGITS[fen] + '分'
   }
 
   return sign + result

@@ -70,9 +70,9 @@ describe('EXTENDED_FUNCTIONS', () => {
     expect(EXTENDED_FUNCTIONS.DATE('2025-03-15', 'YYYY/MM/DD')).toBe('2025/03/15')
   })
   it('UPPER 大写数字', () => {
-    const result = EXTENDED_FUNCTIONS.UPPER(1234)
-    expect(result).toContain('壹')
-    expect(result).toContain('元整')
+    expect(EXTENDED_FUNCTIONS.UPPER(1234)).toBe('壹仟贰佰叁拾肆元整')
+    // 万节单位曾在实现里整体丢失，表达式层必须一并守住
+    expect(EXTENDED_FUNCTIONS.UPPER(638247)).toBe('陆拾叁万捌仟贰佰肆拾柒元整')
   })
 })
 
