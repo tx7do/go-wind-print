@@ -368,3 +368,79 @@ npm run styles -w @worm-vue3-print/common
 - 浏览器 canvas 宿主（9303）：真实拖入「长文」→ 属性台出现「首行缩进 (字符)」且 `.pd-help` 带注册表说明 → 输入 4 → 画布 `.print-longtext` 计算值 `text-indent: 64px = 4 × 16px`、首行左缘偏移 64px；删掉临时元素后回到 8 个。
 - 浏览器 common 宿主（9331，Web Component + Shadow DOM）：拖入长文后步进钮两次 → 面板回显 `2`，`.print-longtext` 计算 `32px = 2 × 16px`；拖入图片 → 「缩放模式」（5 选项）与「裁剪锚点」两行都在，说明文案长度均 >10 字符，写 `cover` + `center 20%` 后活树里该 `<img>` 行内样式为 `object-fit: cover; object-position: center 20%`，计算值 `cover` / `50% 20%`。两个宿主演示模板都没有 localStorage 持久化，测毕重载页面即回到初始 6 个元素。
 - 第三处探针更正：读 `img` 样式时我用了 repaint 前抓的 `imgWrap` 引用，common 每次重绘重建子树 → 拿到的是脱离文档树的旧节点，误判「写入没生效」；改为重新查询活树后证据正常。**面板类断言一律重新查询节点，不复用上一轮的引用。**
+
+---
+
+## 八、Gitee issue 台账（2026-10-20 核查）
+
+数据源：Gitee 公开 API 匿名读 `repos/liulong_oschina/worm-vue3-print/issues`；对照本地 `git tag --contains`、
+`npm view` registry 实况与 `git rev-list --left-right --count`。状态分布 **open 3 + progressing 2 = 5 个未关闭**。
+`master` 与 `origin`/`github` 均 `0 0`（已双推）。
+
+### T-13 #IKN95F 二维码尺寸无法增大 —— 代码已修，**对外通知欠发**（最紧急）
+
+- 报告人 hzybtm，10-18，50×70 标签上的独立二维码。**已把本项目用于生产**。
+- 实况：修复 `db39f37 二维码改为等比铺满容器 + 静区配置` **已在 tag `v1.3.7` 内**（tag 落点 `e85de1f`，10-19 17:03）；
+  core/canvas `1.3.7` 于 **10-19 17:04（北京时间）** 发到 npm `latest`，早于承诺的 21:00。
+- 缺口：issue 最后一条评论停在 10-19 14:15 的「20 号您更新包进行效果验证」，**10-20 没有任何升级通知回帖**，
+  报告人无从得知该升级。状态已由关闭回到 `progressing`（updated 10-20 16:49，推测为重开以便评论）。
+- 待办：发「1.3.7 已发布，请 `npm i @worm-vue3-print/core@1.3.7 @worm-vue3-print/canvas@1.3.7` 验证 50×50」的回帖，
+  确认无误后关闭。通路限制见「九·对外动作的通路」——当前令牌缺 `notes` scope，需走登录态浏览器。
+
+### T-14 #IKOYG0 大写金额万/亿丢失 —— 已修待发版，评论重发一次
+
+- 实况：修复 `85f29f9`（10-20 16:29）**不在 `v1.3.7` 内**，属「已合 master、随下个版本发布」，与回帖口径一致。
+- 待办两项：① 切 `1.3.8` 时登记三处同步点并在该 issue 通知验证；② **16:38 与 16:39 是两条几乎相同的评论**（重复发送），
+  删其中一条只能手工操作（删除菜单不进无障碍快照）。
+
+### T-11 #IKOUJI 横线/竖线与表格排版预览异常 —— 已复现已定根因，**一行代码未动**
+
+- 报告人 jjyu037，10-19，**官方 demo 也能复现**；正文已给完整模板 JSON（`DOT_HALF` 连续纸 + `vline` + 表格），不必再索要材料。
+- 维护者 10-19 20:49 已回帖确认根因：表格高度动态计算 + 横竖线未实现层叠布局，并承诺「会尽快修复」→ **已超期**。
+- 代码佐证：`packages/print-core/src/render/html-generator.ts:797` 的 `zStyle` 仅在 `options.zIndex` 为数字时下发，
+  叠加序完全取决于模板里是否显式写过该值；线类元素在表格流式排版中无叠压规则。
+- 待办：定「层叠」口径二选一并三端同改——A 给线类补默认 `z-index` 链；B 让线与表格走同一套流式叠压规则。
+  改动落 `html-generator.ts`（表格分组段 `:793-798`）+ canvas/common 两端画布渲染，属**可见出纸行为变更**，
+  按仓库惯例需先出存量影响结论。
+
+### T-12 #IKP3MU + #IKIPD9 「点一下就错乱/跳位」症状族 —— 一个零响应、一个卡 23 天
+
+- **#IKP3MU**（phealxt，10-20 15:01，**零回复**）：最新版 Chrome 下点「修改字体」页面错乱，正文只有一张截图、
+  无复现步骤与版本号。按 AGENTS.md「模型 text-only」约定不做图像判读，需本地复现。
+- **#IKIPD9**（JavaLiuTongXue，9-27，**零回音**）：点击一下元素就动一下；维护者 9-27 20:17 索要录屏后无人回复，挂了 23 天。
+- 判断：两条同属「点击即位置/布局跳变」症状族，建议合并排查，**不必再等 9-27 那位补视频**。
+- 排查落点：`property/AppearanceGroup.vue`、`FormatToolbar.vue` + `composables/useFormatToolbar.ts`、
+  common `shell/format-bar.ts`、core `print/fonts.ts`。
+  高危嫌疑是 10-18 `1f5e906`（工具栏自适应收纳）与 10-19 `61d1631` 引入的弹层/宽度侧效应——收纳机制曾用 `<Teleport>`，
+  T-07 的「修后补记」已记录过一次因 Teleport 根节点丢 `data-v-*` 导致样式全落空的返工，同类形态若落在字体下拉上即表现为「一点就乱」。
+- 待办：demo 9303 真实点击字体下拉逐档复现 → 定性是收纳回归还是既存缺陷 → 决定是否出 `1.3.8` 补丁版。
+
+### T-15 #common 的 dist-tag 实况与「预览版不进 latest」口径不符（非 issue，发布偏差）
+
+- 实况：registry `@worm-vue3-print/common` 已有 `1.3.7-beta.0`（10-19 09:40 UTC 发布，此前「仍 404 待手工发」的记录作废），
+  但 dist-tags 为 **`latest` 与 `next` 同时指向 `1.3.7-beta.0`**（首次发布 npm 自动打 latest）。
+- 后果：`npm i @worm-vue3-print/common`（不带 `@next`）会装到预览版，与 `CONTRIBUTING.md`「方式三」的预览版定位冲突。
+- 待办：确认是把 `latest` 收回（需要 registry 上存在别的稳定版才可指向，当前无），还是在 README/包 README 显式要求宿主必须带 `@next`。
+  在此之前，文档里那句「实验性、不建议用于生产」是唯一防线，不能删。
+
+### 执行顺序建议
+
+| 序 | 项 | 性质 | 代价 |
+|---|---|---|---|
+| 1 | **T-12 复现定性** | 可能是 1.3.7 自身回归 | 起 demo 逐档点，最坏要出 1.3.8 |
+| 2 | **T-11 层叠修复** | 影响面最大的真实缺陷 | 跨 core/canvas/common，需先定口径 + 存量结论 |
+| 3 | **T-13 补通知** | 纯对外动作，零代码 | 依赖 `notes` scope 或登录态浏览器 |
+| 4 | **T-14 发版 + 删重复评论** | 随下个版本 | 删评论只能手工 |
+| 5 | **T-15 dist-tag 口径** | 发布面 | 改文档或改发布脚本，二选一 |
+
+### 九、对外动作的通路（T-13 / T-14 执行前先看）
+
+- 私人令牌在 `~/.zshenv`，`Bearer` 头对 GET/POST 均生效；**issue 写操作走 owner 级端点**
+  （`POST /api/v5/repos/{owner}/issues`、`PATCH .../issues/{number}`，body 的 `repo` 只填仓库名），
+  GitHub 式 `/repos/{owner}/{repo}/issues` 在写操作上不存在，误用报的 404 措辞不指向格式错误。
+- **回帖需要单独的 `notes` scope，当前令牌缺** → T-13 那条通知只能走已登录 Chrome 的 `user-browser-use`，
+  或补勾 scope 后用 `POST /repos/{owner}/{repo}/issues/{number}/comments`。
+- **本仓库配置为「已完成 / 已拒绝的 issue 不允许评论」**：想给已关闭的 issue 补通知必须先重开（T-13 已处于 `progressing`，可直接评论）。
+- 写操作后一律用**匿名 GET 复核**落库与 `comments` 计数，防止「报错但其实写进去了」或「以为发了其实没发」。
+- 浏览器通路两个坑：`fill` 不激活提交按钮（需真点击，且点两次会重复发帖——T-14 的重条评论即此形态）；
+  自己评论的删除菜单不进无障碍快照，程序化点不到。
