@@ -319,6 +319,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         v => write(c => { c.fit = v as NonNullable<TableCell['fit']> })) : '',
       isImageCell && cell0.fit === 'cover' ? cropAnchorField(ctx, {
         fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(cell0.formatter), fit: cell0.fit,
+        containerClass: 'pd-cell-anchor',
         widthMm: cellBox.width, heightMm: cellBox.height,
         value: cell0.objectPosition, onCommit: v => write(c => { c.objectPosition = v }),
       }) : '',

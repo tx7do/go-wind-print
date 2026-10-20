@@ -12,7 +12,7 @@
 - 功能与布局与 Vue 3 版对齐，逐项状态见 [PARITY.md](./PARITY.md)
 - 样式与图标从 canvas 构建产物**派生**（`scripts/gen-styles.mjs` 剥离 `[data-v-*]`、
   `scripts/gen-icons.mjs` 抽取 lucide 图标），因此 canvas 改版后重新构建即自动跟随
-- 运行时体积：`dist/index.js` 348.14 kB（gzip 99.99 kB），零框架依赖
+- 运行时体积：`dist/index.js` 368.28 kB（gzip 106.68 kB），零框架依赖
 - 浏览器直挂形态：`dist/common.js`（UMD，core 与码制库已内联）+ `dist/common.css`，见下节
 
 ## 安装
@@ -28,7 +28,7 @@ npm i @worm-vue3-print/common@next @worm-vue3-print/core
 
 `vite.bundle.config.ts` 额外产出两个文件，子路径 `@worm-vue3-print/common/browser` 指向它们：
 
-- `dist/common.js`（474.96 kB / gzip 145.34 kB）：UMD，把 `@worm-vue3-print/core` 与条形码、二维码库
+- `dist/common.js`（499.07 kB / gzip 154.83 kB）：UMD，把 `@worm-vue3-print/core` 与条形码、二维码库
   全部内联，并挂出全局 `window.WormPrintCommon`。除了本包 `index` 的那套 API
   （`registerAll` / `createDefaultTemplate` / `DesignerStore` / `PrintDesignerElement`），
   还一并挂出出纸要用的 `renderHtmlPages` / `browserCodeRenderer` / `PrintClient` / `WormPrintError`，

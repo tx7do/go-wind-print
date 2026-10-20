@@ -5,7 +5,7 @@ import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { CROP_SAMPLE_IMAGE } from '@worm-vue3-print/core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
-import { h, render } from '../../core/h'
+import { render } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
 import { renderPropertyPanel } from '../property-panel'
 import { tableCellGroup } from '../table-props'
@@ -19,7 +19,7 @@ function makeState(): ShellState {
 }
 
 /** 渲染元素台；repaint 走真实重绘，模拟宿主改一次 store 就整台重画 */
-function paintElement(type: string, options: Record<string, any>) {
+function paintElement(type: Parameters<DesignerStore['addElement']>[0], options: Record<string, any>) {
   const store = new DesignerStore()
   store.addElement(type, { left: 10, top: 10, width: 35, height: 45, ...options })
   store.selectOne(store.elements[0]!.id)
@@ -142,6 +142,8 @@ describe('单元格台与单元格出图', () => {
 
     const cropped = cellHarness({ cellType: 'image', formatter: 'a', fit: 'cover' })
     expect(rowOf(cropped.host, '裁剪锚点')).toBeTruthy()
+    // 容器类名与 canvas `TableCellGroup.vue` 同挂点（class-audit 反查 canvas 类名清单）
+    expect(cropped.host.querySelector('.pd-cell-anchor')).toBeTruthy()
   })
 
   it('单元格台 cover 档也叫剪裁', () => {
@@ -171,5 +173,14 @@ describe('单元格台与单元格出图', () => {
     const { canvas } = cellHarness({ cellType: 'image', formatter: 'a', fit: 'contain' })
     expect(canvas.querySelector<HTMLElement>('.cell-image')!.style.height).toBe('')
     expect(canvas.querySelector<HTMLImageElement>('td img')!.style.width).toBe('')
+  })
+
+  it('示例图只进属性台：画布上的空图片仍是虚线「图片」占位', () => {
+    const { canvas, host } = cellHarness({ cellType: 'image', fit: 'cover' })
+    expect(canvas.querySelector('.cell-image img')).toBeNull()
+    expect(canvas.querySelector('.cell-image .image-placeholder')?.textContent).toBe('图片')
+    // 属性台那侧仍按内置示例图演示取位
+    expect(host.querySelector<HTMLImageElement>('.pd-cell-anchor .pd-crop-thumb')!.getAttribute('src'))
+      .toBe(CROP_SAMPLE_IMAGE)
   })
 })

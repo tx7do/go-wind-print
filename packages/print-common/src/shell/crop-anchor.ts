@@ -1,5 +1,6 @@
 // 裁剪锚点控件：DOM 对齐 canvas 的 property/CropAnchorField.vue
-// （.pd-crop-anchor > .pd-field>.pd-label(+button.pd-help) + select.pd-select / .pd-stepper /
+// （容器类名由宿主给：元素台用本包 `pd-crop-anchor`，单元格台用与 canvas `TableCellGroup.vue` 同名的 `pd-cell-anchor`；
+//  内部同为 .pd-field>.pd-label(+button.pd-help) + select.pd-select / .pd-stepper /
 //  .pd-crop-note / .pd-crop-preview>img.pd-crop-thumb+div.pd-crop-win）。
 // 判轴、档位表、行模型、提示文案全部取自 core 的 crop-anchor，两端不再各写一遍。
 import {
@@ -24,6 +25,8 @@ const sizeCache = new Map<string, { width: number; height: number }>()
 export interface CropAnchorOpts {
   fieldKey: string
   label: string
+  /** 容器类名：canvas 只在单元格台包一层 `pd-cell-anchor`（`TableCellGroup.vue`），元素台没有包层；缺省沿用本包 `pd-crop-anchor` */
+  containerClass?: string
   /** 已解析的图片地址（表达式由宿主求值后传入）；为空则回落内置示例图 */
   src: string
   widthMm: number
@@ -119,5 +122,5 @@ export function cropAnchorField(ctx: ShellCtx, o: CropAnchorOpts) {
     }) : '',
   ]))
 
-  return h('div', { class: 'pd-crop-anchor' }, rows)
+  return h('div', { class: o.containerClass ?? 'pd-crop-anchor' }, rows)
 }
