@@ -12,6 +12,7 @@ import {
   buildFontCatalog, filterFontOptions, findFontOption, fontOptionLabel, normalizeFontQuery,
 } from '../core/font-catalog'
 import type { FontOption } from '../core/font-catalog'
+import { resolveOverlayPlacement } from '@worm-vue3-print/core/designer'
 import type { ShellState } from './controls'
 
 type FontRowKind = 'clear' | 'unknown' | 'font' | 'free'
@@ -39,6 +40,22 @@ export interface FontSelectOptions {
   /** 禁用（如格式工具栏无可用目标时置灰） */
   disabled?: boolean
   onChange: (value: string | undefined) => void
+}
+
+/**
+ * 可用区：最近一个真会裁剪的祖先（overflow-y 显式为 auto/scroll/hidden/clip）与视口的交集。
+ * 判定算法在 core 的 resolveOverlayPlacement，取哪层祖先属宿主测量，与 canvas 各自实现同一口径。
+ */
+function measureBoundary(el: HTMLElement): { top: number; bottom: number } {
+  const bottom = window.innerHeight
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const oy = getComputedStyle(node).overflowY
+    if (oy === 'auto' || oy === 'scroll' || oy === 'hidden' || oy === 'clip') {
+      const r = node.getBoundingClientRect()
+      return { top: Math.max(0, r.top), bottom: Math.min(bottom, r.bottom) }
+    }
+  }
+  return { top: 0, bottom }
 }
 
 export function renderFontSelect(opts: FontSelectOptions): HTMLElement {
@@ -126,6 +143,19 @@ export function renderFontSelect(opts: FontSelectOptions): HTMLElement {
     return rows(st.query).findIndex(row => (row.value ?? '') === current)
   }
 
+  /** 列表已脱离文档流，这里只判「朝上还是朝下」，避免长清单贴底被截断 */
+  const applyPlacement = () => {
+    const trigger = input.getBoundingClientRect()
+    const boundary = measureBoundary(input)
+    list.classList.toggle('is-up', resolveOverlayPlacement({
+      triggerTop: trigger.top,
+      triggerBottom: trigger.bottom,
+      overlayHeight: list.getBoundingClientRect().height,
+      boundaryTop: boundary.top,
+      boundaryBottom: boundary.bottom,
+    }) === 'up')
+  }
+
   const paintList = () => {
     // canvas 的 `v-if="open"`：收起时列表节点整体不存在（不只是 hidden），DOM 签名才对得上
     if (!st.open) {
@@ -155,6 +185,7 @@ export function renderFontSelect(opts: FontSelectOptions): HTMLElement {
     input.setAttribute('aria-expanded', 'true')
     input.setAttribute('aria-activedescendant',
       st.highlighted >= 0 ? `${listId}-${st.highlighted}` : '')
+    applyPlacement()
   }
 
   const onOpen = () => {

@@ -1,6 +1,7 @@
 <template>
   <div class="font-select">
     <input
+      ref="inputRef"
       v-model="text"
       class="pd-input font-select-input"
       type="text"
@@ -21,7 +22,14 @@
       @keydown.esc.prevent="onCancel"
       @blur="onCancel"
     />
-    <ul v-if="open" :id="listId" ref="listRef" class="font-select-list" role="listbox">
+    <ul
+      v-if="open"
+      :id="listId"
+      ref="listRef"
+      class="font-select-list"
+      :class="{ 'is-up': placement === 'up' }"
+      role="listbox"
+    >
       <li
         v-for="(row, index) in rows"
         :id="`${listId}-${index}`"
@@ -38,6 +46,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, useId, watch } from 'vue'
+import { resolveOverlayPlacement, type OverlayPlacement } from '@worm-vue3-print/core/designer'
 import {
   filterFontOptions,
   findFontOption,
@@ -66,6 +75,9 @@ const catalog = useInjectedFontCatalog()
 const listId = `font-select-list-${useId()}`
 
 const listRef = ref<HTMLUListElement | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
+/** 展开档：可用区取最近裁剪祖先与视口的交集，下方装不下且上方更宽时向上翻 */
+const placement = ref<OverlayPlacement>('down')
 /** 输入框显示值：未提交时与 modelValue 不一致，提交或取消后回到 modelValue 的展示名 */
 const text = ref(toDisplayName(props.modelValue))
 /** 过滤词：展开时为空表示「列出全部」 */
@@ -191,6 +203,41 @@ function scrollActiveIntoView(): void {
   })
 }
 
+/** 只取最近的一层裁剪祖先：更外层已被它的滚动裁住，再往外量没有意义 */
+function measureBoundary(el: HTMLElement): { top: number; bottom: number } {
+  const bottom = window.innerHeight
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const oy = getComputedStyle(node).overflowY
+    if (oy === 'auto' || oy === 'scroll' || oy === 'hidden' || oy === 'clip') {
+      const r = node.getBoundingClientRect()
+      return { top: Math.max(0, r.top), bottom: Math.min(bottom, r.bottom) }
+    }
+  }
+  return { top: 0, bottom }
+}
+
+/** 列表已脱离文档流，这里只决定朝上还是朝下展开，避免长清单贴底被截断 */
+async function applyPlacement(): Promise<void> {
+  await nextTick()
+  const input = inputRef.value
+  const list = listRef.value
+  if (!input || !list) return
+  const trigger = input.getBoundingClientRect()
+  const boundary = measureBoundary(input)
+  placement.value = resolveOverlayPlacement({
+    triggerTop: trigger.top,
+    triggerBottom: trigger.bottom,
+    overlayHeight: list.getBoundingClientRect().height,
+    boundaryTop: boundary.top,
+    boundaryBottom: boundary.bottom,
+  })
+}
+
+// 展开与过滤都会改变列表高度，两者都要重判一档
+watch([open, () => rows.value.length], () => {
+  if (open.value) void applyPlacement()
+})
+
 function onEnter(): void {
   if (!open.value) return
   const row = rows.value[highlighted.value]
@@ -224,18 +271,38 @@ watch(() => props.modelValue, value => { text.value = toDisplayName(value) })
 </script>
 
 <style scoped>
+.font-select {
+  position: relative;
+}
 .font-select-input {
+  /* 块级：inline-block 会按基线排进行盒，外层因此多出降部空间，
+     浮层的 top:100% 连这段一起算，列表与输入框之间就出现可见空隙 */
+  display: block;
   width: 100%;
 }
+/* 候选列表必须是浮层：顶栏行高钉死 50px、属性台分组 overflow:hidden，
+   占文档流会把宿主撑变形（Gitee #IKP3MU）。观感参数对齐 ToolbarDropdown 的下拉面板。 */
 .font-select-list {
-  margin-top: 4px;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  min-width: 150px;
+  z-index: 200;
+  /* UA 给 ul 的 1em 外边距在脱离文档流后不再被折叠吸收，会把列表顶开 */
+  margin: 0;
   max-height: 200px;
   overflow-y: auto;
   padding: 2px;
   border: 1px solid var(--pd-border, #d9dde6);
   border-radius: 6px;
   background: var(--pd-surface, #ffffff);
+  box-shadow: var(--pd-shadow-md, 0 2px 8px rgba(23, 32, 60, .06), 0 10px 28px rgba(23, 32, 60, .07));
   list-style: none;
+}
+.font-select-list.is-up {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 .font-select-option {
   padding: 4px 6px;

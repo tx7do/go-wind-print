@@ -1,5 +1,5 @@
 // packages/print-canvas/src/__tests__/FontSelect.spec.ts
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { computed, defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import FontSelect from '../components/property/FontSelect.vue'
@@ -212,5 +212,75 @@ describe('FontSelect 列表 id 关联', () => {
     const [first, second] = w.findAll('ul')
     expect(first!.attributes('id')).toBeTruthy()
     expect(second!.attributes('id')).not.toBe(first!.attributes('id'))
+  })
+})
+
+/**
+ * 浮层放置（Gitee #IKP3MU）：列表不得占文档流，否则顶栏 50px 单行会被撑高、
+ * 属性台后续控件整体下移。jsdom 不跑布局，这里按宿主实测口径钉住「上下档判定」：
+ * 可用区取最近裁剪祖先与视口的交集，下方装不下且上方更宽时列表挂 is-up。
+ */
+describe('FontSelect 浮层放置', () => {
+  const rectOf = (top: number, height: number) => ({
+    x: 0, y: top, left: 0, top, width: 150, height, right: 150, bottom: top + height,
+    toJSON: () => ({}),
+  } as DOMRect)
+
+  /** 列表按 CSS max-height 取满 200px（与浏览器实测形态一致） */
+  const LIST_HEIGHT = 200
+  const catalog = catalogOf([['SimSun'], ['SimHei', '黑体']])
+
+  /** @param clipped 祖先是否带 overflow-y:auto（属性台 / 「更多」面板的形态） */
+  function mountInPane(inputTop: number, paneTop: number, paneBottom: number, clipped = true) {
+    const rects = new WeakMap<Element, DOMRect>()
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const hit = rects.get(this)
+      if (hit) return hit
+      if (this.classList?.contains('font-select-list')) return rectOf(0, LIST_HEIGHT)
+      return rectOf(0, 0)
+    })
+    const pane = document.createElement('div')
+    pane.className = 'fake-pane'
+    if (clipped) pane.style.overflowY = 'auto'
+    rects.set(pane, rectOf(paneTop, paneBottom - paneTop))
+    document.body.appendChild(pane)
+    const w = mount(FontSelect, {
+      props: { modelValue: 'SimSun' },
+      global: { provide: { [FONT_CATALOG_KEY]: computed(() => catalog) } },
+      attachTo: pane,
+    })
+    rects.set(w.find('input').element, rectOf(inputTop, 26))
+    return { w, pane, restore: () => { spy.mockRestore(); pane.remove() } }
+  }
+
+  const listClasses = (w: ReturnType<typeof mountSelect>) => {
+    const ul = w.find('ul').element as HTMLElement
+    return ul.className
+  }
+
+  it('下方装不下且上方更宽时列表挂 is-up', async () => {
+    // 可用区 0..500；输入框 470..496 → 下方 0，上方 466
+    const t = mountInPane(470, 0, 500)
+    await focus(t.w)
+    expect(listClasses(t.w)).toContain('is-up')
+    t.restore()
+  })
+
+  it('下方够用 200px 时不挂 is-up', async () => {
+    // 可用区 0..500；输入框 100..126 → 下方 370
+    const t = mountInPane(100, 0, 500)
+    await focus(t.w)
+    expect(listClasses(t.w)).not.toContain('is-up')
+    t.restore()
+  })
+
+  it('无裁剪祖先时按视口下沿判定', async () => {
+    const spy = vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(768)
+    // 视口 768：输入框 700..726 → 下方 38 装不下 200，上方 696 → 向上
+    const t = mountInPane(700, 0, 768, false)
+    await focus(t.w)
+    expect(listClasses(t.w)).toContain('is-up')
+    spy.mockRestore()
+    t.restore()
   })
 })

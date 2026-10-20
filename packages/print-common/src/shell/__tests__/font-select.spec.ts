@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // 字体候选列表验收：对照 canvas 的 property/FontSelect.vue
-// （类名 / aria / 行构成 / 键盘上下选择 + 回车确认 + Esc 关闭 / 展开态跨重绘保持）。
-import { describe, it, expect } from 'vitest'
+// （类名 / aria / 行构成 / 键盘上下选择 + 回车确认 + Esc 关闭 / 展开态跨重绘保持 / 浮层放置档）。
+import { describe, it, expect, vi } from 'vitest'
 import { h, render } from '../../core/h'
 import type { ShellState } from '../controls'
 import { renderFontSelect } from '../font-select'
@@ -197,5 +197,71 @@ describe('font-select 展开态跨重绘（外壳整体重绘模型）', () => {
     expect(state.fontOpen?.id).toBe('cell-font')
     expect(mount({ state }, 'cell-font').list()).toBeTruthy()
     expect(mount({ state }, 'prop-font').list()).toBe(null)
+  })
+})
+
+/**
+ * 浮层放置档（对照 canvas 的 FontSelect.spec.ts，Gitee #IKP3MU）：
+ * 可用区取最近裁剪祖先与视口的交集；下方装不下 200px 且上方更宽时挂 is-up。
+ */
+describe('font-select 浮层放置', () => {
+  const rectOf = (top: number, height: number) => ({
+    x: 0, y: top, left: 0, top, width: 150, height, right: 150, bottom: top + height,
+    toJSON: () => ({}),
+  } as DOMRect)
+  const LIST_HEIGHT = 200
+
+  function mountInPane(inputTop: number, paneTop: number, paneBottom: number, clipped = true) {
+    const rects = new WeakMap<Element, DOMRect>()
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const hit = rects.get(this)
+      if (hit) return hit
+      if (this.classList?.contains('font-select-list')) return rectOf(0, LIST_HEIGHT)
+      return rectOf(0, 0)
+    })
+    const pane = document.createElement('div')
+    if (clipped) pane.style.overflowY = 'auto'
+    rects.set(pane, rectOf(paneTop, paneBottom - paneTop))
+    document.body.replaceChildren(pane)
+    const node = render(h('div', { class: 'pd-field' }, [renderFontSelect({
+      id: 'prop-font',
+      state: makeState(),
+      fonts: FONTS,
+      value: 'SimSun',
+      onChange: () => {},
+    })]), pane) as HTMLElement
+    const input = node.querySelector<HTMLInputElement>('.font-select-input')!
+    rects.set(input, rectOf(inputTop, 26))
+    return {
+      input,
+      list: () => node.querySelector<HTMLElement>('.font-select-list'),
+      restore: () => { spy.mockRestore(); pane.remove() },
+    }
+  }
+
+  it('下方装不下且上方更宽时列表挂 is-up', () => {
+    // 可用区 0..500；输入框 470..496 → 下方 0，上方 466
+    const t = mountInPane(470, 0, 500)
+    t.input.dispatchEvent(new FocusEvent('focus'))
+    expect(t.list()!.className).toContain('is-up')
+    t.restore()
+  })
+
+  it('下方够用 200px 时不挂 is-up', () => {
+    // 可用区 0..500；输入框 100..126 → 下方 370
+    const t = mountInPane(100, 0, 500)
+    t.input.dispatchEvent(new FocusEvent('focus'))
+    expect(t.list()!.className).not.toContain('is-up')
+    t.restore()
+  })
+
+  it('无裁剪祖先时按视口下沿判定', () => {
+    const spy = vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(768)
+    // 视口 768：输入框 700..726 → 下方 38 装不下 200，上方 696
+    const t = mountInPane(700, 0, 768, false)
+    t.input.dispatchEvent(new FocusEvent('focus'))
+    expect(t.list()!.className).toContain('is-up')
+    t.restore()
+    spy.mockRestore()
   })
 })
