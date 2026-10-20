@@ -161,6 +161,16 @@ describe('单元格图片裁剪锚点（仅剪裁档）', () => {
     expect(anchorRow(mountGroup(makeElement({ cellType: 'qrcode', fit: 'cover' })))).toBeUndefined()
     expect(anchorRow(mountGroup(makeElement({ content: '文本' })))).toBeUndefined()
   })
+
+  it('可挪量按可用内容框算（扣内边距），与出纸钉盒同一口径', async () => {
+    const w = mountGroup(makeElement({ cellType: 'image', formatter: '/a.png', fit: 'cover' }))
+    const img = w.find('.pd-crop-preview img')
+    Object.defineProperty(img.element, 'naturalWidth', { value: 60, configurable: true })
+    Object.defineProperty(img.element, 'naturalHeight', { value: 90, configurable: true })
+    await img.trigger('load')
+    // 格 50×10、内边距各 1mm → 可用框 48×8：scale 0.8，可挪 90×0.8−8=64mm（照原始 50×10 会报成 65mm）
+    expect(w.text()).toContain('64mm')
+  })
 })
 
 describe('单元格水平对齐第 4 档（两端）', () => {

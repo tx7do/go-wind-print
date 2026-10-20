@@ -88,6 +88,18 @@ export function parseCellFitKey(
   return { elementId: key.slice(0, first), kind, rowIndex, colIndex }
 }
 
+/**
+ * 单元格图片外框要不要钉在可用框高上：只有「剪裁」（`fit: 'cover'`）钉，其余档逐字保持
+ * 「td 高度由内容决定」的存量形态。出纸、画布与 common 三端都取这一份判据，避免各写一遍漂移。
+ * 返回 undefined 表示不钉盒。
+ */
+export function cellImageBoxMm(
+  fit: string | undefined,
+  capMm: number,
+): number | undefined {
+  return (fit || 'contain') === 'cover' ? capMm : undefined
+}
+
 /** 边框宽度（pt，可缺省）；结构上兼容 RenderCellBorders 与 TableCellBorders */
 type BorderLike = { width?: number } | undefined
 

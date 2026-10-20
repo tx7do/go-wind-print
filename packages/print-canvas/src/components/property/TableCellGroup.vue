@@ -76,6 +76,7 @@
         <CropAnchorField field-key="ap-img-object-position"
           label="裁剪锚点"
           :src="cellImageSrc"
+          :fit="mainCell.fit"
           :width-mm="cellBoxMm.width"
           :height-mm="cellBoxMm.height"
           :model-value="mainCell.objectPosition"
@@ -220,6 +221,7 @@ import type {
 import {
   canMergeReason, mergeCells, splitCells, applyBorderPreset, findMainCell, type BorderPreset,
   resolveCellTextFit, type TextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA,
+  cellFitCapMm, cellFitWidthMm,
 } from '@worm-vue3-print/core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import PropertyGroup from './PropertyGroup.vue'
@@ -245,14 +247,15 @@ const main = computed(() => findMainCell(rows.value, props.selection.r1, props.s
 const mainCell = computed<TableCell>(() => rows.value[main.value.r]!.cells[main.value.c]!)
 
 /** 单元格内容盒近似：列宽合计 × 行高合计（内边距与塌陷边框不计，只用于判哪一轴能挪） */
+/** 剪裁盒尺寸取「可用内容框」：与出纸钉盒同一口径（扣内边距与塌陷边框），报原始行列和会让可挪量虚高 */
 const cellBoxMm = computed(() => {
-  const widths = props.element.options.tableColWidths ?? []
   const cell = mainCell.value
-  let width = 0
-  for (let i = main.value.c; i < main.value.c + (cell.colspan ?? 1); i++) width += widths[i] ?? 0
-  let height = 0
-  for (let i = main.value.r; i < main.value.r + (cell.rowspan ?? 1); i++) height += rows.value[i]?.height ?? 0
-  return { width, height }
+  const widths = props.element.options.tableColWidths ?? []
+  const defaultPadding = props.element.options.tableDefaultPadding ?? 1
+  return {
+    width: cellFitWidthMm(widths, main.value.c, cell, defaultPadding),
+    height: cellFitCapMm(rows.value, main.value.r, cell, defaultPadding),
+  }
 })
 
 /** 示意图取设计态已解析地址：{字段} 用 demo 数据求值，与 CellImage 的 designMode 分支同口径 */

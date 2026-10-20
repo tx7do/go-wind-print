@@ -78,6 +78,11 @@ describe('ImageElement 缩放与锚点', () => {
     expect(s).toContain('object-fit:contain')
     expect(s).not.toContain('object-position')
   })
+  it('没有 src 时画布仍是虚线「图片」占位——剪裁示例图只进属性台，不当业务图占位', () => {
+    const w = mount(ImageElement, { props: { element: makeEl('image', { fit: 'cover' }), designMode: true } })
+    expect(w.find('img').exists()).toBe(false)
+    expect(w.find('.image-placeholder').text()).toBe('图片')
+  })
 })
 describe('AppearanceGroup 新增入口（issue #4 属性台暴露）', () => {
   it('长文本元素出现「首行缩进 (字符)」并可写入 longTextIndent', async () => {
@@ -98,15 +103,14 @@ describe('AppearanceGroup 新增入口（issue #4 属性台暴露）', () => {
     const w = mount(AppearanceGroup, { props: { element: makeEl('text', { formatter: '文本' }), isTextType: true } })
     expect([...w.findAll('.pd-label')].some(l => (l.text() || '').includes('首行缩进'))).toBe(false)
   })
-  it('图片元素出现缩放模式；选了剪裁才出锚点并写入 options', async () => {
+  it('图片元素出现缩放模式；锚点行缺省就在，切到剪裁后写回 options', async () => {
     const w = mount(AppearanceGroup, { props: { element: makeEl('image', { src: 'a' }), isTextType: false } })
-    expect(w.text()).not.toContain('裁剪锚点')
+    expect(w.text()).toContain('裁剪锚点')
     const select = w.find('select.pd-select').element as HTMLSelectElement
     expect(select.options[1].value).toBe('cover')
     select.value = 'cover'
     await select.dispatchEvent(new Event('change'))
     expect(w.props('element').options.fit).toBe('cover')
-    expect(w.text()).toContain('裁剪锚点')
     await w.find('[data-field="ap-img-object-position"] select').setValue('50,0')
     expect(w.props('element').options.objectPosition).toBe('50% 0%')
   })

@@ -38,7 +38,7 @@ import type {
 import {
   BARCODE_BAR_HEIGHT_MODULES, BARCODE_MARGIN_BOTTOM_MODULES, BARCODE_QUIET_ZONE_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES, DEFAULT_DEMO_DATA, barcodeAvailableBoxMm, barcodeUnitsPerModule,
-  canMergeReason, cellFitCapMm, cellFitWidthMm, clampResizedColumnWidth, deleteCol, deleteRow,
+  canMergeReason, cellFitCapMm, cellFitWidthMm, cellImageBoxMm, clampResizedColumnWidth, deleteCol, deleteRow,
   evaluateTemplate, insertCol, insertRow, mergeCells, normalizeSelection,
   resolveBarcodeDesignValue, resolveBarcodeSize, resolveCellBorderCss, resolveCellTextFit,
   resolveShrinkMinFontSize, setRowType, splitCells, syncTableElementSize,
@@ -379,9 +379,14 @@ function cellImageSrc(cell: TableCell): string {
   return raw.includes('{') ? evaluateTemplate(raw, DEFAULT_DEMO_DATA) : raw
 }
 
-function cellImageNode(cell: TableCell): HTMLElement {
+function cellImageNode(ctx: TableCtx, ri: number, cell: TableCell): HTMLElement {
   const holder = document.createElement('div')
   holder.className = 'cell-image'
+  // 只有剪裁档钉盒：td 高度本由内容决定，外框不钉在可用框高就没有可裁余量（判据与出纸同源 core cellImageBoxMm）
+  const boxMm = cellImageBoxMm(cell.fit, cellCapMm(ctx, ri, cell))
+  if (boxMm !== undefined) {
+    holder.style.height = `${boxMm}mm`
+  }
   const src = cellImageSrc(cell)
   if (!src) {
     holder.appendChild(cellPlaceholder())
@@ -389,6 +394,10 @@ function cellImageNode(cell: TableCell): HTMLElement {
   }
   const img = document.createElement('img')
   img.setAttribute('src', src)
+  if (boxMm !== undefined) {
+    img.style.width = '100%'
+    img.style.height = '100%'
+  }
   img.style.objectFit = cell.fit || 'contain'
   if (cell.objectPosition) img.style.objectPosition = cell.objectPosition
   img.style.maxWidth = cell.maxWidth ? `${cell.maxWidth}mm` : '100%'
@@ -404,7 +413,7 @@ function cellImageNode(cell: TableCell): HTMLElement {
 /** td 内容分支（顺序与 TableElement.vue 模板一致：码 → 图 → 定高容器 → 纯文本） */
 function cellContent(ctx: TableCtx, row: TableRow, ri: number, ci: number, cell: TableCell): unknown {
   if (isCodeCell(cell)) return cellCodeNode(ctx, ri, ci, cell)
-  if (cell.cellType === 'image') return cellImageNode(cell)
+  if (cell.cellType === 'image') return cellImageNode(ctx, ri, cell)
   const text = cellDisplay(ctx, cell)
   const inner = () => row.type === 'data'
     ? h('span', { class: 'data-placeholder', text })

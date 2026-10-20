@@ -17,6 +17,7 @@ import {
   cellFitCapMm,
   cellFitKey,
   cellFitWidthMm,
+  cellImageBoxMm,
   resolveCellTextFit,
   resolveElementTextFit,
   resolveShrinkMinFontSize,
@@ -636,7 +637,11 @@ function renderMatrixRows(
           const fit = cell.fit || 'contain'
           const maxWidth = cell.maxWidth ? `max-width:${cell.maxWidth}mm;` : 'max-width:100%;'
           const maxHeight = cell.maxHeight ? `max-height:${cell.maxHeight}mm;` : 'max-height:100%;'
-          inner = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${esc(resolveCellContent(cell, ctx))}" style="object-fit:${fit};${positionStyle(cell.objectPosition)}${maxWidth}${maxHeight}display:block;" /></div>`
+          // 只有剪裁档钉盒：td 的高度由内容决定，外框不钉在声明行高上就没有可裁余量（其余档逐字保持存量形态）
+          const boxMm = cellImageBoxMm(fit, cellFitCapMm(renderRows, r, cell, defaultPadding))
+          const boxHeight = boxMm === undefined ? 'height:100%' : `height:${boxMm}mm`
+          const imgBox = boxMm === undefined ? '' : 'width:100%;height:100%;'
+          inner = `<div style="width:100%;${boxHeight};display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${esc(resolveCellContent(cell, ctx))}" style="${imgBox}object-fit:${fit};${positionStyle(cell.objectPosition)}${maxWidth}${maxHeight}display:block;" /></div>`
         } else {
           inner = renderTextCellInner(renderRows, r, colIndex, cell, opts, fitOwner, defaultPadding, ctx)
         }

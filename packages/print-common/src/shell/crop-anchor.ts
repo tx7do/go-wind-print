@@ -4,13 +4,15 @@
 // 判轴、档位表、行模型、提示文案全部取自 core 的 crop-anchor，两端不再各写一遍。
 import {
   buildCropAnchor,
+  CROP_SAMPLE_NOTE,
   cropAxisFields,
   cropAxisNote,
   cropPresetOptions,
   cropWindow,
   parseCropAnchor,
   propertyTip,
-  resolveCropAxis,
+  resolveCropPreview,
+  resolveCropTravel,
 } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import { labelHelp, stepper } from './controls'
@@ -22,10 +24,12 @@ const sizeCache = new Map<string, { width: number; height: number }>()
 export interface CropAnchorOpts {
   fieldKey: string
   label: string
-  /** 已解析的图片地址（表达式由宿主求值后传入）；为空则不画示意 */
+  /** 已解析的图片地址（表达式由宿主求值后传入）；为空则回落内置示例图 */
   src: string
   widthMm: number
   heightMm: number
+  /** 缩放模式（CSS object-fit 原值，缺省按 contain）：可挪余量按它逐轴结算 */
+  fit?: string
   value?: string
   onCommit: (value: string | undefined) => void
 }
@@ -40,21 +44,24 @@ export function cropAnchorField(ctx: ShellCtx, o: CropAnchorOpts) {
   const keepRaw = parsed.kind === 'custom'
   const x = parsed.kind === 'axes' ? parsed.x : 50
   const y = parsed.kind === 'axes' ? parsed.y : 50
-  const size = o.src ? sizeCache.get(o.src) : undefined
+  const preview = resolveCropPreview(o.src)
+  const size = sizeCache.get(preview.src)
   const box = {
     widthMm: o.widthMm,
     heightMm: o.heightMm,
     naturalWidth: size?.width,
     naturalHeight: size?.height,
+    fit: o.fit,
   }
-  const { axis, travelMm } = resolveCropAxis(box)
+  /** 逐轴余量：cover 挪溢出、contain／原始尺寸／缩小 挪框内空位；拿不到尺寸给 null */
+  const travel = resolveCropTravel(box)
   const win = cropWindow(box, x, y)
 
   // 下拉用真节点建：与 selectField 同因——匹配不到选项时要能落进「空白/自定义」态
   const select = document.createElement('select')
   select.className = 'pd-select'
   select.style.width = '100%'
-  for (const p of cropPresetOptions(axis, x, y)) {
+  for (const p of cropPresetOptions(travel, x, y)) {
     const opt = document.createElement('option')
     opt.value = p.value
     opt.textContent = p.label
@@ -79,7 +86,7 @@ export function cropAnchorField(ctx: ShellCtx, o: CropAnchorOpts) {
     h('span', { class: 'pd-label' }, [o.label, labelHelp(tip)]),
     select,
   ])]
-  for (const f of cropAxisFields(axis, x, y)) {
+  for (const f of cropAxisFields(travel, x, y)) {
     rows.push(h('div', { class: 'pd-field', dataset: { field: o.fieldKey } }, [
       h('span', { class: 'pd-label', text: f.label }),
       stepper({
@@ -89,28 +96,28 @@ export function cropAnchorField(ctx: ShellCtx, o: CropAnchorOpts) {
     ]))
   }
 
-  const note = cropAxisNote(axis, travelMm, keepRaw)
+  const note = cropAxisNote(travel, keepRaw)
   if (note) rows.push(h('p', { class: 'pd-crop-note', text: note }))
 
-  if (o.src) {
-    rows.push(h('div', { class: 'pd-crop-preview' }, [
-      h('img', {
-        class: 'pd-crop-thumb', src: o.src, alt: '原图',
-        onLoad: (ev: Event) => {
-          const img = ev.target as HTMLImageElement
-          if (!(img.naturalWidth > 0 && img.naturalHeight > 0)) return
-          const hit = sizeCache.get(o.src)
-          if (hit && hit.width === img.naturalWidth && hit.height === img.naturalHeight) return
-          sizeCache.set(o.src, { width: img.naturalWidth, height: img.naturalHeight })
-          ctx.repaint()
-        },
-      }),
-      win ? h('div', {
-        class: 'pd-crop-win',
-        style: { left: pct(win.leftPct), top: pct(win.topPct), width: pct(win.widthPct), height: pct(win.heightPct) },
-      }) : '',
-    ]))
-  }
+  if (preview.isSample) rows.push(h('p', { class: 'pd-crop-note', text: CROP_SAMPLE_NOTE }))
+
+  rows.push(h('div', { class: 'pd-crop-preview' }, [
+    h('img', {
+      class: 'pd-crop-thumb', src: preview.src, alt: preview.isSample ? '示例图' : '原图',
+      onLoad: (ev: Event) => {
+        const img = ev.target as HTMLImageElement
+        if (!(img.naturalWidth > 0 && img.naturalHeight > 0)) return
+        const hit = sizeCache.get(preview.src)
+        if (hit && hit.width === img.naturalWidth && hit.height === img.naturalHeight) return
+        sizeCache.set(preview.src, { width: img.naturalWidth, height: img.naturalHeight })
+        ctx.repaint()
+      },
+    }),
+    win ? h('div', {
+      class: 'pd-crop-win',
+      style: { left: pct(win.leftPct), top: pct(win.topPct), width: pct(win.widthPct), height: pct(win.heightPct) },
+    }) : '',
+  ]))
 
   return h('div', { class: 'pd-crop-anchor' }, rows)
 }

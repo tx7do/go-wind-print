@@ -8,7 +8,8 @@ import type {
   TableCellType, TextAlign, TextFit, TableRow, TableRowType,
 } from '@worm-vue3-print/core/designer'
 import {
-  applyBorderPreset, canMergeReason, findMainCell, mergeCells, resolveCellTextFit, setHeaderRepeat,
+  applyBorderPreset, canMergeReason, cellFitCapMm, cellFitWidthMm, findMainCell, mergeCells,
+  resolveCellTextFit, setHeaderRepeat,
   setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc,
 } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
@@ -261,14 +262,12 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
   ])
 
   /** 单元格内容盒近似：列宽合计 × 行高合计（与 canvas 同口径，只用于判哪一轴能挪） */
-  const cellBox = (() => {
-    const widths = el.options.tableColWidths ?? []
-    let width = 0
-    for (let i = main.c; i < main.c + (cell0.colspan ?? 1); i++) width += Number(widths[i]) || 0
-    let height = 0
-    for (let i = main.r; i < main.r + (cell0.rowspan ?? 1); i++) height += Number(rows[i]?.height) || 0
-    return { width, height }
-  })()
+  // 剪裁盒尺寸取「可用内容框」：与出纸钉盒同一口径（扣内边距与塌陷边框），报原始行列和会让可挪量虚高
+  const cellPad = el.options.tableDefaultPadding ?? 1
+  const cellBox = {
+    width: cellFitWidthMm(el.options.tableColWidths ?? [], main.c, cell0, cellPad),
+    height: cellFitCapMm(rows, main.r, cell0, cellPad),
+  }
 
   return group(ctx, 'table-cell', '单元格', 'Menu', [
     pdForm([
@@ -319,7 +318,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       (isQrcodeCell || isImageCell) ? selectRow('缩放模式', cell0.fit || 'contain', IMAGE_FIT_OPTIONS,
         v => write(c => { c.fit = v as NonNullable<TableCell['fit']> })) : '',
       isImageCell && cell0.fit === 'cover' ? cropAnchorField(ctx, {
-        fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(cell0.formatter),
+        fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(cell0.formatter), fit: cell0.fit,
         widthMm: cellBox.width, heightMm: cellBox.height,
         value: cell0.objectPosition, onCommit: v => write(c => { c.objectPosition = v }),
       }) : '',

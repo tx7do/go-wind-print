@@ -120,9 +120,9 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
       // 平铺条件项：不能在这里套数组，common 的 h() 不摊平嵌套子节点（会让 paint 递归抛 TypeError）
       type === 'image' ? gateItem(ctx, 'ap-img-fit', selectField(ctx, '缩放模式', String(o.fit ?? 'contain'), IMAGE_FIT_OPTIONS,
         v => patch({ fit: v }), propertyTip('ap-img-fit'))) : '',
-      type === 'image' && o.fit === 'cover' ? gateItem(ctx, 'ap-img-object-position', cropAnchorField(ctx, {
+      type === 'image' && o.fit !== 'fill' ? gateItem(ctx, 'ap-img-object-position', cropAnchorField(ctx, {
         fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(o.src as string),
-        widthMm: Number(o.width) || 0, heightMm: Number(o.height) || 0,
+        widthMm: Number(o.width) || 0, heightMm: Number(o.height) || 0, fit: o.fit as string | undefined,
         value: o.objectPosition === undefined ? undefined : String(o.objectPosition),
         onCommit: v => patch({ objectPosition: v }),
       })) : '',

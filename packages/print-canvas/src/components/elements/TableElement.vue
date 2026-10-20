@@ -43,6 +43,7 @@
                 :object-position="cell.objectPosition"
                 :max-width="cell.maxWidth"
                 :max-height="cell.maxHeight"
+                :box-height-mm="cellImageBoxMm(cell.fit, cellCapMm(ri, cell))"
                 :design-mode="designMode"
                 :data="imageData"
               />
@@ -125,7 +126,7 @@ import CellImage from './CellImage.vue'
 import { resolveBarcodeDesignValue } from '@worm-vue3-print/core/designer'
 import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
 import type { TextFit } from '@worm-vue3-print/core/designer'
-import { cellFitCapMm, cellFitWidthMm, resolveCellTextFit, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
+import { cellFitCapMm, cellFitWidthMm, cellImageBoxMm, resolveCellTextFit, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
 import { useShrinkFit } from '../../composables/useShrinkFit'
 
 const ROW_TYPE_BADGE: Record<TableRowType, string> = {

@@ -1,8 +1,8 @@
 // print-core/src/designer/utils/__tests__/crop-anchor.spec.ts
-// 裁剪锚点的结构化读写与「可动轴」判定：canvas 与 common 共用同一份判据，避免两端各写一遍漂移。
-// 数值判据来自本机 Chromium 实测（35×45mm 框）：竖人像可视窗高 85.71%、可移 7.5mm。
+// 裁剪锚点的结构化读写与「逐轴可挪余量」判定：canvas 与 common 共用同一份判据，避免两端各写一遍漂移。
+// 数值判据用 35×45mm 框手推：cover 竖图 60×90 垂直 7.5mm、方图 120×120 水平 10mm、contain 方图垂直空位 10mm。
 import { describe, it, expect } from 'vitest'
-import { buildCropAnchor, parseCropAnchor, resolveCropAxis, cropWindow, CROP_GRID_OPTIONS, cropAxisLabel, cropAxisNote, cropPresetOptions, cropAxisFields, resolveDesignImageSrc } from '../crop-anchor.js'
+import { buildCropAnchor, parseCropAnchor, resolveCropTravel, cropWindow, CROP_GRID_OPTIONS, cropAxisLabel, cropAxisNote, cropPresetOptions, cropAxisFields, resolveDesignImageSrc, resolveCropPreview, CROP_SAMPLE_IMAGE } from '../crop-anchor.js'
 
 describe('resolveDesignImageSrc 设计态地址', () => {
   it('{字段} 按 demo 数据求值，普通地址原样', () => {
@@ -12,46 +12,77 @@ describe('resolveDesignImageSrc 设计态地址', () => {
   })
 })
 
-describe('数字框行模型（两端只负责渲染，顺序不再各排各的）', () => {
-  it('判得出轴时只给那一行', () => {
-    expect(cropAxisFields('vertical', 30, 20)).toEqual([{ name: 'vertical', label: '垂直位置 (%)', value: 20 }])
-    expect(cropAxisFields('horizontal', 30, 20)).toEqual([{ name: 'horizontal', label: '水平位置 (%)', value: 30 }])
+describe('resolveCropTravel 逐轴余量（两轴同时可挪，按缩放模式各算各的）', () => {
+  const box = { widthMm: 35, heightMm: 45 }
+  it('cover 竖图：等比铺满只有竖轴溢得出去，横轴贴满给 0', () => {
+    expect(resolveCropTravel({ ...box, naturalWidth: 60, naturalHeight: 90, fit: 'cover' }))
+      .toEqual({ x: 0, y: 7.5 })
   })
-  it('判不出时先水平后垂直，同比例时一行都不给', () => {
-    expect(cropAxisFields('unknown', 30, 20).map(r => r.name)).toEqual(['horizontal', 'vertical'])
-    expect(cropAxisFields('none', 30, 20)).toEqual([])
+  it('cover 方图：竖轴贴满，横轴可挪 10mm', () => {
+    expect(resolveCropTravel({ ...box, naturalWidth: 120, naturalHeight: 120, fit: 'cover' }))
+      .toEqual({ x: 10, y: 0 })
   })
-  it('保留原值时提示直说会被替换，不假装还能回显', () => {
-    expect(cropAxisNote('vertical', 7.5, true)).toContain('保留')
-    expect(cropAxisNote('unknown', 0, true)).toContain('保留')
+  it('contain 横图：图整张放进框，多余的是框内的空位——垂直可挪 27.5mm', () => {
+    expect(resolveCropTravel({ ...box, naturalWidth: 120, naturalHeight: 60, fit: 'contain' }))
+      .toEqual({ x: 0, y: 27.5 })
+  })
+  it('none 小图：按内在尺寸画（96dpi），两轴都有余量——这才叫同时能裁横与竖', () => {
+    // 60px = 60 × 25.4/96 = 15.875mm
+    expect(resolveCropTravel({ ...box, naturalWidth: 60, naturalHeight: 60, fit: 'none' }))
+      .toEqual({ x: 19.13, y: 29.13 })
+  })
+  it('scale-down 大图：等比缩到放得下，缩不动的那一轴仍给 0', () => {
+    expect(resolveCropTravel({ ...box, naturalWidth: 600, naturalHeight: 600, fit: 'scale-down' }))
+      .toEqual({ x: 0, y: 10 })
+  })
+  it('fill 拉伸填满：两轴都被钉死，都没有余量', () => {
+    expect(resolveCropTravel({ ...box, naturalWidth: 60, naturalHeight: 90, fit: 'fill' }))
+      .toEqual({ x: 0, y: 0 })
+  })
+  it('未写缩放模式按 contain 口径（与画布/出纸缺省一致）', () => {
+    expect(resolveCropTravel({ ...box, naturalWidth: 120, naturalHeight: 60 }))
+      .toEqual({ x: 0, y: 27.5 })
+  })
+  it('拿不到图片尺寸时两轴都是 null（未知），宿主不能猜 0', () => {
+    expect(resolveCropTravel({ ...box, fit: 'cover' })).toEqual({ x: null, y: null })
+    expect(resolveCropTravel({ ...box, naturalWidth: 0, naturalHeight: 0, fit: 'cover' })).toEqual({ x: null, y: null })
   })
 })
 
-describe('档位表与中文口径（两端共用，不再各写一遍）', () => {
+describe('数字框与档位（两框常驻，档位按有余量的轴给）', () => {
+  it('两轴都常驻，各带本轴余量；余量为 0 的那一轴也在框里，只是挪不动', () => {
+    const rows = cropAxisFields({ x: 10, y: 0 }, 30, 20)
+    expect(rows.map(r => r.name)).toEqual(['horizontal', 'vertical'])
+    expect(rows.map(r => r.travelMm)).toEqual([10, 0])
+    expect(rows.map(r => r.value)).toEqual([30, 20])
+  })
+  it('余量未知时行照样给，travelMm 传 null 让宿主显示「未知」而不是 0', () => {
+    expect(cropAxisFields({ x: null, y: null }, 50, 50).map(r => r.travelMm)).toEqual([null, null])
+  })
+  it('两轴都有余量给九宫格，只一轴有给该轴三档，档值仍带上另一轴', () => {
+    expect(cropPresetOptions({ x: 10, y: 7.5 }, 50, 50)).toHaveLength(9)
+    expect(cropPresetOptions({ x: 0, y: 7.5 }, 30, 50).map(o => o.value)).toEqual(['30,0', '30,50', '30,100'])
+    expect(cropPresetOptions({ x: 10, y: 0 }, 50, 20).map(o => o.label)).toEqual(['左侧', '居中', '右侧'])
+  })
+  it('余量未知或全无时兜底九宫格，让用户自己挑而不是不给档', () => {
+    expect(cropPresetOptions({ x: null, y: null }, 50, 50)).toHaveLength(9)
+    expect(cropPresetOptions({ x: 0, y: 0 }, 50, 50)).toHaveLength(9)
+  })
+  it('一句话逐轴报数：两轴都能挪就把两个数都写出来', () => {
+    expect(cropAxisNote({ x: 10, y: 7.5 })).toContain('水平可挪 10mm')
+    expect(cropAxisNote({ x: 10, y: 7.5 })).toContain('垂直可挪 7.5mm')
+    expect(cropAxisNote({ x: 0, y: 7.5 })).toBe('垂直可挪 7.5mm；水平这一轴已贴满，挪不动')
+    expect(cropAxisNote({ x: 0, y: 0 })).toContain('没有可挪的余量')
+    expect(cropAxisNote({ x: null, y: null })).toBe('')
+    expect(cropAxisNote({ x: 0, y: 0 }, true)).toContain('保留')
+  })
   it('可动轴标签带单位', () => {
     expect(cropAxisLabel('vertical')).toBe('垂直位置 (%)')
     expect(cropAxisLabel('horizontal')).toBe('水平位置 (%)')
   })
-  it('提示直说能挪多少，负责的口径不给「无效」这种猜测', () => {
-    expect(cropAxisNote('vertical', 7.5)).toContain('7.5mm')
-    expect(cropAxisNote('horizontal', 32.5)).toContain('32.5mm')
-    expect(cropAxisNote('none', 0)).toContain('没有可挪动的余量')
-    expect(cropAxisNote('unknown', 0)).toBe('')
-  })
-  it('判得出可动轴时只给该轴的三档，值同时带上不动轴', () => {
-    expect(cropPresetOptions('vertical', 30, 50).map(o => o.value)).toEqual(['30,0', '30,50', '30,100'])
-    expect(cropPresetOptions('vertical', 30, 50).map(o => o.label)).toEqual(['顶部', '居中', '底部'])
-    expect(cropPresetOptions('horizontal', 50, 30).map(o => o.value)).toEqual(['0,30', '50,30', '100,30'])
-  })
-  it('判不出时给九宫格，不动轴留空由数字框补', () => {
-    const opts = cropPresetOptions('unknown', 50, 0)
-    expect(opts).toHaveLength(9)
-    expect(opts.map(o => o.value)).toContain('0,0')
-    expect(opts.find(o => o.label === '上中')).toMatchObject({ value: '50,0' })
-  })
 })
 
-describe('CROP_GRID_OPTIONS 两轴档位表（判不出可动轴时的降级形态）', () => {
+describe('CROP_GRID_OPTIONS 两轴档位表', () => {
   it('九档齐且「上中」是水平居中配垂直贴顶', () => {
     expect(CROP_GRID_OPTIONS).toHaveLength(9)
     expect(CROP_GRID_OPTIONS.find(o => o.label === '上中')).toMatchObject({ x: 50, y: 0 })
@@ -93,39 +124,53 @@ describe('parseCropAnchor 回显存量值', () => {
   })
 })
 
-describe('resolveCropAxis 判定可动轴（剪裁=等比铺满）', () => {
-  const box = { widthMm: 35, heightMm: 45 }
-  it('图比框更竖时只有垂直能动，位移 7.5mm', () => {
-    expect(resolveCropAxis({ ...box, naturalWidth: 600, naturalHeight: 900 }))
-      .toMatchObject({ axis: 'vertical', travelMm: 7.5 })
-  })
-  it('图比框更横时只有水平能动，位移 32.5mm', () => {
-    expect(resolveCropAxis({ ...box, naturalWidth: 600, naturalHeight: 400 }))
-      .toMatchObject({ axis: 'horizontal', travelMm: 32.5 })
-  })
-  it('图与框同比例时两轴都溢不出', () => {
-    expect(resolveCropAxis({ ...box, naturalWidth: 35, naturalHeight: 45 }))
-      .toMatchObject({ axis: 'none', travelMm: 0 })
-  })
-  it('拿不到图片自然尺寸（动态字段图未加载）时判不出，宿主据此降级为双轴', () => {
-    expect(resolveCropAxis({ ...box, naturalWidth: 0, naturalHeight: 0 })).toMatchObject({ axis: 'unknown' })
-    expect(resolveCropAxis(box)).toMatchObject({ axis: 'unknown' })
-  })
-})
-
-describe('cropWindow 算出可视窗在原图上的位置（属性台示意图）', () => {
-  it('竖人像居中时可视窗占满宽、占高 85.71% 并下移 7.14%', () => {
-    const w = cropWindow({ widthMm: 35, heightMm: 45, naturalWidth: 600, naturalHeight: 900 }, 50, 50)
+describe('cropWindow 可视窗在原图上的位置（按缩放模式结算，两端共用）', () => {
+  it('cover 竖人像居中：窗占满宽、占高 85.71% 并下移 7.14%', () => {
+    const w = cropWindow({ widthMm: 35, heightMm: 45, naturalWidth: 600, naturalHeight: 900, fit: 'cover' }, 50, 50)
     expect(w.widthPct).toBeCloseTo(100, 2)
     expect(w.leftPct).toBeCloseTo(0, 2)
     expect(w.topPct).toBeCloseTo(7.14, 2)
     expect(w.heightPct).toBeCloseTo(85.71, 2)
   })
-  it('锚到顶部时窗贴原图顶端', () => {
-    const w = cropWindow({ widthMm: 35, heightMm: 45, naturalWidth: 600, naturalHeight: 900 }, 50, 0)
+  it('cover 锚到顶时窗贴原图顶端', () => {
+    const w = cropWindow({ widthMm: 35, heightMm: 45, naturalWidth: 600, naturalHeight: 900, fit: 'cover' }, 50, 0)
     expect(w.topPct).toBeCloseTo(0, 6)
   })
+  it('cover 方图进竖框：被裁的是水平轴，锚到最右时窗贴原图右缘', () => {
+    const w = cropWindow({ widthMm: 35, heightMm: 45, naturalWidth: 120, naturalHeight: 120, fit: 'cover' }, 100, 50)
+    expect(w.heightPct).toBeCloseTo(100, 2)
+    expect(w.widthPct).toBeCloseTo(77.78, 2)
+    expect(w.leftPct).toBeCloseTo(22.22, 2)
+  })
+  it('contain 图整张放进框：不裁切，窗就是整张原图', () => {
+    const w = cropWindow({ widthMm: 35, heightMm: 45, naturalWidth: 120, naturalHeight: 120, fit: 'contain' }, 100, 100)
+    expect(w).toEqual({ leftPct: 0, topPct: 0, widthPct: 100, heightPct: 100 })
+  })
   it('尺寸未知时不给窗口，宿主隐藏示意图而不是画错框', () => {
-    expect(cropWindow({ widthMm: 35, heightMm: 45 }, 50, 50)).toBeNull()
+    expect(cropWindow({ widthMm: 35, heightMm: 45, fit: 'cover' }, 50, 50)).toBeNull()
+  })
+})
+
+describe('内置示例图与示意回落（只演示取位，不当图片占位）', () => {
+  /** 固有尺寸从示例图产物自身读回：换一张比例不同的图，判轴口径就跟着变，这条必须失败 */
+  function sampleIntrinsic(url: string): { width: number; height: number } {
+    const svg = Buffer.from(url.split(',')[1], 'base64').toString('utf8')
+    const width = Number(/<svg[^>]*\bwidth="(\d+)"/.exec(svg)?.[1])
+    const height = Number(/<svg[^>]*\bheight="(\d+)"/.exec(svg)?.[1])
+    if (!width || !height) throw new Error('示例图必须自带 width/height，否则浏览器报不出自然尺寸，余量会全成未知')
+    return { width, height }
+  }
+
+  it('取不到图片地址时回落示例图，取到了就用业务自己的图', () => {
+    expect(resolveCropPreview('')).toEqual({ src: CROP_SAMPLE_IMAGE, isSample: true })
+    expect(resolveCropPreview(undefined)).toEqual({ src: CROP_SAMPLE_IMAGE, isSample: true })
+    expect(resolveCropPreview('/docfiles/a.png')).toEqual({ src: '/docfiles/a.png', isSample: false })
+  })
+  it('示例图是正方形：cover 进 35×45 框只有水平挪 10mm，contain 留的是垂直空位 10mm', () => {
+    const { width, height } = sampleIntrinsic(CROP_SAMPLE_IMAGE)
+    expect([width, height]).toEqual([120, 120])
+    const box = { widthMm: 35, heightMm: 45, naturalWidth: width, naturalHeight: height }
+    expect(resolveCropTravel({ ...box, fit: 'cover' })).toEqual({ x: 10, y: 0 })
+    expect(resolveCropTravel({ ...box, fit: 'contain' })).toEqual({ x: 0, y: 10 })
   })
 })

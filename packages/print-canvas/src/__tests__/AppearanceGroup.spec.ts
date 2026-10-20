@@ -81,19 +81,21 @@ describe('AppearanceGroup 图片缩放模式与裁剪锚点', () => {
     expect(wrapper.text()).not.toContain('覆盖（保持比例）')
   })
 
-  it('未选剪裁时锚点行整个不出现', () => {
+  it('缺省（包含）档就出锚点行：两轴都调得到，挪的是框内的空位', () => {
     const wrapper = mountImage(makeImage())
-    expect(wrapper.text()).not.toContain('裁剪锚点')
-  })
-
-  it('选了剪裁才出锚点控件与示意图', async () => {
-    const element = makeImage({ fit: 'cover' })
-    const wrapper = mountImage(element)
     expect(wrapper.text()).toContain('裁剪锚点')
     expect(wrapper.find('.pd-crop-preview').exists()).toBe(true)
   })
 
-  it('切到剪裁写入 fit=cover 并当场长出锚点行', async () => {
+  it('只有拉伸填满不给锚点行：图被钉成框，没有取位可言', async () => {
+    const element = makeImage()
+    const wrapper = mountImage(element)
+    await imgFitSelect(wrapper).setValue('fill')
+    expect(element.options.fit).toBe('fill')
+    expect(wrapper.text()).not.toContain('裁剪锚点')
+  })
+
+  it('切到剪裁写回 fit=cover，锚点行不消失（同一行了，不再切档才长出来）', async () => {
     const element = makeImage()
     const wrapper = mountImage(element)
     await imgFitSelect(wrapper).setValue('cover')

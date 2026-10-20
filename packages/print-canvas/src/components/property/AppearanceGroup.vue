@@ -85,10 +85,11 @@
             <option v-for="o in IMAGE_FIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
         </div>
-        <div v-if="element.options.fit === 'cover'" v-show="showItem('ap-img-object-position')">
+        <div v-if="element.options.fit !== 'fill'" v-show="showItem('ap-img-object-position')">
           <CropAnchorField field-key="ap-img-object-position"
             label="裁剪锚点"
             :src="imageSrc"
+            :fit="element.options.fit"
             :width-mm="element.options.width || 0"
             :height-mm="element.options.height || 0"
             :model-value="element.options.objectPosition"

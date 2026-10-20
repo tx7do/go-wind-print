@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CellImage from '../components/elements/CellImage.vue'
 
+/** 逐条比对内联声明，否则 'max-width: 100%' 会让 'width: 100%' 的断言假绿 */
+function decls(style?: string): string[] {
+  return (style ?? '').split(';').map(s => s.trim()).filter(Boolean)
+}
+
 describe('CellImage', () => {
   it('renders placeholder when no value', () => {
     const wrapper = mount(CellImage, {
@@ -34,14 +39,24 @@ describe('CellImage', () => {
     expect(wrapper.find('img').attributes('style')).toContain('max-height: 30mm')
   })
 
-  it('已知限制：单元格图片不撑满盒（td 高度由内容定，锚点在单元格里裁不动）', () => {
+  it('剪裁档钉盒：外框钉在可用框高、img 撑满，锚点在单元格里才裁得动（与独立元素同构）', () => {
     const wrapper = mount(CellImage, {
-      props: { value: '/test-image.png', fit: 'cover', objectPosition: '50% 0%' }
+      props: { value: '/test-image.png', fit: 'cover', objectPosition: '50% 0%', boxHeightMm: 6 }
     })
-    // 逐条比对，否则 'max-width: 100%' 会让 'width: 100%' 的断言假绿
-    const decls = wrapper.find('img').attributes('style')!.split(';').map(s => s.trim()).filter(Boolean)
-    expect(decls).not.toContain('width: 100%')
-    expect(decls).not.toContain('height: 100%')
-    expect(decls).toContain('object-position: 50% 0%')
+    expect(decls(wrapper.find('.cell-image').attributes('style'))).toContain('height: 6mm')
+    const d = decls(wrapper.find('img').attributes('style'))
+    expect(d).toContain('width: 100%')
+    expect(d).toContain('height: 100%')
+    expect(d).toContain('object-position: 50% 0%')
+  })
+
+  it('门控只在剪裁档：不给可用框高时逐字保持现状（td 高度仍由内容决定）', () => {
+    for (const fit of [undefined, 'contain', 'fill']) {
+      const wrapper = mount(CellImage, { props: { value: '/test-image.png', fit, boxHeightMm: undefined } })
+      expect(wrapper.find('.cell-image').attributes('style') ?? '').toBe('')
+      const d = decls(wrapper.find('img').attributes('style'))
+      expect(d).not.toContain('width: 100%')
+      expect(d).not.toContain('height: 100%')
+    }
   })
 })

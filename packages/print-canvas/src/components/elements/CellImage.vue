@@ -1,6 +1,6 @@
 <!-- 表格单元格内图片渲染：设计态与预览态共用 -->
 <template>
-  <div class="cell-image">
+  <div class="cell-image" :style="boxStyle">
     <img v-if="imageSrc && !hasError" :src="imageSrc" :style="imgStyle" @error="onError" />
     <div v-else class="image-placeholder">图片</div>
   </div>
@@ -19,6 +19,8 @@ const props = defineProps<{
   maxHeight?: number
   designMode?: boolean
   data?: Record<string, any>[]
+  /** 可用框高（mm）：仅在剪裁档由宿主按 core 的 cellImageBoxMm 算好传入，给出即把外框钉死 */
+  boxHeightMm?: number
 }>()
 
 const imageSrc = computed(() => {
@@ -47,7 +49,10 @@ watch(imageSrc, () => {
   hasError.value = false
 })
 
+const boxStyle = computed(() => (props.boxHeightMm ? { height: `${props.boxHeightMm}mm` } : {}))
+
 const imgStyle = computed(() => ({
+  ...(props.boxHeightMm ? { width: '100%', height: '100%' } : {}),
   objectFit: (props.fit || 'contain') as any,
   ...(props.objectPosition ? { objectPosition: props.objectPosition } : {}),
   maxWidth: props.maxWidth ? `${props.maxWidth}mm` : '100%',

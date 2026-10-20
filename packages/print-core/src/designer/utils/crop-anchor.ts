@@ -1,11 +1,9 @@
 /**
- * 裁剪锚点（图片剪裁模式）的结构化读写与可动轴判定。
+ * 裁剪锚点（图片剪裁）的结构化读写与逐轴可挪余量判定。
  * canvas 与 common 两套宿主共用，避免两端各写一遍判据而漂移。
  */
 import { evaluateTemplate } from './expression-eval.js'
 import { DEFAULT_DEMO_DATA } from './demo-data.js'
-
-export type CropAxisName = 'vertical' | 'horizontal' | 'none' | 'unknown'
 
 export interface CropBox {
   /** 元素框宽（mm） */
@@ -15,6 +13,14 @@ export interface CropBox {
   /** 图片自然宽（px）；动态字段图在设计态可能拿不到 */
   naturalWidth?: number
   naturalHeight?: number
+  /** 缩放模式（CSS object-fit 原值，缺省 contain）：余量按它逐轴结算 */
+  fit?: string
+}
+
+/** 逐轴可挪余量（mm）。null＝拿不到图片尺寸，余量未知；0＝该轴贴满，挪不动 */
+export interface CropTravel {
+  x: number | null
+  y: number | null
 }
 
 export type CropAnchorParsed =
@@ -76,16 +82,46 @@ export function parseCropAnchor(value?: string): CropAnchorParsed {
   return { kind: 'axes', x: clampPct(x ?? 50), y: clampPct(y ?? 50) }
 }
 
-/** 等比铺满只会让一轴溢出，另一轴恰好贴满——据此判定哪个轴真的能挪 */
-export function resolveCropAxis(box: CropBox): { axis: CropAxisName; travelMm: number } {
+/** 1 CSS px 在此长多少 mm：`none`/`scale-down` 按图片内在尺寸绘制时要用（出纸与画布都按 96dpi 排版） */
+const MM_PER_PX = 25.4 / 96
+
+/**
+ * 图按该缩放模式画进框后有多大（mm）。等比铺满会溢出、包含会留空、原始尺寸两轴都可能留空——
+ * 溢出与空位都算「可挪余量」，因为锚点在两种情形下都能改变画面/图在框内的落点。
+ */
+function contentMm(box: CropBox): { w: number; h: number } | null {
   const { widthMm, heightMm, naturalWidth, naturalHeight } = box
-  if (!naturalWidth || !naturalHeight || !widthMm || !heightMm) return { axis: 'unknown', travelMm: 0 }
-  const scale = Math.max(widthMm / naturalWidth, heightMm / naturalHeight)
-  const travelX = roundMm(naturalWidth * scale - widthMm)
-  const travelY = roundMm(naturalHeight * scale - heightMm)
-  if (travelY > 0 && travelX <= 0) return { axis: 'vertical', travelMm: travelY }
-  if (travelX > 0 && travelY <= 0) return { axis: 'horizontal', travelMm: travelX }
-  return { axis: 'none', travelMm: 0 }
+  if (!naturalWidth || !naturalHeight || !widthMm || !heightMm) return null
+  const k = widthMm / naturalWidth
+  const l = heightMm / naturalHeight
+  switch (box.fit || 'contain') {
+    // 拉伸填满：图被钉成框，两轴都挪不动
+    case 'fill': return { w: widthMm, h: heightMm }
+    case 'cover': {
+      const s = Math.max(k, l)
+      return { w: naturalWidth * s, h: naturalHeight * s }
+    }
+    // 原始尺寸不缩放：按图片内在像素尺寸绘制
+    case 'none': return { w: naturalWidth * MM_PER_PX, h: naturalHeight * MM_PER_PX }
+    case 'scale-down': {
+      const s = Math.min(1, Math.min(k, l))
+      return { w: naturalWidth * s, h: naturalHeight * s }
+    }
+    default: {
+      const s = Math.min(k, l)
+      return { w: naturalWidth * s, h: naturalHeight * s }
+    }
+  }
+}
+
+/** 逐轴可挪余量：拿不到图片尺寸时两轴都是 null（未知），不能糊成 0 说「挪不动」 */
+export function resolveCropTravel(box: CropBox): CropTravel {
+  const c = contentMm(box)
+  if (!c) return { x: null, y: null }
+  return {
+    x: roundMm(Math.abs(box.widthMm - c.w)),
+    y: roundMm(Math.abs(box.heightMm - c.h)),
+  }
 }
 
 /** 属性台示意图：可视窗在原图上的位置（百分比，与原图渲染尺寸无关） */
@@ -94,16 +130,16 @@ export function cropWindow(
   x: number,
   y: number,
 ): { leftPct: number; topPct: number; widthPct: number; heightPct: number } | null {
-  const { widthMm, heightMm, naturalWidth, naturalHeight } = box
-  if (!naturalWidth || !naturalHeight || !widthMm || !heightMm) return null
-  const k = widthMm / naturalWidth
-  const l = heightMm / naturalHeight
-  const s = Math.max(k, l)
+  const c = contentMm(box)
+  if (!c) return null
+  // 该轴可见比例 = 框 / 画出来的图；≥1 说明整轴都在画面里（窗占满原图）
+  const fx = Math.min(1, box.widthMm / c.w)
+  const fy = Math.min(1, box.heightMm / c.h)
   return {
-    leftPct: (s - k) / s * clampPct(x),
-    topPct: (s - l) / s * clampPct(y),
-    widthPct: k / s * 100,
-    heightPct: l / s * 100,
+    leftPct: (1 - fx) * clampPct(x),
+    topPct: (1 - fy) * clampPct(y),
+    widthPct: fx * 100,
+    heightPct: fy * 100,
   }
 }
 
@@ -131,7 +167,7 @@ export const CROP_AXIS_OPTIONS: Record<'vertical' | 'horizontal', Array<{ value:
   ],
 }
 
-/** 判不出可动轴时的降级档位：两轴九宫格，「上中」= 水平居中 + 垂直贴顶 */
+/** 两轴组合档位（九宫格）：「上中」= 水平居中 + 垂直贴顶 */
 export const CROP_GRID_OPTIONS: Array<{ x: number; y: number; label: string }> = [
   { x: 0, y: 0, label: '左上' },
   { x: 50, y: 0, label: '上中' },
@@ -146,7 +182,8 @@ export const CROP_GRID_OPTIONS: Array<{ x: number; y: number; label: string }> =
 
 /**
  * 缩放模式档位表：value 仍是 CSS object-fit 原值（模板 JSON 不变），
- * 只有 cover 对用户改称「剪裁」——它正是裁剪锚点生效的那一档。
+ * 只有 cover 对用户改称「剪裁」——它是最常用的取位档，但锚点并非它独有：
+ * cover 挪的是溢出部分，contain／原始尺寸／缩小 挪的是框内的空位，只有 fill 把图钉死在框上才没有取位可言。
  * 画布、单元格台、码值台、common 三处都取这一份，改名不再需要六处同步。
  */
 export const IMAGE_FIT_OPTIONS: Array<{ value: string; label: string }> = [
@@ -157,39 +194,62 @@ export const IMAGE_FIT_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'scale-down', label: '缩小（保持比例）' },
 ]
 
+/**
+ * 剪裁示意专用的内置示例图（120×120 正方形，3×3 九宫格）：中心靶心，四条边中点各一色
+ * （顶红／底蓝／左绿／右橙），四角小灰点。方形是为了让水平与垂直两轴都能演示取位：
+ * cover 进竖框裁的是左右、cover 进横框裁的是上下，contain／原始尺寸则两轴都可能留空位。
+ * 它只服务于属性台的「原图可视窗示意」：画布与出纸上的空图片仍是虚线「图片」占位，不会变成这张图。
+ */
+export const CROP_SAMPLE_IMAGE =
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiB2aWV3Qm94PSIwIDAgMTIwIDEyMCI+PHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNNDAgMFYxMjBNODAgMFYxMjBNMCA0MEgxMjBNMCA4MEgxMjAiIHN0cm9rZT0iI2VlZjFmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMy41IiBmaWxsPSIjOGI5NWE1Ii8+PGNpcmNsZSBjeD0iMTAwIiBjeT0iMjAiIHI9IjMuNSIgZmlsbD0iIzhiOTVhNSIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTAwIiByPSIzLjUiIGZpbGw9IiM4Yjk1YTUiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjMuNSIgZmlsbD0iIzhiOTVhNSIvPjxjaXJjbGUgY3g9IjYwIiBjeT0iMjAiIHI9IjciIGZpbGw9IiNjMDM5MmIiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjEwMCIgcj0iNyIgZmlsbD0iIzFmNGZhMyIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iNjAiIHI9IjciIGZpbGw9IiMyYzdhNGEiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSI2MCIgcj0iNyIgZmlsbD0iI2UwN2EyMCIvPjxjaXJjbGUgY3g9IjYwIiBjeT0iNjAiIHI9IjE0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyZjNhNGEiIHN0cm9rZS13aWR0aD0iNCIvPjxjaXJjbGUgY3g9IjYwIiBjeT0iNjAiIHI9IjYiIGZpbGw9IiMyZjNhNGEiLz48L3N2Zz4='
+
+/** 示意图来自内置示例图时必须说破，否则用户会把演示图当成自己的业务图来判断取位（两端共用这一串） */
+export const CROP_SAMPLE_NOTE = '图片还没设置，上面按内置示例图演示取位；换上真图后档位与可挪量按真图重算'
+
+/**
+ * 属性台的示意图该画哪张图：传入已求值的业务图片地址，取不到即回落示例图。
+ * isSample 给宿主用来标「示例图，非你的图片」，避免把演示图误认成业务图。
+ */
+export function resolveCropPreview(resolvedSrc?: string): { src: string; isSample: boolean } {
+  const value = String(resolvedSrc ?? '')
+  return value ? { src: value, isSample: false } : { src: CROP_SAMPLE_IMAGE, isSample: true }
+}
+
 /** 可动轴数字框的行标签 */
 export function cropAxisLabel(axis: 'horizontal' | 'vertical'): string {
   return axis === 'vertical' ? '垂直位置 (%)' : '水平位置 (%)'
 }
 
-/** 一句话讲清这个框到底能挪多少；判不出轴时不瞎猜。keepRaw 表示模板里存的是表达不了的写法 */
-export function cropAxisNote(axis: CropAxisName, travelMm: number, keepRaw = false): string {
+/** 一句话逐轴报数：两轴都能挪就把两个数都写出来；挪不动的那一轴直说，不含糊。keepRaw 表示模板里存的是表达不了的写法 */
+export function cropAxisNote(travel: CropTravel, keepRaw = false): string {
   if (keepRaw) return '已保留模板里的原值；改动下面任一项就整体替换成新的取位'
-  if (axis === 'vertical') return `这个框内可以上下挪动 ${travelMm}mm：0 贴顶，100 贴底`
-  if (axis === 'horizontal') return `这个框内可以左右挪动 ${travelMm}mm：0 贴左，100 贴右`
-  if (axis === 'none') return '图与框同比例，剪裁后正好铺满，框内没有可挪动的余量'
-  return ''
+  const { x, y } = travel
+  if (x === null || y === null) return ''
+  if (x > 0 && y > 0) return `水平可挪 ${x}mm、垂直可挪 ${y}mm：0 贴左／贴顶，100 贴右／贴底`
+  if (x > 0) return `水平可挪 ${x}mm；垂直这一轴已贴满，挪不动`
+  if (y > 0) return `垂直可挪 ${y}mm；水平这一轴已贴满，挪不动`
+  return '这个缩放下图与框正好一样大，两轴都没有可挪的余量'
 }
 
-/** 数字框行：判得出可动轴只给一行，判不出先水平后垂直，同比例一行都不给 */
-export function cropAxisFields(axis: CropAxisName, x: number, y: number): Array<{ name: 'horizontal' | 'vertical'; label: string; value: number }> {
-  if (axis === 'vertical') return [{ name: 'vertical', label: cropAxisLabel('vertical'), value: y }]
-  if (axis === 'horizontal') return [{ name: 'horizontal', label: cropAxisLabel('horizontal'), value: x }]
-  if (axis === 'unknown') {
-    return [
-      { name: 'horizontal', label: cropAxisLabel('horizontal'), value: x },
-      { name: 'vertical', label: cropAxisLabel('vertical'), value: y },
-    ]
-  }
-  return []
+/** 数字框行：两轴常驻（各带本轴余量，未知给 null），宿主只管渲染两行 */
+export function cropAxisFields(travel: CropTravel, x: number, y: number): Array<{ name: 'horizontal' | 'vertical'; label: string; value: number; travelMm: number | null }> {
+  return [
+    { name: 'horizontal', label: cropAxisLabel('horizontal'), value: x, travelMm: travel.x },
+    { name: 'vertical', label: cropAxisLabel('vertical'), value: y, travelMm: travel.y },
+  ]
 }
 
-/** 位置档下拉：判得出可动轴就三档（值仍带上不动轴，换图后另一轴接手），判不出给九宫格 */
-export function cropPresetOptions(axis: CropAxisName, x: number, y: number): Array<{ value: string; label: string }> {
-  if (axis === 'vertical') {
+/**
+ * 位置档下拉：两轴都有余量给九宫格；只一轴有余量给该轴三档（另一轴带上现值，换图后接手）；
+ * 余量未知或全无也兜底九宫格——让用户能挑，比不给档诚实。
+ */
+export function cropPresetOptions(travel: CropTravel, x: number, y: number): Array<{ value: string; label: string }> {
+  const movX = travel.x !== null && travel.x > 0
+  const movY = travel.y !== null && travel.y > 0
+  if (movY && !movX) {
     return CROP_AXIS_OPTIONS.vertical.map(o => ({ value: `${x},${o.value}`, label: o.label }))
   }
-  if (axis === 'horizontal') {
+  if (movX && !movY) {
     return CROP_AXIS_OPTIONS.horizontal.map(o => ({ value: `${o.value},${y}`, label: o.label }))
   }
   return CROP_GRID_OPTIONS.map(o => ({ value: `${o.x},${o.y}`, label: o.label }))
