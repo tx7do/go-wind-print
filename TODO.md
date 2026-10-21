@@ -458,15 +458,61 @@ npm run styles -w @worm-vue3-print/common
 - 待办：确认是把 `latest` 收回（需要 registry 上存在别的稳定版才可指向，当前无），还是在 README/包 README 显式要求宿主必须带 `@next`。
   在此之前，文档里那句「实验性、不建议用于生产」是唯一防线，不能删。
 
+### T-16 demo-common 四宿主没接 `fonts`，字体整条链路在 Common 宿主上是暗的（10-21 浏览器实测发现）
+
+- 发现方式：拉取 `dac9492` 后补跑四宿主浏览器验收（verify-demo **36/36 ×4 全绿**），再用内部浏览器在 9331 上
+  加载唯一声明字体的示例「综合示例模板」并展开属性台字体下拉。
+- **现象**：字体候选只有两行——`默认` 与 `Ma Shan Zheng（未知）`，模板声明的 3 个字体（马善政毛笔楷书 / 站酷快乐体 / 站酷庆科黄油体）
+  一条都没进目录；输入框回显的是族名而非 label。
+- **硬证据**：`document.styleSheets` 里 `@font-face` **0 条**、shadow `adoptedStyleSheets` **0 条**、`document.fonts.size = 0`，
+  而该元素 computed `font-family` 已是 `"Ma Shan Zheng"` → 族名写进去了但字体从未声明，浏览器**静默回落系统字体**。
+  这正是 PARITY 里那条「DOM 断言全绿但字形是假的」老坑的反向形态。
+- **根因定位**：外壳契约没问题——`packages/print-common/src/shell/controls.ts:51` 收 `fonts?: readonly (string | PrintFontDeclaration)[]`，
+  `property-panel.ts:87` 透传 `ctx.host.fonts` 给 `buildFontCatalog`。缺的是**宿主侧一行都没接**：
+  `grep -c fonts` 在 `apps/vue3/src/App.vue`、`apps/vue2/src/App.vue`、`apps/react/src/App.jsx`、`apps/jquery/src/app.js` **均为 0**；
+  主 demo（canvas 宿主）则有 `App.vue:78 :fonts="activeFonts"` + `:243 computed activeFonts`（从模板 JSON 的 `fonts` 推导并把
+  `/fonts/` 补成站点绝对地址）。
+- **影响**：verify-demo 的 36 项断言不含字体链路，所以四宿主全绿也照不出这条——**别让「144 项全绿」冒充「字体可用」**。
+  按仓库既有口径（子 demo 必须与主 demo 逐项同版式同能力、示例工程要能整份照抄），这是缺口不是取舍。
+- **待办**：① 四个宿主各补一份与主 demo 同算法的 `activeFonts`（直挂宿主就地实现）；② `verify-demo.mjs` 加两条断言——
+  应用「综合示例模板」后 `document.fonts` 里应出现 3 条 face、字体下拉行数应 = 1（默认）+ 3；
+  ③ 顺手核对 PARITY §宿主契约那段是否已把 `fonts` 标成「demo 未演示」。
+- 附带记三条**探针坑**（内部浏览器 + Web Component 实测）：
+  ① 按 uid 的 `click` 判遮挡用的是 light-DOM `elementFromPoint`，**看不穿 Shadow DOM**，对 shadow 内控件会假报
+  「Element is covered by another element」——同一坐标用 `ShadowRoot.elementsFromPoint` 自测，最上层就是目标本身；
+  ② 页面未获得系统焦点时 `element.focus()` 只改 activeElement、**不派发 focus 事件**，所以「focus 打不开下拉」是探针假象，
+  该控件的 `click` 通路实测正常；
+  ③ 外壳是整体重绘模型，选中元素后面板节点会被替换，**跨调用复用引用必拿到旧节点**，每次操作前重新查询。
+
+### T-17 设计态未求值的表达式被当成真实图：示例兜底被绕过、可挪量显示陈旧（10-21 canvas 实测）
+
+- 判据来自 core 的设计意图：`packages/print-core/src/designer/utils/crop-anchor.ts:213 resolveCropPreview()` 在 src 为空时
+  兜 `CROP_SAMPLE_IMAGE`（:203）并给那句 `CROP_SAMPLE_NOTE`（:207「图片还没设置，上面按内置示例图演示取位…」）。
+- 实测（demo 9303，综合示例的绑定型图片单元格，内容 = `{image}`）：
+  - `.pd-crop-thumb` 的 `src` 拿到的是**未求值的表达式串 `{image}`**，`naturalWidth/Height = 0`、`complete = true`
+    → 加载失败的破图，**而不是示例图**；`String('{image}')` 非空所以兜底分支根本没进。
+  - 两条后果：`CROP_SAMPLE_NOTE` 不出现（`sampleNoteShown=false`）；`.pd-crop-win` 为 `null`（无真图尺寸可算，第一次进该格时）。
+  - 更坏的一条是**显示陈旧**：先给同一格换成 400×100 的真图（档位收敛成 3 档、note 出「水平可挪 78mm」），
+    再把内容改回 `{image}`，图片已经破了，**档位仍是 3 档、note 仍是「水平可挪 78mm」、取景窗仍按 25% 宽画着**
+    —— 因为 `CropAnchorField` 的原图尺寸靠 `@load` 更新（图加载失败不触发 load），旧值就地留下。
+    用户看到的是「按一张不存在的图给出的可挪量」。
+- 影响面：只命中**设计态 + 表达式绑定**的图片单元格（静态 URL 或运行态数据不受影响）；属视觉/引导层缺陷，
+  出纸值本身正确（见第十节 V-1 的三档实测）。
+- 待办（择一实现，别只做文案）：A `cellImageSrc` 传给控件前先判「是否为未求值表达式」（含 `{}` 或未解析即视为无图）
+  → 走 `CROP_SAMPLE_IMAGE` + 示例 note；B 保留真源但 `@error` 时把 travel/档位/取景窗一并置空并说明。
+  建议 A，与 core 既有兜底同向、三端共用同一判据（canvas/common 各一处）。
+
 ### 执行顺序建议
 
 | 序 | 项 | 性质 | 代价 |
 |---|---|---|---|
-| 1 | **T-12 复现定性** | 可能是 1.3.7 自身回归 | 起 demo 逐档点，最坏要出 1.3.8 |
-| 2 | **T-11 三条根因分级修复** | 影响面最大的真实缺陷 | C1 一行；C2 中；C3 跨分页引擎、119+ 用例回归面 |
+| 1 | ~~T-12 复现定性~~ 已修（`48d1ed6`），剩对外回帖并入 T-14 | — | — |
+| 2 | **T-11 剩余两条根因**（C1 一行 / C2 中等） | 影响面最大的真实缺陷 | C1 一行；C2 需定跟随区口径 |
 | 3 | **T-13 补通知** | 纯对外动作，零代码 | 依赖 `notes` scope 或登录态浏览器 |
 | 4 | **T-14 发版 + 删重复评论** | 随下个版本 | 删评论只能手工 |
 | 5 | **T-15 dist-tag 口径** | 发布面 | 改文档或改发布脚本，二选一 |
+| 6 | **T-16 四宿主接 `fonts`** | 示例与验收缺口 | 四份宿主各一处 + verify-demo 加 2 条断言 |
+| 7 | **T-17 表达式绕过示例兜底** | 引导层缺陷（显示陈旧） | core 判据一处 + 两端各一处 |
 
 ### 九、对外动作的通路（T-13 / T-14 执行前先看）
 
@@ -479,3 +525,69 @@ npm run styles -w @worm-vue3-print/common
 - 写操作后一律用**匿名 GET 复核**落库与 `comments` 计数，防止「报错但其实写进去了」或「以为发了其实没发」。
 - 浏览器通路两个坑：`fill` 不激活提交按钮（需真点击，且点两次会重复发帖——T-14 的重条评论即此形态）；
   自己评论的删除菜单不进无障碍快照，程序化点不到。
+
+---
+
+## 十、Vue3 线浏览器验证实测（2026-10-21，内部浏览器 + demo 9303）
+
+拉进 `48d1ed6 / f6963f1 / d93baab / a219b9c / dac9492` 后补的一轮。取证工具：Qoder 内部浏览器（`browser-use`）
+在 `http://localhost:9303/`（视口 789×781）上做真实事件与几何测量；mm↔px 一律按 `3.7795` 折算。
+**本轮未改任何代码**，注入的样式与模型改动均已随重载丢弃。
+
+### 拉取后的静态基线（先跑，全绿）
+
+| 命令 | 结果 |
+|---|---|
+| `npm run build` | exit 0（错误行计数 0、6 条 `✓ built`） |
+| `npm test` | exit 0 —— core **68 文件/915 用例**、canvas **57/497**、common **14/165**、print-client **14/110** |
+| `npm run test -w @worm-vue3-print/render` | exit 0 —— **9 文件/30 用例**（含真实 Chromium 的 `cell-crop.integration.test.ts`） |
+| `verify-demo.mjs` ×4 宿主 | **36/36 ×4，FAIL 0**（9331/9332/9335/9334） |
+
+`d93baab` 当时披露的「canvas 1 红、common 13 红」已随 `dac9492` 归零（canvas 56/456→57/497、common 13/145→14/165）。
+
+### V-1 字体浮层（`48d1ed6`）✅ 页面不再被撑变形
+- 候选 **4 行且带 label**：`默认` / `马善政毛笔楷书（Ma Shan Zheng）`（`aria-selected=true`、`is-active`）/ `站酷快乐体（ZCOOL KuaiLe）` / `站酷庆科黄油体（ZCOOL QingKe HuangYou）`；`aria-expanded`、`aria-activedescendant` 随高亮行更新。
+- 展开同帧对照：`.designer-container`、`.designer-toolbar`、`.property-panel`、`.canvas-area` **零变化**，`document.scrollHeight` 781→781；属性台前 8 个字段 `top` 位移 **0px**。唯一位移是属性台因聚焦**自滚 27px**（`.property-content` 自身 scrollTop，非浮层撑开布局）。
+- 列表 `position:absolute`、`z-index:200`、`max-height:200px`、221×106，贴触发框下 4px → 确实脱流。
+
+### V-2 `is-up` 上下翻档 ✅ 分支可用（真实布局在本机触发不到）
+- 实测 CSS：`.font-select-list.is-up { top: auto; bottom: calc(100% + 4px) }`。
+- 注入受限祖先造边界逐档扫（列表高 106、触发框下沿 495）：下方 300/150 → `down`；100 → `down`（底 605 越界 597 共 8px）；**60/30 → `up`**（列表顶 359、底 465 = 触发框上沿 469 − 4）。
+- **100 档不翻不是缺陷**：`resolveOverlayPlacement`（`packages/print-core/src/designer/utils/overlay-placement.ts:23`）在两边都放不下时取宽侧（`below 98 > above 38` → `down`），3/3 复现、第 8 帧不自我纠正。我先前「首趟测到 0 高度列表」的猜测**作废**。
+- 真实布局下本机永远触发不到该分支（视口 781、候选仅 4 条 → `below` 可用 282 ≥ 106）；造该形态需更多候选或更矮视口，而**内部浏览器没有 `resize_page`**（chrome-devtools MCP 才有）——这条能力边界记在此处。
+
+### V-3 #IKOUJI 画布态 vs 出纸态 ✅ C3 在 canvas 宿主的真实管线成立
+报告人模板从 Gitee #IKOUJI 评论匿名取回（12627 字节，`/tmp` 那份已被上一轮会话销毁），经 demo `导入模板` 的 file input 注入（临时放 `demo/public/`，验毕已删）。
+
+| | 画布态（设计态） | 出纸态（预览 iframe） |
+|---|---|---|
+| 页数 | **1 页**（画布从不跑分页） | **1 页**（纸面 241×139.7） |
+| vline#1 | x 11.28 y 7.38 3.5×55.93 | x 21.27 y 27.38 |
+| vline#2 | x 216.33 y 36.75 1.8×35.3 | x 226.32 y 56.75 |
+| hline | x 65.53 **y 86.87** 70.6×1.8 | x 75.53 **y 106.84** |
+| table | x 25.83 y 15.69 150×32.28 | x 35.83 y 35.69 150.26×32.26（4 行，`flow-group/flow-slice/flow-follow` 齐） |
+
+出纸坐标 = 设计坐标 + 页边距 10 + 页眉 10（x 只加 10、y 加 20，逐条对上，最大偏差 0.03mm）。
+对照改前记录（2 页、横线被挪到第 2 页 y=38.9、右侧竖线掉到页 2 y=0）→ **虚假换页与坐标丢失都没了**。
+**要写进回帖的口径**：画布不做分页计算（`grep pagination-engine packages/print-canvas/src` 命中 0），
+所以报告人在**画布上看不到任何变化**，只有预览/打印/PDF 才回到设计坐标——不说清这条会被判「没修」。
+
+### V-1b 单元格取位（`f6963f1` + `dac9492`）✅ 判余量模型与落值全对
+在同一张表格的图片单元格上，把内容换成 **400×100 宽图**、格 106×106：
+- 溢出量自洽：cover 渲染 392×98 → 溢出 X 295px = **78mm**，与面板 note「水平可挪 78mm；垂直这一轴已贴满，挪不动」逐字对上；可视宽占比 97/392 = **25%**，取景窗 `width: 25%` 一致。
+- **档位按余量收敛**：九宫格 → **3 档**（`0,50 左侧 / 50,50 居中 / 100,50 右侧`），正是「只一轴有余量给该轴三档」。
+- 水平轴三档实测（带帧读取）：写 0 → `object-position:0% 50%`、取景窗 `left:0%`、档位自动跳 `0,50`；写 50 → `50% 50%`、`left:37.5%`；写 100 → `100% 50%`、`left:75%`；回到 0 无漂移 → **可挪范围就是那 78mm 溢出，画面确实按锚点在裁**。
+- 出纸落值（上一轮）：预览 iframe 内该格 `<img>` 行内 `object-fit:cover;object-position:2% 50%`，**20 个数据行每行都带**（`data-binder` 逐字段透传没漏）；同表条形码格只有 `object-fit:cover`、无 `object-position`，存量路径没被打坏。
+- 控制台全程 0 error / 0 warn。
+
+### V-5 字体注入正对照 ✅ T-16 定性坐实
+- canvas 宿主（demo 9303）：`@font-face` **3 条**、`document.fonts.size=3` 且三条 `status=loaded`、`check('16px "Ma Shan Zheng"')=true`、元素 computed `font-family:"Ma Shan Zheng"`。
+- **同一份模板 JSON** 在 Common 宿主：face **0 条**、`fonts.size=0`、下拉只剩 `默认` + `Ma Shan Zheng（未知）`。
+- 结论：缺口在宿主没接 `fonts`（四个 `apps/*` 入口 `grep -c fonts` 全为 0），外壳契约（`controls.ts:51`）与算法都正常。
+  **verify-demo 那 36 项不含字体链路，「144 项全绿」不等于「字体可用」。**
+
+### 本轮的探针更正（都记下来，别再犯）
+- 同帧读 Vue 重绘 = 假失败：轴输入写完立刻读 `object-position`/取景窗会全是旧值，必须**写完等两帧再读**（我第一次扫 0/50/100 就全错成 50）。
+- 单选组要读 `checked` 的那一项，读第一个 input 的 value 会把 `image` 误判成 `text`。
+- `td img` 第一条是**二维码**的 svg，不是图片单元格；按文本「图片」定位才准。
+- 内部浏览器按 uid 的 `click` 判遮挡用 light-DOM `elementFromPoint`，**看不穿 Shadow DOM**，对 Common 宿主会假报 `covered`；canvas（light DOM）不受影响，可信点击正常。
