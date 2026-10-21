@@ -484,7 +484,7 @@ npm run styles -w @worm-vue3-print/common
   该控件的 `click` 通路实测正常；
   ③ 外壳是整体重绘模型，选中元素后面板节点会被替换，**跨调用复用引用必拿到旧节点**，每次操作前重新查询。
 
-### T-17 设计态未求值的表达式被当成真实图：示例兜底被绕过、可挪量显示陈旧（10-21 canvas 实测）
+### T-17 设计态未求值的表达式被当成真实图：示例兜底被绕过、可挪量显示陈旧（10-21 canvas 实测）—— **10-21 已修（方案 A + 一并补 error 清尺寸）**
 
 - 判据来自 core 的设计意图：`packages/print-core/src/designer/utils/crop-anchor.ts:213 resolveCropPreview()` 在 src 为空时
   兜 `CROP_SAMPLE_IMAGE`（:203）并给那句 `CROP_SAMPLE_NOTE`（:207「图片还没设置，上面按内置示例图演示取位…」）。
@@ -501,6 +501,9 @@ npm run styles -w @worm-vue3-print/common
 - 待办（择一实现，别只做文案）：A `cellImageSrc` 传给控件前先判「是否为未求值表达式」（含 `{}` 或未解析即视为无图）
   → 走 `CROP_SAMPLE_IMAGE` + 示例 note；B 保留真源但 `@error` 时把 travel/档位/取景窗一并置空并说明。
   建议 A，与 core 既有兜底同向、三端共用同一判据（canvas/common 各一处）。
+- **修法（A + B 都做了，因为 B 那条「显示陈旧」是独立的错）**：判据落在单点 `resolveCropPreview()`——空值**或含 `{`/`}`** 都算「没有图」，两端控件不必各判一次；canvas `CropAnchorField` 给 `<img>` 加 `:key="preview.src"` + `@error` 清 `size`（不给 key 的话换 src 复用同一 DOM 节点，Vue 会重跑 load 监听并把上一张的尺寸留下），common 的 `sizeCache` 在 `onError` 里删掉该 src 的条目并整台重绘。
+- 修后实测（demo 9303，同一 `{image}` 绑定单元格）：`.pd-crop-thumb` 的 src 已是示例图、`natural=120x120`、两条 note 都在（示例说明 + 余量报数），不再出现「按一张不存在的图给出可挪量」。
+- **同轮连带修掉一条取景框几何错**（用户批注「示例图片未能完整显示」的真因）：`.pd-crop-preview` 是块级、撑满面板宽 **215px**，而示例图只有 **96×96** → 取景窗按容器百分比落位，红框被拉成 **215×98 的长方形**、还把方形示例图罩住裁暗。改 `.pd-crop-preview { width: fit-content; max-width: 100% }` 让容器贴住图本身（common `designer.css` 由 canvas 派生，重建 canvas 后 `npm run styles -w common` 自动跟上）。修后实测：容器 98×98、图 96×96、红框与图同框（100% 时正好盖住整张）；单元格台点一次「放大比例 +」（105%）→ 红框收成 **93.4×93.4（95.2381%）居中**、note 报「水平可挪 1.3mm、垂直可挪 1.3mm」→ 取景窗从此按图本身取景，不再有多余的长方形空白。
 
 ### 执行顺序建议
 
@@ -591,3 +594,18 @@ npm run styles -w @worm-vue3-print/common
 - 单选组要读 `checked` 的那一项，读第一个 input 的 value 会把 `image` 误判成 `text`。
 - `td img` 第一条是**二维码**的 svg，不是图片单元格；按文本「图片」定位才准。
 - 内部浏览器按 uid 的 `click` 判遮挡用 light-DOM `elementFromPoint`，**看不穿 Shadow DOM**，对 Common 宿主会假报 `covered`；canvas（light DOM）不受影响，可信点击正常。
+
+### V-6 锚点门禁收回 + 剪裁放大比例 `fitScale`（2026-10-21，用户浏览器批注裁决）
+
+批注原文：「只有剪裁模式下才需要出现，并且剪裁模式需要增加剪裁效果」。第二半我摆过四档（加放大比例／面板演出剪裁结果／画布拖图取位／落纸没真裁动），用户选**加「放大比例」字段，真能裁**。
+
+- **本轮推翻了 10-20 由用户亲自选的那档**（「两框常驻 + 逐轴按 fit 算余量」配套把元素台门禁放宽到 `fit !== 'fill'`）。收回后四处门禁统一为 `fit === 'cover'`：canvas `AppearanceGroup.vue`、common `property-panel.ts`、两端单元格台（原本就是 cover）。逐轴余量机制没动，只是入口收窄；`contentMm` 里 `contain`／`none`／`scale-down` 三条分支在面板侧暂时不再被触达，仍留着（`resolveCropTravel` 是 `/designer` 公开出口，有独立用例）。
+- **`fitScale`（100~400，仅 cover）**：判据单点新增 core `render/crop-style.ts`（`sanitizeObjectPosition` 从 `html-generator` 私有函数迁入、`cropScalePct`、`cropStyleDeclarations`），`/designer` 再导出；出纸 `html-generator`、canvas `ImageElement`/`CellImage`、common `imageStyle`/`table.ts` 五处消费同一份。`transform: scale(fitScale/100)` 的 `transform-origin` **复用同一条 `objectPosition`**——锚点既是取位钉住点也是放大不动点，所以不需要再推一遍落点公式。面板侧 `CropBox.scalePct` 进 `contentMm`，可挪量与取景窗自动跟随。
+- **canvas 宿主实测（demo 9303，28.2mm 方框 + 120×120 方图）**：不放大时 `transform:none`、img 盒 = 框 = 106.6px、note「两轴都没有可挪的余量」；写 200 → `matrix(2,0,0,2,0,0)`、img 视觉盒 213.2px（比值 **2.000**）、note 改口「水平可挪 28.2mm、垂直可挪 28.2mm」；锚点 `0,0` → origin `0px 0px`、图左上与框左上重合（l/t 偏移 0，r/b 各溢出 106.6）；`100,100` → 反向重合；`50,0` → 水平左右各溢 53.3、垂直贴顶；改回 100 → `transform:none` 且 note 回到原句。**门禁同轮实测**：新拖入图片（缺省包含）面板无锚点行，切「剪裁」才长出。
+- **单元格链路**：`TableCell.fitScale` + `RenderCell.fitScale` + `data-binder` 逐字段透传（与 `objectPosition` 同一坑位）已补；示例表格是 `dataSource` 动态绑定，画布出的是数据行，所以这一条只有 core 落纸用例 + common 出图用例（`transform:scale(1.5)` / `transform-origin:50% 100%`）钉住，**没能在示例模板上肉眼量到**，与 V-1b 同一残留。
+- 门禁：`npm run build` exit 0；core 69/935、canvas 57/511、common 14/173（其中 3 条既存红：`store.spec` 的 happy-dom 无 `window.alert`）、print-client 14/110；`npm run test -w @worm-vue3-print/render` 9/30 全绿（真实 Chromium，含「非法锚点不进 PDF」那条未退化）。
+- 探针更正（本轮新踩）：
+  1. 用原生 setter 直接改 `<input>.value` 再只发 `change`，Vue 的 `StepperInput` 读不到草稿（`input` 事件才写 `draft`），commit 拿空串直接 return——**写数值必须 `input` + `change` 两跳**。
+  2. 锚点那一行是 `<select>`，对它 `querySelector('input')` 得 null，再 `set.call(null)` 抛 `Illegal invocation`；按标签定位后要先看清控件类型。
+  3. common 的测试 harness 不监听 store 变更，`patch` 之后 DOM 不重绘，回显断言前必须手动 `ctx.repaint()`（写值本身是通的）。
+  4. 改完包源码后浏览器仍跑旧模块：demo 走 `resolve.alias` 指到 `packages/*/src`，但页面是改动前加载的——**量测前先 reload**，别把「没生效」记成代码问题。

@@ -8,9 +8,9 @@ import CropAnchorField from '../components/property/CropAnchorField.vue'
 
 const BOX = { widthMm: 35, heightMm: 45 }
 
-function mountField(modelValue?: string, fit = 'cover') {
+function mountField(modelValue?: string, fit = 'cover', scale?: number) {
   return mount(CropAnchorField, {
-    props: { fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: 'data:image/gif;base64,R0lGOD', modelValue, widthMm: BOX.widthMm, heightMm: BOX.heightMm, fit },
+    props: { fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: 'data:image/gif;base64,R0lGOD', modelValue, widthMm: BOX.widthMm, heightMm: BOX.heightMm, fit, scale },
   })
 }
 
@@ -129,5 +129,79 @@ describe('可视窗示意', () => {
     })
     expect(wrapper.find('.pd-crop-preview img').attributes('src')).toBe(CROP_SAMPLE_IMAGE)
     expect(wrapper.text()).toContain('示例图')
+  })
+
+  it('src 是未求值的表达式时不画破图：同样回落示例图（T-17）', () => {
+    const wrapper = mount(CropAnchorField, {
+      props: { fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: '{image}', modelValue: undefined, widthMm: 35, heightMm: 45, fit: 'cover' },
+    })
+    expect(wrapper.find('.pd-crop-preview img').attributes('src')).toBe(CROP_SAMPLE_IMAGE)
+    expect(wrapper.text()).toContain('示例图')
+  })
+
+  it('破图不留在旧尺寸上：load 过再 error 即改口「余量未知」，取景窗与可挪量一起收掉', async () => {
+    const wrapper = await withSize(mountField(), 600, 900)
+    expect(wrapper.find('.pd-crop-win').exists()).toBe(true)
+    await wrapper.find('img').trigger('error')
+    expect(wrapper.find('.pd-crop-win').exists()).toBe(false)
+    expect(wrapper.find('.pd-crop-note').exists()).toBe(false)
+  })
+
+  it('换图即清尺寸：新图 load 之前不拿上一张的余量说话', async () => {
+    const wrapper = await withSize(mountField(), 600, 900)
+    await wrapper.setProps({ src: 'data:image/gif;base64,R0lGODdh' })
+    expect(wrapper.find('.pd-crop-win').exists()).toBe(false)
+    await withSize(wrapper, 120, 120)
+    expect(wrapper.find('.pd-crop-win').exists()).toBe(true)
+  })
+})
+
+describe('放大比例：铺满后把画面推大，才有多出来的边可裁', () => {
+  /** 方框 + 方图：不放大时图刚好等于框，两轴都挪不动（用户实测到的那一例） */
+  function mountSquare(scale?: number) {
+    return mount(CropAnchorField, {
+      props: {
+        fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: 'data:image/gif;base64,R0lGOD',
+        modelValue: undefined, widthMm: 35, heightMm: 35, fit: 'cover', scale,
+      },
+    })
+  }
+
+  it('行在锚点下方，区间 100~400、步长 5，未设置显占位而不是擅自填 100', () => {
+    const row = labelOf(mountField(), '放大比例')!
+    const input = row.find('input')
+    expect(input.attributes('min')).toBe('100')
+    expect(input.attributes('max')).toBe('400')
+    expect(input.attributes('step')).toBe('5')
+    expect(input.element.value).toBe('')
+    expect(input.attributes('placeholder')).toContain('100')
+  })
+
+  it('点「+」从 100 起步发到 105，宿主收到 update:scale', async () => {
+    const wrapper = mountField()
+    const row = labelOf(wrapper, '放大比例')!
+    await row.find('.pd-step-plus').trigger('click')
+    expect(wrapper.emitted('update:scale')?.[0]).toEqual([105])
+  })
+
+  it('从 105 改回 100 等同不放大：撤成 undefined 而不是存一个 100', async () => {
+    const wrapper = mountField(undefined, 'cover', 105)
+    const row = labelOf(wrapper, '放大比例')!
+    expect(row.find('input').element.value).toBe('105')
+    await row.find('input').setValue('100')
+    await row.find('input').trigger('change')
+    expect(wrapper.emitted('update:scale')?.at(-1)).toEqual([undefined])
+  })
+
+  it('方框方图放大到 135%：两轴各多出 12.25mm 可挪，档位随之回到九宫格', async () => {
+    const wrapper = await withSize(mountSquare(135), 120, 120)
+    expect(wrapper.find('.pd-crop-note').text()).toContain('水平可挪 12.25mm')
+    expect(wrapper.find('.pd-crop-note').text()).toContain('垂直可挪 12.25mm')
+    expect(labelOf(wrapper, '裁剪锚点')!.find('select').findAll('option')).toHaveLength(9)
+  })
+
+  it('不放大时同一张方图确实裁不动：提示直说两轴都没有余量', async () => {
+    const wrapper = await withSize(mountSquare(), 120, 120)
+    expect(wrapper.find('.pd-crop-note').text()).toContain('没有可挪的余量')
   })
 })

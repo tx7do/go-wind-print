@@ -5,6 +5,9 @@
 // 判轴、档位表、行模型、提示文案全部取自 core 的 crop-anchor，两端不再各写一遍。
 import {
   buildCropAnchor,
+  CROP_SCALE_LABEL,
+  CROP_SCALE_MAX,
+  CROP_SCALE_MIN,
   CROP_SAMPLE_NOTE,
   cropAxisFields,
   cropAxisNote,
@@ -33,8 +36,11 @@ export interface CropAnchorOpts {
   heightMm: number
   /** 缩放模式（CSS object-fit 原值，缺省按 contain）：可挪余量按它逐轴结算 */
   fit?: string
+  /** 剪裁放大比例（%）：只有 cover 消费，铺满后把画面再推大这么多 */
+  scale?: number
   value?: string
   onCommit: (value: string | undefined) => void
+  onScaleCommit: (value: number | undefined) => void
 }
 
 /** 四位小数够定位红框，又不会把属性写成浮点长串 */
@@ -55,6 +61,7 @@ export function cropAnchorField(ctx: ShellCtx, o: CropAnchorOpts) {
     naturalWidth: size?.width,
     naturalHeight: size?.height,
     fit: o.fit,
+    scalePct: o.scale,
   }
   /** 逐轴余量：cover 挪溢出、contain／原始尺寸／缩小 挪框内空位；拿不到尺寸给 null */
   const travel = resolveCropTravel(box)
@@ -89,6 +96,14 @@ export function cropAnchorField(ctx: ShellCtx, o: CropAnchorOpts) {
     h('span', { class: 'pd-label' }, [o.label, labelHelp(tip)]),
     select,
   ])]
+  // 放大比例排在两框之前：先推大画面才有多出来的边，两框报的可挪量按推大后的尺寸结算
+  rows.push(h('div', { class: 'pd-field', dataset: { field: 'ap-img-fit-scale' } }, [
+    h('span', { class: 'pd-label' }, [CROP_SCALE_LABEL, labelHelp(propertyTip('ap-img-fit-scale'))]),
+    stepper({
+      value: o.scale, min: CROP_SCALE_MIN, max: CROP_SCALE_MAX, step: 5, placeholder: '默认 100',
+      onCommit: v => o.onScaleCommit(v > CROP_SCALE_MIN ? v : undefined),
+    }),
+  ]))
   for (const f of cropAxisFields(travel, x, y)) {
     rows.push(h('div', { class: 'pd-field', dataset: { field: o.fieldKey } }, [
       h('span', { class: 'pd-label', text: f.label }),
@@ -113,6 +128,12 @@ export function cropAnchorField(ctx: ShellCtx, o: CropAnchorOpts) {
         const hit = sizeCache.get(preview.src)
         if (hit && hit.width === img.naturalWidth && hit.height === img.naturalHeight) return
         sizeCache.set(preview.src, { width: img.naturalWidth, height: img.naturalHeight })
+        ctx.repaint()
+      },
+      // 破图要立刻撤掉这张的尺寸并整台重绘，否则档位/note/取景窗会停在上一张图上说「可挪 X mm」
+      onError: () => {
+        if (!sizeCache.has(preview.src)) return
+        sizeCache.delete(preview.src)
         ctx.repaint()
       },
     }),

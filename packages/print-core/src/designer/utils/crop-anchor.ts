@@ -4,6 +4,7 @@
  */
 import { evaluateTemplate } from './expression-eval.js'
 import { DEFAULT_DEMO_DATA } from './demo-data.js'
+import { cropScalePct, CROP_SCALE_MIN } from '../../render/crop-style.js'
 
 export interface CropBox {
   /** 元素框宽（mm） */
@@ -15,6 +16,8 @@ export interface CropBox {
   naturalHeight?: number
   /** 缩放模式（CSS object-fit 原值，缺省 contain）：余量按它逐轴结算 */
   fit?: string
+  /** 剪裁放大比例（%）：只有 cover 消费，铺满后把画面再推大这么多，两轴才同时有可裁的边 */
+  scalePct?: number
 }
 
 /** 逐轴可挪余量（mm）。null＝拿不到图片尺寸，余量未知；0＝该轴贴满，挪不动 */
@@ -88,17 +91,19 @@ const MM_PER_PX = 25.4 / 96
 /**
  * 图按该缩放模式画进框后有多大（mm）。等比铺满会溢出、包含会留空、原始尺寸两轴都可能留空——
  * 溢出与空位都算「可挪余量」，因为锚点在两种情形下都能改变画面/图在框内的落点。
+ * 剪裁档另按「放大比例」把整张画面再推大：图与框同比例时铺满后刚好等于框，不推大就没有一条边可裁。
  */
 function contentMm(box: CropBox): { w: number; h: number } | null {
   const { widthMm, heightMm, naturalWidth, naturalHeight } = box
   if (!naturalWidth || !naturalHeight || !widthMm || !heightMm) return null
   const k = widthMm / naturalWidth
   const l = heightMm / naturalHeight
+  const zoom = (cropScalePct(box.fit, box.scalePct) ?? CROP_SCALE_MIN) / 100
   switch (box.fit || 'contain') {
-    // 拉伸填满：图被钉成框，两轴都挪不动
+    // 拉伸填满：图被钉成框，两轴都挪不动（放大比例只给剪裁档，这里不受影响）
     case 'fill': return { w: widthMm, h: heightMm }
     case 'cover': {
-      const s = Math.max(k, l)
+      const s = Math.max(k, l) * zoom
       return { w: naturalWidth * s, h: naturalHeight * s }
     }
     // 原始尺寸不缩放：按图片内在像素尺寸绘制
@@ -182,8 +187,8 @@ export const CROP_GRID_OPTIONS: Array<{ x: number; y: number; label: string }> =
 
 /**
  * 缩放模式档位表：value 仍是 CSS object-fit 原值（模板 JSON 不变），
- * 只有 cover 对用户改称「剪裁」——它是最常用的取位档，但锚点并非它独有：
- * cover 挪的是溢出部分，contain／原始尺寸／缩小 挪的是框内的空位，只有 fill 把图钉死在框上才没有取位可言。
+ * 只有 cover 对用户改称「剪裁」——它是唯一真会裁掉画面的档位，也只有这一档给「裁剪锚点」行：
+ * 剪裁把图铺满框后必然溢出一条边，锚点挪的就是那条边；其余档图比框小或刚好铺满，没有可裁的边。
  * 画布、单元格台、码值台、common 三处都取这一份，改名不再需要六处同步。
  */
 export const IMAGE_FIT_OPTIONS: Array<{ value: string; label: string }> = [
@@ -208,17 +213,23 @@ export const CROP_SAMPLE_NOTE = '图片还没设置，上面按内置示例图�
 
 /**
  * 属性台的示意图该画哪张图：传入已求值的业务图片地址，取不到即回落示例图。
+ * 未求值的表达式（`{image}` 这类字段在设计态没有 demo 值）也算取不到——直接当 src 用会渲染成破图，
+ * 既绕过示例兜底又让档位/note 停在旧图上（T-17）。合法地址不会含花括号，故按字符判定不误伤。
  * isSample 给宿主用来标「示例图，非你的图片」，避免把演示图误认成业务图。
  */
 export function resolveCropPreview(resolvedSrc?: string): { src: string; isSample: boolean } {
-  const value = String(resolvedSrc ?? '')
-  return value ? { src: value, isSample: false } : { src: CROP_SAMPLE_IMAGE, isSample: true }
+  const value = String(resolvedSrc ?? '').trim()
+  if (!value || value.includes('{') || value.includes('}')) return { src: CROP_SAMPLE_IMAGE, isSample: true }
+  return { src: value, isSample: false }
 }
 
 /** 可动轴数字框的行标签 */
 export function cropAxisLabel(axis: 'horizontal' | 'vertical'): string {
   return axis === 'vertical' ? '垂直位置 (%)' : '水平位置 (%)'
 }
+
+/** 「放大比例」行标签：区间与归一判据取 core `crop-style`（CROP_SCALE_MIN/MAX），两端不再各写一遍 */
+export const CROP_SCALE_LABEL = '放大比例 (%)'
 
 /** 一句话逐轴报数：两轴都能挪就把两个数都写出来；挪不动的那一轴直说，不含糊。keepRaw 表示模板里存的是表达不了的写法 */
 export function cropAxisNote(travel: CropTravel, keepRaw = false): string {

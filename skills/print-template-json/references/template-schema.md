@@ -86,7 +86,7 @@
 |---|---|
 | `barcode` | `barcodeType`（`code128`/`ean13`/`code39`/`itf14`，默认 code128）、`barWidth`（模块倍率 2~4）、`printerDpi`（203/300/600，给出则吸附整数打印点，热敏强烈建议给）、`hideTitle` |
 | `qrcode` | `qrCodeLevel`（`L`/`M`/`Q`/`H`）、`qrQuietZone`（静区白边，单位「模块」，0~8，缺省 0＝不留白边、码面等比铺满元素框）、`fit`（缺省 `contain`）、`maxWidth`/`maxHeight` |
-| `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`，缺省 `contain`；属性台里 `cover` 显示为「剪裁（等比铺满后裁边）」）、`objectPosition`（裁剪锚点，**建议写 `<x>% <y>%`**，如 `50% 0%` 取图顶端；缺省不输出＝`50% 50%` 居中）、`maxWidth`/`maxHeight` |
+| `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`，缺省 `contain`；属性台里 `cover` 显示为「剪裁（等比铺满后裁边）」）、`objectPosition`（裁剪锚点，**建议写 `<x>% <y>%`**，如 `50% 0%` 取图顶端；缺省不输出＝`50% 50%` 居中）、`fitScale`（剪裁放大比例，100~400 的百分数，**仅 `fit: 'cover'` 消费**：铺满后把画面再推大这么多才有可裁的边，`transform-origin` 取的就是同一条 `objectPosition`；100 与缺省同形、不要写出来）、`maxWidth`/`maxHeight` |
 | `longText` | `longTextIndent`（首行缩进，单位 **em**＝「N 个字符宽」，随字号走；仅 `longText` 消费，写在 `text` 上不生效） |
 | `hline`/`vline` | `borderWidth` + `borderColor`（元素高度常取 0.2） |
 

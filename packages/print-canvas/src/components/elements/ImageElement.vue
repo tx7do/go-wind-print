@@ -8,7 +8,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { evaluateTemplate } from '@worm-vue3-print/core/designer'
+import { evaluateTemplate, cropStyleDeclarations } from '@worm-vue3-print/core/designer'
 import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
 
 const props = defineProps<{
@@ -43,7 +43,8 @@ watch(imageSrc, () => {
 
 const imgStyle = computed(() => ({
   objectFit: (props.element.options.fit || 'contain') as any,
-  ...(props.element.options.objectPosition ? { objectPosition: props.element.options.objectPosition } : {}),
+  // 取位与放大的判据与出纸同源（core crop-style）：锚点即放大不动点，两端不许各拼一遍
+  ...cropStyleDeclarations(props.element.options.fit, props.element.options.fitScale, props.element.options.objectPosition),
 }))
 </script>
 

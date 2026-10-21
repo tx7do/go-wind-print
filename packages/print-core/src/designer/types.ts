@@ -213,6 +213,7 @@ export interface TableCell {
   // 图片类型特有属性
   fit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'  // 缩放模式，默认 contain
   objectPosition?: string   // 裁剪锚点（CSS object-position 值），仅 cellType='image' 生效；缺省居中
+  fitScale?: number         // 剪裁放大比例（%，100~400），仅 cellType='image' 且 fit='cover' 生效；100 与缺省同形
   maxWidth?: number     // 最大宽度（mm）
   maxHeight?: number    // 最大高度（mm）
 }
@@ -312,6 +313,8 @@ export interface ElementOptions {
   fit?: string
   /** 裁剪锚点（image）：CSS object-position 值透传，如 'center 20%'；含 ; 引号 url() 等非法字符则整条丢弃；缺省不输出，按 50% 50% 居中 */
   objectPosition?: string
+  /** 剪裁放大比例（image，100~400，单位 %）：仅 fit='cover' 消费——铺满后把画面再推大这么多，两轴同时溢出才真裁得动；100/缺省不落声明 */
+  fitScale?: number
   /** 内容最大宽度（mm，image/barcode/qrcode）；缺省不限制 */
   maxWidth?: number
   /** 内容最大高度（mm，image/barcode/qrcode）；缺省不限制 */

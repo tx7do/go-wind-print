@@ -49,6 +49,41 @@ describe('resolveCropTravel 逐轴余量（两轴同时可挪，按缩放模式�
   })
 })
 
+describe('放大比例把画面推大：图与框同比例也裁得动', () => {
+  const box = { widthMm: 35, heightMm: 45 }
+  it('cover 竖图 60×90：不放大只有竖轴 7.5mm，推到 200% 后两轴同时溢出', () => {
+    const base = { ...box, naturalWidth: 60, naturalHeight: 90, fit: 'cover' }
+    expect(resolveCropTravel(base)).toEqual({ x: 0, y: 7.5 })
+    // 内容 70×105mm：框 35×45 → 横 35、竖 60
+    expect(resolveCropTravel({ ...base, scalePct: 200 })).toEqual({ x: 35, y: 60 })
+  })
+  it('方图进方框（用户实测那一例）：铺满后刚好等于框，放大 135% 才多出一条边', () => {
+    const square = { widthMm: 35, heightMm: 35, naturalWidth: 120, naturalHeight: 120, fit: 'cover' }
+    expect(resolveCropTravel(square)).toEqual({ x: 0, y: 0 })
+    // 内容 47.25×47.25 → 两轴各 12.25mm，档位随之回到九宫格
+    expect(resolveCropTravel({ ...square, scalePct: 135 })).toEqual({ x: 12.25, y: 12.25 })
+    expect(cropPresetOptions({ x: 0, y: 0 }, 50, 50)).toHaveLength(9)
+    expect(cropPresetOptions(resolveCropTravel({ ...square, scalePct: 135 }), 50, 50)).toHaveLength(9)
+  })
+  it('放大只给剪裁档：contain 塞了比例仍按框内空位结算', () => {
+    expect(resolveCropTravel({ ...box, naturalWidth: 120, naturalHeight: 60, fit: 'contain', scalePct: 200 }))
+      .toEqual({ x: 0, y: 27.5 })
+  })
+  it('100 与非法值等同不放大（与 core crop-style 同一判据）', () => {
+    const base = { ...box, naturalWidth: 60, naturalHeight: 90, fit: 'cover' }
+    for (const scalePct of [undefined, 100, 99, NaN]) {
+      expect(resolveCropTravel({ ...base, scalePct })).toEqual(resolveCropTravel(base))
+    }
+  })
+  it('可视窗按放大后的画面落位：内容 90×90 时窗占 35/90 宽、半高，取左中即停在左缘、下移 25%', () => {
+    const win = cropWindow({ ...box, naturalWidth: 120, naturalHeight: 120, fit: 'cover', scalePct: 200 }, 0, 50)
+    expect(win?.leftPct).toBe(0)
+    expect(win?.topPct).toBe(25)
+    expect(win?.widthPct).toBeCloseTo(35 / 90 * 100, 4)
+    expect(win?.heightPct).toBeCloseTo(50, 4)
+  })
+})
+
 describe('数字框与档位（两框常驻，档位按有余量的轴给）', () => {
   it('两轴都常驻，各带本轴余量；余量为 0 的那一轴也在框里，只是挪不动', () => {
     const rows = cropAxisFields({ x: 10, y: 0 }, 30, 20)
@@ -165,6 +200,14 @@ describe('内置示例图与示意回落（只演示取位，不当图片占位�
     expect(resolveCropPreview('')).toEqual({ src: CROP_SAMPLE_IMAGE, isSample: true })
     expect(resolveCropPreview(undefined)).toEqual({ src: CROP_SAMPLE_IMAGE, isSample: true })
     expect(resolveCropPreview('/docfiles/a.png')).toEqual({ src: '/docfiles/a.png', isSample: false })
+  })
+  it('未求值的表达式按「没有图」处理（T-17：直接当 src 用会渲染成破图并绕过示例兜底）', () => {
+    expect(resolveCropPreview('{image}')).toEqual({ src: CROP_SAMPLE_IMAGE, isSample: true })
+    expect(resolveCropPreview('  {a.b}  ')).toEqual({ src: CROP_SAMPLE_IMAGE, isSample: true })
+    // demo 数据里没这个键时求值会原样留花括号，同样落回示例图
+    expect(resolveCropPreview(resolveDesignImageSrc('{image}'))).toEqual({ src: CROP_SAMPLE_IMAGE, isSample: true })
+    // 求值成功的地址不会被误伤
+    expect(resolveCropPreview(resolveDesignImageSrc('{order.no}')).isSample).toBe(false)
   })
   it('示例图是正方形：cover 进 35×45 框只有水平挪 10mm，contain 留的是垂直空位 10mm', () => {
     const { width, height } = sampleIntrinsic(CROP_SAMPLE_IMAGE)

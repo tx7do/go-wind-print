@@ -10,6 +10,7 @@ import type { ShellCtx, ShellState } from '../controls'
 import { renderPropertyPanel } from '../property-panel'
 import { tableCellGroup } from '../table-props'
 import { renderTable } from '../table'
+import { imageStyle } from '../elements'
 
 function makeState(): ShellState {
   return {
@@ -76,19 +77,39 @@ describe('元素台缩放模式与锚点', () => {
     expect(host.textContent).not.toContain('覆盖（保持比例）')
   })
 
-  it('缺省（包含）档就出锚点行，带示意图容器；只有拉伸填满不给', () => {
-    const { host } = paintElement('image', { src: 'a' })
-    expect(rowOf(host, '裁剪锚点')).toBeTruthy()
-    expect(host.querySelector('.pd-crop-preview')).toBeTruthy()
+  it('锚点行只在剪裁档出，带示意图容器；包含／拉伸填满／原始尺寸／缩小都不给', () => {
+    for (const fit of [undefined, 'contain', 'fill', 'none', 'scale-down']) {
+      const { host } = paintElement('image', { src: 'a', ...(fit ? { fit } : {}) })
+      expect(rowOf(host, '裁剪锚点'), `fit=${fit}`).toBeUndefined()
+      expect(host.querySelector('.pd-crop-preview')).toBeNull()
+    }
 
-    const filled = paintElement('image', { src: 'a', fit: 'fill' })
-    expect(rowOf(filled.host, '裁剪锚点')).toBeUndefined()
+    const cropped = paintElement('image', { src: 'a', fit: 'cover' })
+    expect(rowOf(cropped.host, '裁剪锚点')).toBeTruthy()
+    expect(cropped.host.querySelector('.pd-crop-preview')).toBeTruthy()
   })
 
   it('图片没设置时示意回落内置示例图，并说破这是示例图', () => {
     const { host } = paintElement('image', { fit: 'cover' })
     expect(host.querySelector<HTMLImageElement>('.pd-crop-thumb')!.getAttribute('src')).toBe(CROP_SAMPLE_IMAGE)
     expect(host.textContent).toContain('示例图')
+  })
+
+  it('未求值的表达式不当真图用：同样回落示例图并说破（T-17）', () => {
+    const { host } = paintElement('image', { src: '{image}', fit: 'cover' })
+    expect(host.querySelector<HTMLImageElement>('.pd-crop-thumb')!.getAttribute('src')).toBe(CROP_SAMPLE_IMAGE)
+    expect(host.textContent).toContain('图片还没设置')
+  })
+
+  it('破图不留在旧尺寸上：error 后取景窗与可挪量一起收掉，不再拿旧图说话', () => {
+    const { host } = paintElement('image', { src: 'broken-a.png', fit: 'cover' })
+    loadSize(host, 600, 900)
+    expect(host.querySelector('.pd-crop-win')).toBeTruthy()
+    expect(host.textContent).toContain('垂直可挪 7.5mm')
+
+    host.querySelector<HTMLImageElement>('.pd-crop-thumb')!.dispatchEvent(new Event('error'))
+    expect(host.querySelector('.pd-crop-win')).toBeNull()
+    expect(host.textContent).not.toContain('可挪')
   })
 
   it('锚点选档写入 objectPosition，选回居中撤键', () => {
@@ -132,6 +153,70 @@ describe('元素台缩放模式与锚点', () => {
     const select = rowOf(host, '裁剪锚点')!.querySelector('select')!
     expect(select.value).toBe('custom')
     expect(el.options.objectPosition).toBe('left 4mm top 6mm')
+  })
+})
+
+describe('放大比例：先推大画面，两框才有多出来的边可挪', () => {
+  /** 步进钮与输入框都要重新取：common 每次提交都整台重绘，旧节点已脱树 */
+  const scaleRow = (host: HTMLElement) => rowOf(host, '放大比例')!
+  const plus = (host: HTMLElement) => (scaleRow(host).querySelector('.pd-step-plus') as HTMLButtonElement)
+
+  it('行序为位置档 → 放大比例 → 水平 → 垂直；区间 100~400、步长 5，未设置显占位', () => {
+    const { host } = paintElement('image', { src: 'a', fit: 'cover' })
+    const labels = Array.from(host.querySelectorAll<HTMLElement>('.pd-field .pd-label')).map(l => l.textContent ?? '')
+    const at = labels.findIndex(t => t.includes('裁剪锚点'))
+    expect(labels.slice(at, at + 4)).toEqual(['裁剪锚点', '放大比例 (%)', '水平位置 (%)', '垂直位置 (%)'])
+    const input = scaleRow(host).querySelector('input')!
+    expect([input.getAttribute('min'), input.getAttribute('max'), input.getAttribute('step')]).toEqual(['100', '400', '5'])
+    expect(input.value).toBe('')
+    expect(input.getAttribute('placeholder')).toContain('100')
+  })
+
+  it('点「+」写回 options.fitScale，改回 100 即撤键（不存成 100）', () => {
+    const { host, ctx, el } = paintElement('image', { src: 'a', fit: 'cover' })
+    plus(host).click()
+    expect(el.options.fitScale).toBe(105)
+    // 本 harness 不监听 store 变更，宿主靠重绘回显：手动 repaint 才看得到新值
+    ctx.repaint()
+    expect(scaleRow(host).querySelector('input')!.value).toBe('105')
+
+    const input = scaleRow(host).querySelector('input')!
+    input.value = '100'
+    input.dispatchEvent(new Event('change'))
+    expect(el.options.fitScale).toBeUndefined()
+  })
+
+  it('方框方图放大后两轴都出余量：提示报 1.75mm、档位回到九宫格', () => {
+    const { host } = paintElement('image', { src: 'a', fit: 'cover', width: 35, height: 35 })
+    plus(host).click()
+    loadSize(host, 120, 120)
+    // 内容 36.75×36.75 vs 框 35×35 → 两轴各 1.75mm
+    expect(host.textContent).toContain('水平可挪 1.75mm')
+    expect(host.textContent).toContain('垂直可挪 1.75mm')
+    expect(scaleRow(host).parentElement!.querySelectorAll('.pd-field')[0].querySelectorAll('option')).toHaveLength(9)
+  })
+
+  it('单元格台同一行写回 cell.fitScale', () => {
+    const { host, cell } = cellHarness({ cellType: 'image', formatter: 'a', fit: 'cover' })
+    plus(host).click()
+    expect(cell.fitScale).toBe(105)
+  })
+
+  it('单元格出图与元素出图都按同源判据带出 transform 与 transform-origin', () => {
+    const { canvas } = cellHarness({ cellType: 'image', formatter: 'a', fit: 'cover', fitScale: 150, objectPosition: '50% 100%' })
+    const img = canvas.querySelector<HTMLImageElement>('td img')!
+    expect(img.style.transform).toBe('scale(1.5)')
+    expect(img.style.transformOrigin).toBe('50% 100%')
+
+    const style = imageStyle({ options: { fit: 'cover', fitScale: 150, objectPosition: '50% 0%' } } as never)
+    expect(style.transform).toBe('scale(1.5)')
+    expect(style.transformOrigin).toBe('50% 0%')
+  })
+
+  it('门禁：非剪裁档不出这一行，出图端也不认这个值', () => {
+    const { host } = paintElement('image', { src: 'a', fit: 'contain', fitScale: 150 })
+    expect(rowOf(host, '放大比例')).toBeUndefined()
+    expect(imageStyle({ options: { fit: 'contain', fitScale: 150 } } as never).transform).toBeUndefined()
   })
 })
 

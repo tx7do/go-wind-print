@@ -41,6 +41,7 @@
                 :value="cell.formatter || ''"
                 :fit="cell.fit"
                 :object-position="cell.objectPosition"
+                :fit-scale="cell.fitScale"
                 :max-width="cell.maxWidth"
                 :max-height="cell.maxHeight"
                 :box-height-mm="cellImageBoxMm(cell.fit, cellCapMm(ri, cell))"

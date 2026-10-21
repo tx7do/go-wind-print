@@ -70,6 +70,39 @@ describe('独立图片：锚点生效的那一侧', () => {
   })
 })
 
+describe('剪裁放大比例 fitScale：铺满后把画面推大，才有多出来的边可裁', () => {
+  it('cover + 135%：transform 放大且 transform-origin 复用同一条锚点值（取位点＝放大不动点）', () => {
+    const d = imgDeclsOf(renderElement({ fit: 'cover', fitScale: 135, objectPosition: '50% 0%' }), '独立图片')
+    expect(d).toContain('object-position:50% 0%')
+    expect(d).toContain('transform:scale(1.35)')
+    expect(d).toContain('transform-origin:50% 0%')
+  })
+  it('cover + 400% 且没写锚点：按缺省居中放大，与 object-position 的缺省口径同值', () => {
+    const d = imgDeclsOf(renderElement({ fit: 'cover', fitScale: 400 }), '独立图片')
+    expect(d).toContain('transform:scale(4)')
+    expect(d).toContain('transform-origin:50% 50%')
+  })
+  it('门禁：非剪裁档与 100 都不出放大声明（存量模板逐字不变）', () => {
+    for (const options of [{ fit: 'contain', fitScale: 135 }, { fit: 'cover', fitScale: 100 }, { fit: 'cover' }]) {
+      const d = imgDeclsOf(renderElement(options), '独立图片')
+      expect(d.some(s => s.startsWith('transform'))).toBe(false)
+    }
+  })
+  it('锚点非法：取位整条丢弃，放大仍以缺省居中为不动点（不留半条声明）', () => {
+    const d = imgDeclsOf(renderElement({ fit: 'cover', fitScale: 135, objectPosition: '50%;color:red' }), '独立图片')
+    expect(d.some(s => s.startsWith('object-position'))).toBe(false)
+    expect(d).toContain('transform:scale(1.35)')
+    expect(d).toContain('transform-origin:50% 50%')
+  })
+  it('单元格图片同样吃放大比例：外框仍钉在可用框高，超出部分由盒子的 overflow 裁掉', () => {
+    const html = renderCell({ fit: 'cover', fitScale: 150, objectPosition: '50% 100%' })
+    expect(boxDeclsOf(html)).toContain('height:6mm')
+    const d = imgDeclsOf(html, '单元格图片')
+    expect(d).toContain('transform:scale(1.5)')
+    expect(d).toContain('transform-origin:50% 100%')
+  })
+})
+
 describe('表格图片单元格：剪裁档与独立元素同构', () => {
   it('cover：外框钉在可用框高（声明行高扣内边距），img 撑满该盒才有可裁余量', () => {
     const html = renderCell({ fit: 'cover', objectPosition: '50% 0%' })

@@ -85,15 +85,17 @@
             <option v-for="o in IMAGE_FIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
           </select>
         </div>
-        <div v-if="element.options.fit !== 'fill'" v-show="showItem('ap-img-object-position')">
+        <div v-if="element.options.fit === 'cover'" v-show="showItem('ap-img-object-position')">
           <CropAnchorField field-key="ap-img-object-position"
             label="裁剪锚点"
             :src="imageSrc"
             :fit="element.options.fit"
             :width-mm="element.options.width || 0"
             :height-mm="element.options.height || 0"
+            :scale="element.options.fitScale"
             :model-value="element.options.objectPosition"
-            @update:model-value="element.options.objectPosition = $event" />
+            @update:model-value="element.options.objectPosition = $event"
+            @update:scale="element.options.fitScale = $event" />
         </div>
       </template>
       <p class="pd-empty" v-if="!isTextType && !isImageType && !isTableType">当前元素不支持外观设置</p>

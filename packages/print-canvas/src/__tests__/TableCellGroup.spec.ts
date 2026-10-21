@@ -157,6 +157,18 @@ describe('单元格图片裁剪锚点（仅剪裁档）', () => {
     expect(cellOf(el).objectPosition).toBeUndefined()
   })
 
+  it('放大比例写回 cell.fitScale，退回 100 即撤掉该键', async () => {
+    const el = makeElement({ cellType: 'image', fit: 'cover' })
+    const w = mountGroup(el)
+    const row = w.findAll('.pd-field').find(f => (f.find('.pd-label').text() || '').includes('放大比例'))!
+    await row.find('.pd-step-plus').trigger('click')
+    expect(cellOf(el).fitScale).toBe(105)
+
+    await row.find('input').setValue('100')
+    await row.find('input').trigger('change')
+    expect(cellOf(el).fitScale).toBeUndefined()
+  })
+
   it('二维码与文本单元格都不出锚点行（只有图片会裁）', () => {
     expect(anchorRow(mountGroup(makeElement({ cellType: 'qrcode', fit: 'cover' })))).toBeUndefined()
     expect(anchorRow(mountGroup(makeElement({ content: '文本' })))).toBeUndefined()

@@ -169,10 +169,10 @@ describe('issue #4 新增字段：首行缩进与图片缩放/锚点', () => {
     expect(visibleItemKeys(paint('text').host)).not.toContain('ap-long-text-indent')
   })
 
-  it('缩放模式常出且 cover 叫剪裁；锚点行除拉伸填满外都出——嵌套数组曾让 paint 抛 TypeError，必须能平铺渲染', () => {
+  it('缩放模式常出且 cover 叫剪裁；锚点行只在剪裁档出——嵌套数组曾让 paint 抛 TypeError，必须能平铺渲染', () => {
     const plain = visibleItemKeys(paint('image').host)
     expect(plain).toContain('ap-img-fit')
-    expect(plain).toContain('ap-img-object-position')
+    expect(plain).not.toContain('ap-img-object-position')
 
     const filled = visibleItemKeys(paint('image', '', { fit: 'fill' }).host)
     expect(filled).not.toContain('ap-img-object-position')

@@ -72,6 +72,18 @@ describe('ImageElement 缩放与锚点', () => {
     expect(s).toContain('object-fit:cover')
     expect(s).toContain('object-position:center 20%')
   })
+  it('剪裁 + 放大比例出 transform，且 transform-origin 复用同一条取位值（取位点＝放大不动点）', () => {
+    const w = mount(ImageElement, { props: { element: makeEl('image', { src: SRC, fit: 'cover', objectPosition: '50% 100%', fitScale: 150 }), designMode: true } })
+    const s = (w.find('img').attributes('style') ?? '').replace(/:\s+/g, ':')
+    expect(s).toContain('transform:scale(1.5)')
+    expect(s).toContain('transform-origin:50% 100%')
+  })
+  it('非剪裁档或 100 不出 transform（存量模板逐字不变）', () => {
+    for (const options of [{ fit: 'contain', fitScale: 150 }, { fit: 'cover', fitScale: 100 }]) {
+      const w = mount(ImageElement, { props: { element: makeEl('image', { src: SRC, ...options }), designMode: true } })
+      expect(w.find('img').attributes('style') ?? '').not.toContain('transform')
+    }
+  })
   it('缺省时只有 object-fit:contain，不带 object-position', () => {
     const w = mount(ImageElement, { props: { element: makeEl('image', { src: SRC }), designMode: true } })
     const s = (w.find('img').attributes('style') ?? '').replace(/:\s+/g, ':')
@@ -103,14 +115,15 @@ describe('AppearanceGroup 新增入口（issue #4 属性台暴露）', () => {
     const w = mount(AppearanceGroup, { props: { element: makeEl('text', { formatter: '文本' }), isTextType: true } })
     expect([...w.findAll('.pd-label')].some(l => (l.text() || '').includes('首行缩进'))).toBe(false)
   })
-  it('图片元素出现缩放模式；锚点行缺省就在，切到剪裁后写回 options', async () => {
+  it('图片元素出现缩放模式；锚点行切到剪裁才出，再写回 options', async () => {
     const w = mount(AppearanceGroup, { props: { element: makeEl('image', { src: 'a' }), isTextType: false } })
-    expect(w.text()).toContain('裁剪锚点')
+    expect(w.text()).not.toContain('裁剪锚点')
     const select = w.find('select.pd-select').element as HTMLSelectElement
     expect(select.options[1].value).toBe('cover')
     select.value = 'cover'
     await select.dispatchEvent(new Event('change'))
     expect(w.props('element').options.fit).toBe('cover')
+    expect(w.text()).toContain('裁剪锚点')
     await w.find('[data-field="ap-img-object-position"] select').setValue('50,0')
     expect(w.props('element').options.objectPosition).toBe('50% 0%')
   })

@@ -81,23 +81,26 @@ describe('AppearanceGroup 图片缩放模式与裁剪锚点', () => {
     expect(wrapper.text()).not.toContain('覆盖（保持比例）')
   })
 
-  it('缺省（包含）档就出锚点行：两轴都调得到，挪的是框内的空位', () => {
+  it('缺省（包含）档不出锚点行：图比框小，没有可裁的边', () => {
     const wrapper = mountImage(makeImage())
-    expect(wrapper.text()).toContain('裁剪锚点')
-    expect(wrapper.find('.pd-crop-preview').exists()).toBe(true)
-  })
-
-  it('只有拉伸填满不给锚点行：图被钉成框，没有取位可言', async () => {
-    const element = makeImage()
-    const wrapper = mountImage(element)
-    await imgFitSelect(wrapper).setValue('fill')
-    expect(element.options.fit).toBe('fill')
     expect(wrapper.text()).not.toContain('裁剪锚点')
+    expect(wrapper.find('.pd-crop-preview').exists()).toBe(false)
   })
 
-  it('切到剪裁写回 fit=cover，锚点行不消失（同一行了，不再切档才长出来）', async () => {
+  it('非剪裁档一律不给锚点行：包含／拉伸填满／原始尺寸／缩小', async () => {
+    for (const fit of ['contain', 'fill', 'none', 'scale-down']) {
+      const element = makeImage()
+      const wrapper = mountImage(element)
+      await imgFitSelect(wrapper).setValue(fit)
+      expect(element.options.fit).toBe(fit)
+      expect(wrapper.text()).not.toContain('裁剪锚点')
+    }
+  })
+
+  it('切到剪裁才长出锚点行，写回 fit=cover', async () => {
     const element = makeImage()
     const wrapper = mountImage(element)
+    expect(wrapper.text()).not.toContain('裁剪锚点')
     await imgFitSelect(wrapper).setValue('cover')
     expect(element.options.fit).toBe('cover')
     expect(wrapper.text()).toContain('裁剪锚点')
@@ -112,6 +115,18 @@ describe('AppearanceGroup 图片缩放模式与裁剪锚点', () => {
 
     await anchorSelect.setValue('50,50')
     expect(element.options.objectPosition).toBeUndefined()
+  })
+
+  it('放大比例写回 options.fitScale，退回 100 即撤掉该属性', async () => {
+    const element = makeImage({ fit: 'cover' })
+    const wrapper = mountImage(element)
+    const row = wrapper.findAll('.pd-field').find(f => f.find('.pd-label').text().includes('放大比例'))!
+    await row.find('.pd-step-plus').trigger('click')
+    expect(element.options.fitScale).toBe(105)
+
+    await row.find('input').setValue('100')
+    await row.find('input').trigger('change')
+    expect(element.options.fitScale).toBeUndefined()
   })
 
   it('表达式图片地址按设计态 demo 数据求值后进示意图', () => {

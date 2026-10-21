@@ -3,6 +3,7 @@
 // 来自派生 CSS，因此这里的类名与内联样式必须与 Vue 版一致才能出同样的纸面效果。
 import DOMPurify from 'dompurify'
 import {
+  cropStyleDeclarations,
   DEFAULT_DEMO_DATA,
   ELEMENT_BORDER_SIDES,
   RESIZE_POINTS,
@@ -128,7 +129,8 @@ export function imageStyle(el: RuntimeElement): Record<string, string> {
   const o = el.options
   return {
     objectFit: o.fit || 'contain',
-    ...(o.objectPosition ? { objectPosition: o.objectPosition } : {}),
+    // 取位与放大的判据与出纸同源（core crop-style）：锚点即放大不动点，两端不许各拼一遍
+    ...cropStyleDeclarations(o.fit, o.fitScale, o.objectPosition),
     maxWidth: o.maxWidth ? `${o.maxWidth}mm` : '100%',
     maxHeight: o.maxHeight ? `${o.maxHeight}mm` : '100%',
   }

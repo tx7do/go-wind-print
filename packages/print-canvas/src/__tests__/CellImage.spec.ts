@@ -50,6 +50,20 @@ describe('CellImage', () => {
     expect(d).toContain('object-position: 50% 0%')
   })
 
+  it('剪裁放大：画面按锚点推大，超出钉盒的部分由 .cell-image 的 overflow 裁掉', () => {
+    const wrapper = mount(CellImage, {
+      props: { value: '/test-image.png', fit: 'cover', objectPosition: '50% 100%', fitScale: 150, boxHeightMm: 6 }
+    })
+    const d = decls(wrapper.find('img').attributes('style'))
+    expect(d).toContain('transform: scale(1.5)')
+    expect(d).toContain('transform-origin: 50% 100%')
+  })
+
+  it('放大只给剪裁档：contain 塞了比例也不出 transform（与出纸同一门禁）', () => {
+    const wrapper = mount(CellImage, { props: { value: '/test-image.png', fit: 'contain', fitScale: 150 } })
+    expect(decls(wrapper.find('img').attributes('style')).some(s => s.startsWith('transform'))).toBe(false)
+  })
+
   it('门控只在剪裁档：不给可用框高时逐字保持现状（td 高度仍由内容决定）', () => {
     for (const fit of [undefined, 'contain', 'fill']) {
       const wrapper = mount(CellImage, { props: { value: '/test-image.png', fit, boxHeightMm: undefined } })

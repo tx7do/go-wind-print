@@ -16,6 +16,9 @@ export * from '../render/barcode-dot.js'
 // ─── 元素级边框判定（与渲染端共用同一份，画布边框必须等于出纸边框） ───
 export * from '../render/element-border.js'
 
+// ─── 剪裁取位与放大的声明单点（与渲染端共用同一份，画布取位必须等于出纸取位） ───
+export * from '../render/crop-style.js'
+
 // ─── 通用工具 ───
 export * from './utils/units.js'
 export * from './utils/scale.js'

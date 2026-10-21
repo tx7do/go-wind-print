@@ -191,6 +191,7 @@ function makeRenderRow(
       printerDpi: cell.printerDpi,
       fit: cell.fit,
       objectPosition: cell.objectPosition,
+      fitScale: cell.fitScale,
       maxWidth: cell.maxWidth,
       maxHeight: cell.maxHeight,
       rowspan: cell.rowspan ?? 1,

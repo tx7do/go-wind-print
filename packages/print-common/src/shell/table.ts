@@ -38,7 +38,7 @@ import type {
 import {
   BARCODE_BAR_HEIGHT_MODULES, BARCODE_MARGIN_BOTTOM_MODULES, BARCODE_QUIET_ZONE_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES, DEFAULT_DEMO_DATA, barcodeAvailableBoxMm, barcodeUnitsPerModule,
-  canMergeReason, cellFitCapMm, cellFitWidthMm, cellImageBoxMm, clampResizedColumnWidth, deleteCol, deleteRow,
+  canMergeReason, cellFitCapMm, cellFitWidthMm, cellImageBoxMm, clampResizedColumnWidth, cropStyleDeclarations, deleteCol, deleteRow,
   evaluateTemplate, insertCol, insertRow, mergeCells, normalizeSelection,
   resolveBarcodeDesignValue, resolveBarcodeSize, resolveCellBorderCss, resolveCellTextFit,
   resolveShrinkMinFontSize, setRowType, splitCells, syncTableElementSize,
@@ -399,7 +399,10 @@ function cellImageNode(ctx: TableCtx, ri: number, cell: TableCell): HTMLElement 
     img.style.height = '100%'
   }
   img.style.objectFit = cell.fit || 'contain'
-  if (cell.objectPosition) img.style.objectPosition = cell.objectPosition
+  // 取位与放大与出纸同源（core crop-style）：钉盒之外多出来的部分由 .cell-image 的 overflow 裁掉
+  for (const [key, value] of Object.entries(cropStyleDeclarations(cell.fit, cell.fitScale, cell.objectPosition))) {
+    ;(img.style as unknown as Record<string, string>)[key] = value
+  }
   img.style.maxWidth = cell.maxWidth ? `${cell.maxWidth}mm` : '100%'
   img.style.maxHeight = cell.maxHeight ? `${cell.maxHeight}mm` : '100%'
   img.addEventListener('error', () => {

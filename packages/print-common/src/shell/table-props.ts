@@ -321,7 +321,9 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(cell0.formatter), fit: cell0.fit,
         containerClass: 'pd-cell-anchor',
         widthMm: cellBox.width, heightMm: cellBox.height,
+        scale: cell0.fitScale,
         value: cell0.objectPosition, onCommit: v => write(c => { c.objectPosition = v }),
+        onScaleCommit: v => write(c => { c.fitScale = v }),
       }) : '',
       (isBarcodeCell || isQrcodeCell || isImageCell)
         ? numField('最大宽度 (mm)', optNum(cell0.maxWidth), (c, v) => { c.maxWidth = v }, { min: 0, max: 200, placeholder: '默认' })

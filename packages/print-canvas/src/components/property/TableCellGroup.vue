@@ -79,8 +79,10 @@
           :fit="mainCell.fit"
           :width-mm="cellBoxMm.width"
           :height-mm="cellBoxMm.height"
+          :scale="mainCell.fitScale"
           :model-value="mainCell.objectPosition"
-          @update:model-value="write(c => { c.objectPosition = $event })" />
+          @update:model-value="write(c => { c.objectPosition = $event })"
+          @update:scale="write(c => { c.fitScale = $event })" />
       </div>
       <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label">最大宽度 (mm)</span>
         <StepperInput :model-value="mainCell.maxWidth"

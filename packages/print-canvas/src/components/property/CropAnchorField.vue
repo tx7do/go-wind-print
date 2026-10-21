@@ -1,10 +1,19 @@
-<!-- 裁剪锚点：位置档下拉 + 水平／垂直两框常驻 + 原图可视窗示意。缩放模式为拉伸填满时没有取位余地，宿主不出这一行。 -->
+<!-- 裁剪锚点：位置档下拉 + 放大比例 + 水平／垂直两框常驻 + 原图可视窗示意。只有缩放模式为剪裁（cover）时才有被裁掉的边，宿主只在那一档出这一行。 -->
 <template>
   <div class="pd-field" :data-field="fieldKey"><span class="pd-label">{{ label }}<button type="button" class="pd-help" :data-tip="tip" aria-label="字段说明" /></span>
     <select class="pd-select" style="width: 100%" :value="selectValue" @change="onPresetChange">
       <option v-for="o in presetOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
       <option v-if="isCustom" value="custom">自定义（保留原值）</option>
     </select>
+  </div>
+
+  <div class="pd-field" data-field="ap-img-fit-scale">
+    <span class="pd-label">{{ CROP_SCALE_LABEL }}<button type="button" class="pd-help" :data-tip="scaleTip" aria-label="字段说明" /></span>
+    <StepperInput :model-value="scale"
+      :min="CROP_SCALE_MIN"
+      :max="CROP_SCALE_MAX"
+      :step="5"
+      placeholder="默认 100" @update:model-value="onScaleInput" />
   </div>
 
   <div class="pd-field" v-for="row in axisRows" :key="row.name" :data-field="fieldKey">
@@ -20,15 +29,18 @@
   <p class="pd-crop-note" v-if="preview.isSample">{{ CROP_SAMPLE_NOTE }}</p>
 
   <div class="pd-crop-preview">
-    <img class="pd-crop-thumb" :src="preview.src" :alt="preview.isSample ? '示例图' : '原图'" @load="onLoad" />
+    <img class="pd-crop-thumb" :key="preview.src" :src="preview.src" :alt="preview.isSample ? '示例图' : '原图'" @load="onLoad" @error="forgetSize" />
     <div class="pd-crop-win" v-if="win" :style="winStyle" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   buildCropAnchor,
+  CROP_SCALE_LABEL,
+  CROP_SCALE_MAX,
+  CROP_SCALE_MIN,
   CROP_SAMPLE_NOTE,
   cropAxisFields,
   cropAxisNote,
@@ -53,17 +65,22 @@ const props = withDefaults(defineProps<{
   heightMm: number
   /** 缩放模式（CSS object-fit 原值，缺省按 contain）：可挪余量按它逐轴结算 */
   fit?: string
+  /** 剪裁放大比例（%）：只有剪裁档消费，铺满后把画面再推大这么多 */
+  scale?: number
 }>(), {
   src: '',
   modelValue: undefined,
   fit: undefined,
+  scale: undefined,
 })
 
 const emit = defineEmits<{
   'update:modelValue': [value: string | undefined]
+  'update:scale': [value: number | undefined]
 }>()
 
 const tip = computed(() => propertyTip(props.fieldKey))
+const scaleTip = propertyTip('ap-img-fit-scale')
 const preview = computed(() => resolveCropPreview(props.src))
 
 /** 自然尺寸由预览图加载事件带出；拿不到就报「余量未知」，不编造 0 */
@@ -74,6 +91,11 @@ function onLoad(e: Event) {
     size.value = { width: img.naturalWidth, height: img.naturalHeight }
   }
 }
+/** 换图与破图都要立刻丢掉上一张的尺寸，否则档位/note/取景窗会停在旧图上说「可挪 X mm」 */
+function forgetSize() {
+  size.value = undefined
+}
+watch(() => preview.value.src, forgetSize)
 
 const parsed = computed(() => parseCropAnchor(props.modelValue))
 const isCustom = computed(() => parsed.value.kind === 'custom')
@@ -86,8 +108,9 @@ const box = computed(() => ({
   naturalWidth: size.value?.width,
   naturalHeight: size.value?.height,
   fit: props.fit,
+  scalePct: props.scale,
 }))
-/** 逐轴余量：cover 挪的是溢出，contain／原始尺寸／缩小 挪的是框内空位，fill 没有取位可言（宿主不给她出这一行） */
+/** 逐轴余量：剪裁档图铺满框后至少一轴溢出，挪的就是溢出的那一条边；拿不到自然尺寸给 null，不编造 0 */
 const travel = computed(() => resolveCropTravel(box.value))
 
 const presetOptions = computed(() => cropPresetOptions(travel.value, curX.value, curY.value))
@@ -112,6 +135,11 @@ function onPresetChange(e: Event) {
 function onAxisInput(name: 'horizontal' | 'vertical', value: number | undefined) {
   if (value === undefined) return
   name === 'horizontal' ? commit(value, curY.value) : commit(curX.value, value)
+}
+
+/** 100 与清空都等同「不放大」：撤掉该属性而不是存成 100，存量模板不因此多一个键 */
+function onScaleInput(value: number | undefined) {
+  emit('update:scale', value !== undefined && value > CROP_SCALE_MIN ? value : undefined)
 }
 
 const win = computed(() => cropWindow(box.value, curX.value, curY.value))
@@ -143,6 +171,10 @@ const winStyle = computed(() => win.value && {
   border: 1px solid var(--pd-border, #d9dde6);
   border-radius: 4px;
   line-height: 0;
+  /* 取景窗的百分比是按这个容器算的：容器必须贴住图本身，撑满面板宽会让红框变成图外的长方形、
+     把示例图切成「显示不全」的一块（common 侧 designer.css 由本文件派生，改这里就同步过去） */
+  width: fit-content;
+  max-width: 100%;
 }
 .pd-crop-thumb {
   max-width: 100%;

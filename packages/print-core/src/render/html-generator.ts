@@ -26,6 +26,7 @@ import {
 } from './text-fit.js'
 import { buildFontFaceCss } from '../print/fonts.js'
 import { ELEMENT_BORDER_SIDES, resolveElementBorder } from './element-border.js'
+import { cropStyleDeclarations } from './crop-style.js'
 import { injectSystemVariables } from './data-binder.js'
 import { evaluateTemplate } from './expression-eval.js'
 import { renderWatermarkLayerHtml } from './watermark.js'
@@ -367,15 +368,13 @@ function indentStyle(opts: Record<string, any>): string {
 }
 
 /**
- * 裁剪锚点：仅在模板给出合法 objectPosition 时输出，缺省时逐字保持存量模板的居中裁剪。
- * objectPosition 是自由 CSS 值，escapeInlineStyleValue 只处理 & 与引号，挡不住用 ';' 追加声明，
- * 故这里按角色白名单净化：命中非法字符即整条丢弃（宿主侧 CSSOM 同样会丢弃非法值，两端行为一致）。
+ * 剪裁取位与放大的内联声明。净化与「只有剪裁消费放大比例」的判定都在 core `crop-style` 单点做完，
+ * 这里只负责把 camelCase 键转成 CSS 声明；缺省时逐字保持存量模板的居中裁剪。
  */
-const OBJECT_POSITION_UNSAFE = /[;"'<>\\(){}\[\]@!#]/
-function positionStyle(objectPosition?: string): string {
-  const v = (objectPosition ?? '').trim()
-  if (!v || v.length > 64 || OBJECT_POSITION_UNSAFE.test(v)) return ''
-  return `object-position:${escapeInlineStyleValue(v)};`
+function cropStyle(fit: string | undefined, fitScale: number | undefined, objectPosition?: string): string {
+  return Object.entries(cropStyleDeclarations(fit, fitScale, objectPosition))
+    .map(([key, value]) => `${key.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)}:${escapeInlineStyleValue(value)};`)
+    .join('')
 }
 
 /**
@@ -435,7 +434,7 @@ function renderElement(el: TemplateElement, isMeasure: boolean, containerStyle?:
       return renderTableElement(el, isMeasure, measureAttr, ctx)
     case 'image':
       return `<div class="print-element" style="${style}"${measureAttr}>
-  <img src="${esc(opts.src ?? '')}" style="width:100%;height:100%;object-fit:${opts.fit || 'contain'};${positionStyle(opts.objectPosition)}" />
+  <img src="${esc(opts.src ?? '')}" style="width:100%;height:100%;object-fit:${opts.fit || 'contain'};${cropStyle(opts.fit, opts.fitScale, opts.objectPosition)}" />
 </div>`
     case 'barcode':
     case 'qrcode': {
@@ -641,7 +640,7 @@ function renderMatrixRows(
           const boxMm = cellImageBoxMm(fit, cellFitCapMm(renderRows, r, cell, defaultPadding))
           const boxHeight = boxMm === undefined ? 'height:100%' : `height:${boxMm}mm`
           const imgBox = boxMm === undefined ? '' : 'width:100%;height:100%;'
-          inner = `<div style="width:100%;${boxHeight};display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${esc(resolveCellContent(cell, ctx))}" style="${imgBox}object-fit:${fit};${positionStyle(cell.objectPosition)}${maxWidth}${maxHeight}display:block;" /></div>`
+          inner = `<div style="width:100%;${boxHeight};display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${esc(resolveCellContent(cell, ctx))}" style="${imgBox}object-fit:${fit};${cropStyle(fit, cell.fitScale, cell.objectPosition)}${maxWidth}${maxHeight}display:block;" /></div>`
         } else {
           inner = renderTextCellInner(renderRows, r, colIndex, cell, opts, fitOwner, defaultPadding, ctx)
         }

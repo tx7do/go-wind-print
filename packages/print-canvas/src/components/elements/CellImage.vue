@@ -8,13 +8,15 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { evaluateTemplate } from '@worm-vue3-print/core/designer'
+import { evaluateTemplate, cropStyleDeclarations } from '@worm-vue3-print/core/designer'
 import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
 
 const props = defineProps<{
   value: string
   fit?: string
   objectPosition?: string
+  /** 剪裁放大比例（%）：仅 fit='cover' 消费，宿主按 core 判据传入 */
+  fitScale?: number
   maxWidth?: number
   maxHeight?: number
   designMode?: boolean
@@ -54,7 +56,8 @@ const boxStyle = computed(() => (props.boxHeightMm ? { height: `${props.boxHeigh
 const imgStyle = computed(() => ({
   ...(props.boxHeightMm ? { width: '100%', height: '100%' } : {}),
   objectFit: (props.fit || 'contain') as any,
-  ...(props.objectPosition ? { objectPosition: props.objectPosition } : {}),
+  // 取位与放大与出纸同源：超出钉盒的部分由 .cell-image 的 overflow 裁掉
+  ...cropStyleDeclarations(props.fit, props.fitScale, props.objectPosition),
   maxWidth: props.maxWidth ? `${props.maxWidth}mm` : '100%',
   maxHeight: props.maxHeight ? `${props.maxHeight}mm` : '100%',
 }))
