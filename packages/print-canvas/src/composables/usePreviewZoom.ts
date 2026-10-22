@@ -8,6 +8,8 @@
 // 2/4/6/8 像素上、逐位均匀且零灰阶——预览与纸面成同一张点阵。
 // 自适应档用整数倍而非任意倍：非整数倍会重采样出半像素边，正是「抗锯齿」观感的来源。
 
+import { getPaperDimensions } from '@worm-vue3-print/core/designer'
+
 /** CSS 绝对单位：1in = 96px */
 export const MM_TO_PX = 96 / 25.4
 /** 缩放上下限：下限 1 倍不缩小纸面，上限防止长模板把容器撑到不可用 */
@@ -52,19 +54,15 @@ export function resolvePrinterDpi(templateJson?: Record<string, any> | null): nu
   return found.size ? Math.max(...found) : null
 }
 
-/** 纸张宽度（CSS px）：兼容单页与多页结构，缺纸型时按 A4 竖版兜底 */
+/**
+ * 纸张宽度（CSS px）：兼容单页与多页结构。
+ * 宽高一律走 core 的 `getPaperDimensions`——方向交换、自定义宽度、连续纸宽度都在那一处结算，
+ * 预览不再维护第二份纸型表（此前那份漏了 Letter/Legal/针式/热敏纸，还把 A3/A5 横版算错）。
+ */
 export function paperWidthPx(templateJson?: Record<string, any> | null): number {
-  const page = templateJson?.pages?.[0] ?? templateJson ?? {}
-  const widthMm = page.customWidth ?? page.width
-  if (typeof widthMm === 'number' && widthMm > 0) return widthMm * MM_TO_PX
-  // 预设纸型只认 paperSize 常见值，其余按兜底宽，避免为了查表再拉一份 PAPER_PRESETS 进预览
-  const presetMm: Record<string, number> = { A3: 297, A4: 210, A5: 148, B5: 176 }
-  const named = presetMm[String(page.paperSize ?? '')]
-  if (named) {
-    const landscape = page.orientation === 'landscape'
-    return (landscape ? (named === 210 ? 297 : named) : named) * MM_TO_PX
-  }
-  return FALLBACK_PAPER_WIDTH_MM * MM_TO_PX
+  const page = templateJson?.pages?.[0] ?? templateJson
+  if (!page) return FALLBACK_PAPER_WIDTH_MM * MM_TO_PX
+  return getPaperDimensions(page).width * MM_TO_PX
 }
 
 /** 适配档：容器宽放得下整页的最大整数倍，非整数一律向下取整（不产生亚像素重采样） */

@@ -39,11 +39,21 @@ describe('usePreviewZoom 档位计算', () => {
     expect(resolvePrinterDpi({ pages: [{ elements: [{ options: { printerDpi: 203 } }] }] })).toBe(203)
   })
 
-  it('纸张宽度按 CSS 96px/in 换算，自定义与预设纸型都覆盖', () => {
-    expect(paperWidthPx({ customWidth: 95 })).toBeCloseTo(95 * MM_TO_PX, 6)
+  it('纸张宽度按 CSS 96px/in 换算，自定义、预设、横版与热敏纸都走 core 同一口径', () => {
+    // customWidth 按模板契约只在 CUSTOM / 连续纸下生效，其余纸型忽略（与出纸 getPaperDimensions 同口径）
+    expect(paperWidthPx({ paperSize: 'CUSTOM', customWidth: 95 })).toBeCloseTo(95 * MM_TO_PX, 6)
+    expect(paperWidthPx({ paperSize: 'A4', customWidth: 95 })).toBeCloseTo(210 * MM_TO_PX, 6)
     expect(paperWidthPx({ paperSize: 'A4', orientation: 'portrait' })).toBeCloseTo(210 * MM_TO_PX, 6)
     expect(paperWidthPx({ paperSize: 'A4', orientation: 'landscape' })).toBeCloseTo(297 * MM_TO_PX, 6)
+    // 横版不是「特判 A4」：A3 / A5 交换后分别是 420 / 210
+    expect(paperWidthPx({ paperSize: 'A3', orientation: 'landscape' })).toBeCloseTo(420 * MM_TO_PX, 6)
+    expect(paperWidthPx({ paperSize: 'A5', orientation: 'landscape' })).toBeCloseTo(210 * MM_TO_PX, 6)
+    // 热敏/连续纸取纸宽，不再落到 A4 兜底
+    expect(paperWidthPx({ paperSize: 'THERMAL_80', orientation: 'portrait' })).toBeCloseTo(80 * MM_TO_PX, 6)
+    expect(paperWidthPx({ paperSize: 'CONTINUOUS', customWidth: 57 })).toBeCloseTo(57 * MM_TO_PX, 6)
     expect(paperWidthPx(undefined)).toBeCloseTo(210 * MM_TO_PX, 6)
+    // 多页模板按第一页
+    expect(paperWidthPx({ pages: [{ paperSize: 'A5', orientation: 'portrait' }] })).toBeCloseTo(148 * MM_TO_PX, 6)
   })
 
   it('适配档只给整数倍，且夹在 1~8 之间', () => {

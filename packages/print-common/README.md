@@ -22,7 +22,7 @@ npm i @worm-vue3-print/common@next @worm-vue3-print/core
 ```
 
 `@next` 是预览版的 dist-tag，省略会报 `No matching version found`（stable 还没发，npm 上不存在 `latest`）。
-`core` 装正式版即可（本包依赖 `^1.3.9`），出纸链路也要直接用它。
+`core` 装正式版即可（本包依赖 `^1.3.10`），出纸链路也要直接用它。
 
 ## 浏览器直挂（jQuery / 无打包器宿主）
 
