@@ -17,6 +17,9 @@ demo/public/fonts/*
 # AI 生成图片临时目录，不入库
 vibe_images/
 
+# 本地 AI 工具状态（会话令牌、端口等），不入库
+.superpowers/
+
 # print-common 从 canvas 派生的构建输入（npm run styles 生成，不入库）
 packages/print-common/src/styles/designer.css
 packages/print-common/src/core/icons.ts
