@@ -122,3 +122,44 @@ describe('CellBarcode 单元格二维码铺满单元格', () => {
     expect(svg).toContain('viewBox="0 0 84 84"')
   })
 })
+
+describe('CellBarcode 条形码静区 barQuietZone（与出图端同源）', () => {
+  /**
+   * 挂载一次，同时取结算宽度（mm）与 viewBox 宽度。
+   * viewBox 单位是「用户单位」= 模块 × (barWidth/2)，故模块数要除回去。
+   */
+  async function measure(props: Record<string, any> = {}) {
+    const wrapper = await mountCell(props)
+    const style = wrapper.find('svg').attributes('style') ?? ''
+    const viewBox = wrapper.find('svg').attributes('viewBox') ?? ''
+    const userUnits = Number(viewBox.trim().split(/[\s,]+/)[2])
+    const modules = userUnits / ((props.barWidth ?? 2) / 2)
+    const widthMm = mmOf(style, 'width')
+    return { widthMm, modules, moduleMm: widthMm / modules }
+  }
+
+  it('缺省左右各 10 模块（79 模块码值 → 99），显式填 10 与留空同形', async () => {
+    expect((await measure()).modules).toBe(99)
+    expect((await measure({ barQuietZone: 10 })).modules).toBe(99)
+  })
+
+  it('填 0 即不留白边：viewBox 宽回到码值本身 79 模块', async () => {
+    expect((await measure({ barQuietZone: 0 })).modules).toBe(79)
+  })
+
+  it('同框对照（可用区 20×20mm）：0 档把白边换成条宽，每模块 0.202mm → 0.25mm 且不溢出', async () => {
+    const box = { targetWidthMm: 20, targetHeightMm: 20 }
+    const def = await measure({ ...box })
+    const tight = await measure({ ...box, barQuietZone: 0 })
+    expect(def.moduleMm).toBeCloseTo(20 / 99, 6)
+    // 0 档下 79 模块装得进 20mm，于是回到条宽首选值（不再有白边占位）
+    expect(tight.moduleMm).toBeCloseTo(0.25, 6)
+    expect(tight.widthMm).toBeLessThanOrEqual(20)
+  })
+
+  it('条宽上限抬到 8：每模块 1mm（8/2 × 0.25），可用框够即按此落纸', async () => {
+    const thick = await measure({ barWidth: 8, targetWidthMm: 120, targetHeightMm: 60 })
+    expect(thick.moduleMm).toBeCloseTo(1, 6)
+    expect(thick.widthMm).toBeCloseTo(99, 6)
+  })
+})

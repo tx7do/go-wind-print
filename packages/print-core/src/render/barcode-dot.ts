@@ -24,8 +24,18 @@ export const MM_PER_INCH = 25.4
  * 以下 jsbarcode 生成参数单位统一为「模块」（1 模块 = 窄条宽度）；调用时需乘以
  * 每模块用户单位数（jsbarcode 的 width 选项）。设计器画布与出图端必须共用同一份。
  */
-/** 条码静区（quiet zone）宽度（模块）：EAN13/UPC/ITF14 等码制对静区有强制要求，缺失会直接扫不出 */
+/** 条码静区（quiet zone）缺省宽度（模块）：`barQuietZone` 未填时的档位，左右各留这么多 */
 export const BARCODE_QUIET_ZONE_MODULES = 10
+/**
+ * 条码静区归一：取非负整数模块数，未填或非法值回退缺省档。
+ * 与二维码不同，一维码的静区是码制硬要求（GS1 取 2.54mm 与 10×条宽的大者），
+ * 缺省档不给 0；0 仍是合法档，由用户自担扫码风险换取条宽。
+ */
+export function barcodeQuietZoneModules(value?: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : BARCODE_QUIET_ZONE_MODULES
+}
 /** 条高（模块） */
 export const BARCODE_BAR_HEIGHT_MODULES = 30
 /** 条码下方文本缺省高度（模块，相对条高，非绝对 pt） */
@@ -57,7 +67,7 @@ export interface BarcodeSizeInput {
   boxHeightMm: number
   /** 打印机分辨率（点/英寸）；非正数或缺失视为「不对齐点阵」 */
   dpi?: number
-  /** 条码模块宽度倍率（2-4），缺省 2 */
+  /** 条码模块宽度倍率（2-8），缺省 2 */
   barWidth?: number
 }
 

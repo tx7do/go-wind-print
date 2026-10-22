@@ -56,7 +56,8 @@ COMMON_ALIAS = {
 TYPE_ALIAS = {
     'barcode': {
         'code': 'barcodeType',   # code128 / ean13 / code39 / itf14 ...
-        'barWidth': 'barWidth',  # 模块宽度倍率 2~4
+        'barWidth': 'barWidth',  # 模块宽度倍率 2~8，每模块首选宽 = 倍率/2 × 0.25mm
+        'barQuiet': 'barQuietZone',  # 条码静区（左右白边，模块）0~20，缺省 10；0＝白边换成条宽
         'dpi': 'printerDpi',     # 203/300/600，给出则吸附整数打印点
         'hideTitle': 'hideTitle',
     },
@@ -101,6 +102,7 @@ CELL_ALIAS = {
     'showText': 'showBarcodeText',
     'level': 'qrCodeLevel',
     'quiet': 'qrQuietZone',
+    'barQuiet': 'barQuietZone',
     'padding': 'padding',
     'textFit': 'textFit',
     'wordWrap': 'wordWrap',

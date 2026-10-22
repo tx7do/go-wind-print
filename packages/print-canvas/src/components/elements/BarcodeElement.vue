@@ -11,9 +11,9 @@ import { resolveTextBinding } from '@worm-vue3-print/core/designer'
 import {
   BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_MARGIN_BOTTOM_MODULES,
-  BARCODE_QUIET_ZONE_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
   barcodeAvailableBoxMm,
+  barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   resolveBarcodeSize,
 } from '@worm-vue3-print/core/designer'
@@ -61,6 +61,7 @@ function render() {
   const o = props.element.options
   const value = (props.designMode ? (o.testData || o.formatter) : resolveTextBinding(o, props.data)) || '条码'
   const unitPerModule = barcodeUnitsPerModule(o.barWidth)
+  const quietModules = barcodeQuietZoneModules(o.barQuietZone)
   try {
     JsBarcode(svgRef.value, value, {
       format: (o.barcodeType || 'CODE128') as any,
@@ -70,8 +71,8 @@ function render() {
       fontSize: (o.fontSize ?? BARCODE_TEXT_FONT_SIZE_MODULES) * unitPerModule,
       // 静区只留左右（与出图端同参）：上下留白会白白吃掉元素高度
       margin: 0,
-      marginLeft: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
-      marginRight: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
+      marginLeft: quietModules * unitPerModule,
+      marginRight: quietModules * unitPerModule,
       marginTop: 0,
       marginBottom: BARCODE_MARGIN_BOTTOM_MODULES * unitPerModule,
     })
@@ -114,6 +115,7 @@ watch(
     props.element.options.width,
     props.element.options.height,
     props.element.options.barWidth,
+    props.element.options.barQuietZone,
     props.element.options.printerDpi,
     props.element.options.hideTitle,
     props.element.options.fontSize,

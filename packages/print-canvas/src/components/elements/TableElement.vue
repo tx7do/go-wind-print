@@ -26,6 +26,7 @@
                 :barcode-type="cell.barcodeType"
                 :qr-code-level="cell.qrCodeLevel"
                 :qr-quiet-zone="cell.qrQuietZone"
+                :bar-quiet-zone="cell.barQuietZone"
                 :show-text="cell.showBarcodeText !== false"
                 :fit="cell.fit"
                 :max-width="cell.maxWidth"

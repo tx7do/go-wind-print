@@ -84,7 +84,7 @@
 
 | 类型 | 字段 |
 |---|---|
-| `barcode` | `barcodeType`（`code128`/`ean13`/`code39`/`itf14`，默认 code128）、`barWidth`（模块倍率 2~4）、`printerDpi`（203/300/600，给出则吸附整数打印点，热敏强烈建议给）、`hideTitle` |
+| `barcode` | `barcodeType`（`code128`/`ean13`/`code39`/`itf14`，默认 code128）、`barWidth`（模块倍率 2~8，每模块首选宽 = 倍率/2 × 0.25mm）、`barQuietZone`（条码左右静区白边，单位「模块」，0~20，**缺省 10**＝一维码码制要求下限；越小白边越窄、同框内条越粗）、`printerDpi`（203/300/600，给出则吸附整数打印点，热敏强烈建议给）、`hideTitle` |
 | `qrcode` | `qrCodeLevel`（`L`/`M`/`Q`/`H`）、`qrQuietZone`（静区白边，单位「模块」，0~8，缺省 0＝不留白边、码面等比铺满元素框）、`fit`（缺省 `contain`）、`maxWidth`/`maxHeight` |
 | `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`，缺省 `contain`；属性台里 `cover` 显示为「剪裁（等比铺满后裁边）」）、`objectPosition`（裁剪锚点，**建议写 `<x>% <y>%`**，如 `50% 0%` 取图顶端；缺省不输出＝`50% 50%` 居中）、`fitScale`（剪裁放大比例，100~400 的百分数，**仅 `fit: 'cover'` 消费**：铺满后把画面再推大这么多才有可裁的边，`transform-origin` 取的就是同一条 `objectPosition`；100 与缺省同形、不要写出来）、`maxWidth`/`maxHeight` |
 | `longText` | `longTextIndent`（首行缩进，单位 **em**＝「N 个字符宽」，随字号走；仅 `longText` 消费，写在 `text` 上不生效） |
@@ -99,8 +99,17 @@
 **图片单元格的锚点只在 `fit: cover` 时生效**：cover 会把图片外框钉在可用框高（所跨行高之和扣内边距与塌陷边框）、`<img>` 补 `width/height:100%`，与独立图片元素同构地裁得动；代价是含图单元格的出纸行高不再被图片撑高，所以写 cover 前先把行高给够，别把画面裁没。缺省／`contain`／`fill` 等档保持原状：外框 `height:100%`、img 不撑满，行高仍由内容决定，锚点无视觉后果。要控制图片大小仍可用单元格 `maxWidth`/`maxHeight`（钉盒后它仍是上限）。
 判据：`npm test -w @worm-vue3-print/core -- src/render/__tests__/crop-anchor.test.ts`（声明级，含 cover 钉盒与其余档不变的对照）；真浏览器几何与像素取证见 `services/print-render/src/cell-crop.integration.test.ts`。`scripts/validate_template.py` 不校验 `fit` 枚举，写错档位不报错、由浏览器忽略（要精确出纸就照上表取值）。
 
-**条码尺寸口径**：每模块首选宽 = `barWidth/2 × 0.25mm`；给了 `printerDpi` 就吸附到整数打印点
+**条码尺寸口径**：每模块首选宽 = `barWidth/2 × 0.25mm`（`barWidth` 可填 2~8）；给了 `printerDpi` 就吸附到整数打印点
 （dpi 优先），可用框放不下则整体等比缩小，绝不溢出。热敏出纸「条宽忽宽忽窄」的根因就是没给 dpi。
+**条形码只缩不放**：拉满元素框会得到非整数条宽，故没有 `fit` 缩放模式——大框里条码停在首选尺寸属正常，别指望它自己撑满。
+
+**要把条码做大（元素与单元格同一套旋钮，按增益排序）**：
+1. `barWidth` 抬到 4/6/8（每模块 0.5/0.75/1.0mm）——上限翻倍是 8；
+2. `barQuietZone` 收窄（缺省 10 → 例如 4 或 0）：左右各 10 模块的白边直接换成条宽，8 位数字 CODE128C 图形 99 模块里有 20 模块是白边，填 0 最多可让条粗 ~25%（码值越长占比越小，12 位约 12%）；
+3. 关掉文本（元素 `hideTitle: true` / 单元格 `showBarcodeText: false`）：文本区占 12 模块（总高 44 → 32），当**高度**是受限轴时条宽可 +37%；
+4. 加列宽/行高、把单元格 `padding` 调小（内容宽 = 列宽 − 2×padding − 塌陷边框）。
+判据：受限轴看 `min(可用宽/总模块, 可用高/总模块)`，总模块 = 码值模块 + 2×`barQuietZone`，总高模块 = 30 +（有文本再 +`barFontSize`/缺省 10 + 2）。
+**边界豁免**：`barQuietZone: 0` 压掉的白边参与「条→空→条」跳变，紧邻文字或表格线时可能扫不出（一维码静区是码制硬要求，不像二维码能靠框外白纸兜底），必须实打验证；缺省 10 不要改。
 
 **二维码铺满口径**：图形走 `<img>`，写 `width/height:100%` 再配 `object-fit`（缺省 `contain`），码面等比贴住元素框短边；
 框内那圈白边就是 `qrQuietZone`（单位「模块」，与元素框大小无关，**缺省 0**）。21 模块的码：`0`→码面占框 100%、`2`→84%、`4`→72%。
@@ -135,7 +144,7 @@
 - 单元格常用字段：`formatter`、`cellType`（`text`/`barcode`/`qrcode`/`image`）、`align`（`left`/`center`/`right`/`justify`，`justify` = 撑满列宽含末行，渲染端成对输出 `text-align:justify;text-align-last:justify`）、`valign`、
   `fontSize`、`fontWeight`、`color`、`backgroundColor`、`padding`、`borders`（`{top,right,bottom,left}`，
   每边 `{width(pt), style, color}`）、`colspan`、`rowspan`
-- 单元格条码另支持 `barcodeType` / `barWidth` / `printerDpi` / `showBarcodeText` / `barFontSize`
+- 单元格条码另支持 `barcodeType` / `barWidth`（2~8） / `barQuietZone`（静区白边 0~20，缺省 10） / `printerDpi` / `showBarcodeText` / `barFontSize`
 
 > 单据抬头常用「纯 header 行的表格」做栅格排版——这不是异常，不必为它配 `dataSource`。
 

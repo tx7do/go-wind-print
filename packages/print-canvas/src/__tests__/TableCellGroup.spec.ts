@@ -46,10 +46,35 @@ describe('TableCellGroup 二维码单元格静区', () => {
     w.findAll('.pd-field').find(f => f.find('.pd-label').text() === '静区 (模块)')
   const cellOf = (el: RuntimeElement) => (el.options.tableRows as any[])[0].cells[0] as TableCell
 
-  it('二维码单元格出「静区 (模块)」，条形码与文本单元格不出', () => {
+  it('二维码与条形码单元格各出「静区 (模块)」，文本单元格不出', () => {
     expect(quietField(mountGroup(makeElement({ cellType: 'qrcode' })))).toBeTruthy()
-    expect(quietField(mountGroup(makeElement({ cellType: 'barcode' })))).toBeUndefined()
+    expect(quietField(mountGroup(makeElement({ cellType: 'barcode' })))).toBeTruthy()
     expect(quietField(mountGroup(makeElement({ formatter: '文本' })))).toBeUndefined()
+  })
+
+  it('条形码单元格的静区档位与说明独立：上限 20、占位「默认 10」、tip 取条码那一条', () => {
+    const field = quietField(mountGroup(makeElement({ cellType: 'barcode' })))!
+    const input = field.find('input[type="number"]').element as HTMLInputElement
+    expect(input.placeholder).toBe('默认 10')
+    expect(input.getAttribute('max')).toBe('20')
+    expect(field.find('.pd-help').attributes('data-tip')).toContain('一维码码制要求的下限')
+  })
+
+  it('条形码单元格填 0 写 barQuietZone = 0（0 档把左右白边换成条宽），且不误写二维码那一份', async () => {
+    const element = makeElement({ cellType: 'barcode' })
+    const input = quietField(mountGroup(element))!.find('input[type="number"]')
+    await input.setValue('0')
+    await input.trigger('change')
+    expect(cellOf(element).barQuietZone).toBe(0)
+    expect(cellOf(element).qrQuietZone).toBeUndefined()
+  })
+
+  it('单元格类型从条形码切走时清除 barQuietZone', async () => {
+    const element = makeElement({ cellType: 'barcode', barQuietZone: 3 })
+    const w = mountGroup(element)
+    expect(cellOf(element).barQuietZone).toBe(3)
+    await w.find('input[type="radio"][value="text"]').setValue()
+    expect(cellOf(element).barQuietZone).toBeUndefined()
   })
 
   it('填 0 写进单元格（0 就是「无白边、码面铺满」，被假值判断归成未设置这档就没了）', async () => {
@@ -68,7 +93,7 @@ describe('TableCellGroup 二维码单元格静区', () => {
     expect(field.find('.pd-hint').exists(), '说明不应常驻成一行文字').toBe(false)
   })
 
-  it('缺省显示 2（与渲染器缺省档一致），单元格类型切走时清除该字段', async () => {
+  it('已设置的档位原样回显，单元格类型切走时清除该字段', async () => {
     const element = makeElement({ cellType: 'qrcode', qrQuietZone: 4 })
     const w = mountGroup(element)
     expect(quietField(w)!.find('input[type="number"]').element.value).toBe('4')

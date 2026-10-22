@@ -513,9 +513,13 @@ function codeImgHtml(
       qrCodeLevel: opts.qrCodeLevel != null ? String(opts.qrCodeLevel) : undefined,
       // 0 是合法档（无白边），必须用 typeof 判定而非 or/?? 之类假值判断
       qrQuietZone: typeof opts.qrQuietZone === 'number' ? opts.qrQuietZone : undefined,
+      barQuietZone: typeof opts.barQuietZone === 'number' ? opts.barQuietZone : undefined,
       showText: opts.hideTitle !== undefined ? !opts.hideTitle : opts.showBarcodeText,
       barWidth: typeof opts.barWidth === 'number' ? opts.barWidth : undefined,
-      fontSize: typeof opts.fontSize === 'number' ? opts.fontSize : undefined,
+      // 元素台的条码文本字号是 fontSize；单元格台的文本字号是 barFontSize（单元格的 fontSize 是正文字号，不该拿来决定条码）
+      fontSize: typeof (opts.barFontSize ?? opts.fontSize) === 'number'
+        ? (opts.barFontSize ?? opts.fontSize)
+        : undefined,
       printerDpi: isBarcode ? io.printerDpi : undefined,
       targetWidthMm: isBarcode ? barcodeAvailableBoxMm(io.targetWidthMm, maxWidth) : undefined,
       targetHeightMm: isBarcode ? barcodeAvailableBoxMm(io.targetHeightMm, maxHeight) : undefined,

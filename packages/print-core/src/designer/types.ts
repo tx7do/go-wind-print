@@ -181,6 +181,12 @@ export interface TableCell {
   barcodeType?: string        // 条形码码制（jsbarcode 格式名），仅 cellType='barcode' 时生效
   qrCodeLevel?: string        // 二维码纠错级别 L/M/Q/H，仅 cellType='qrcode' 时生效
   qrQuietZone?: number        // 二维码静区（白边）宽度（模块），仅 cellType='qrcode' 时生效；缺省 0 = 码面铺满单元格
+  /**
+   * 条形码静区（左右白边）宽度（模块），仅 cellType='barcode' 时生效：
+   * 缺省 10（一维码码制对静区的下限要求），填 0 即不留白边、把这部分宽度全部换成条宽。
+   * 白边是「条→空→条」跳变的一部分，压到 0 时若相邻格有文字或边框线，可能扫不出，需自行验证。
+   */
+  barQuietZone?: number
   showBarcodeText?: boolean   // 条形码下方是否显示文本，仅 cellType='barcode' 时生效
   /**
    * 打印机分辨率（点/英寸，常见 203/300/600），仅 cellType='barcode' 时生效：
@@ -189,7 +195,7 @@ export interface TableCell {
    * 单元格可用宽高不足则整体等比缩小，消除热敏出纸「条宽忽宽忽窄」。
    */
   printerDpi?: number
-  /** 条码模块宽度倍率（2-4），仅 cellType='barcode' 时生效：每模块首选宽度 = 倍率/2 × 0.25mm */
+  /** 条码模块宽度倍率（2-8），仅 cellType='barcode' 时生效：每模块首选宽度 = 倍率/2 × 0.25mm */
   barWidth?: number
   /** 条码下方文本字号（相对条高，条高为 30），仅 cellType='barcode' 时生效 */
   barFontSize?: number
@@ -293,6 +299,12 @@ export interface ElementOptions {
   textType?: 'barcode' | 'qrcode'
   barcodeType?: string
   barWidth?: number
+  /**
+   * 条形码静区（左右白边）宽度，单位「模块」，缺省 10（一维码码制对静区的下限要求）。
+   * 填 0 即不留白边，这 20 个模块全部换成条宽；但静区参与「条→空→条」跳变，
+   * 压到 0 后若紧邻文字或表格线可能扫不出，需自行验证。
+   */
+  barQuietZone?: number
   barAutoWidth?: string
   /**
    * 打印机分辨率（点/英寸，常见 203/300/600）：条形码尺寸由「条宽 → dpi → 等比缩小」结算

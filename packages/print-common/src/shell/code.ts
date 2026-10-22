@@ -6,9 +6,9 @@ import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
 import {
   BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_MARGIN_BOTTOM_MODULES,
-  BARCODE_QUIET_ZONE_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
   barcodeAvailableBoxMm,
+  barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   resolveBarcodeSize,
 } from '@worm-vue3-print/core/designer'
@@ -55,6 +55,7 @@ function readViewBox(svg: SVGSVGElement): { width: number; height: number } | nu
 function drawBarcode(el: RuntimeElement, svg: SVGSVGElement) {
   const o = el.options
   const unitPerModule = barcodeUnitsPerModule(o.barWidth)
+  const quietModules = barcodeQuietZoneModules(o.barQuietZone)
   try {
     JsBarcode(svg, codeText(el), {
       format: String(o.barcodeType || 'CODE128'),
@@ -62,9 +63,10 @@ function drawBarcode(el: RuntimeElement, svg: SVGSVGElement) {
       height: BARCODE_BAR_HEIGHT_MODULES * unitPerModule,
       displayValue: !o.hideTitle,
       fontSize: ((o.fontSize ?? BARCODE_TEXT_FONT_SIZE_MODULES) as number) * unitPerModule,
+      // 静区只留左右（与出图端同参）：上下留白会白白吃掉元素高度
       margin: 0,
-      marginLeft: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
-      marginRight: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
+      marginLeft: quietModules * unitPerModule,
+      marginRight: quietModules * unitPerModule,
       marginTop: 0,
       marginBottom: BARCODE_MARGIN_BOTTOM_MODULES * unitPerModule,
     })

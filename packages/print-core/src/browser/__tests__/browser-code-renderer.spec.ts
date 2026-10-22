@@ -75,6 +75,28 @@ describe('browserCodeRenderer 条形码打印质量（热敏出纸清晰度）',
     expect(svg).toMatch(/viewBox="0 0 99 /)
   })
 
+  it('静区按 barQuietZone 出图：缺省 10 模块，填 0 即把这 20 模块全部换成条宽', () => {
+    // '12345678' 走 CODE128C → 码值 79 模块；barWidth 缺省 2 → 每模块 1 用户单位
+    const widthOf = (opts: Parameters<typeof browserCodeRenderer.render>[2]) => {
+      const m = /viewBox="0 0 (\d+) /.exec(browserCodeRenderer.render('12345678', 'barcode', opts))
+      if (!m) throw new Error('viewBox 未按预期输出')
+      return Number(m[1])
+    }
+    expect(widthOf(undefined)).toBe(99)
+    expect(widthOf({ barQuietZone: 10 })).toBe(99)
+    expect(widthOf({ barQuietZone: 0 })).toBe(79)
+    expect(widthOf({ barQuietZone: 4 })).toBe(87)
+    // 负数按 0（0 是合法档）；小数向下取整；非法值回退缺省 10
+    expect(widthOf({ barQuietZone: -5 })).toBe(79)
+    expect(widthOf({ barQuietZone: 3.7 })).toBe(85)
+    expect(widthOf({ barQuietZone: Number.NaN })).toBe(99)
+  })
+
+  it('条宽倍率上限抬到 8：每模块 1mm，静区照旧 10 模块 → 99 模块宽即 99mm', () => {
+    const svg = browserCodeRenderer.render('12345678', 'barcode', { barWidth: 8 })
+    expect(svg).toMatch(/width="99mm"/)
+  })
+
   it('提供 printerDpi 时尺寸写成恰好整数个打印点（mm）', () => {
     const svg = browserCodeRenderer.render('12345678', 'barcode', {
       printerDpi: 203, targetWidthMm: 56.4, targetHeightMm: 14.1,

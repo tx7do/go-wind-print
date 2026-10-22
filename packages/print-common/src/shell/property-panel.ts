@@ -154,13 +154,17 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
             class: 'pd-hint',
             text: '填写后条宽吸附到整数打印点（消除出纸「条宽忽宽忽窄」）：条码先按条宽渲染，可用宽度够就原样落纸，不够才整体等比缩小',
           })),
-          gateItem(ctx, 'cd-bar-width', numField(ctx, '条宽（倍率）', o.barWidth ?? 2, v => patch({ barWidth: v }), { min: 2, max: 4, step: 0.5 })),
+          gateItem(ctx, 'cd-bar-width', numField(ctx, '条宽（倍率）', o.barWidth ?? 2, v => patch({ barWidth: v }), { min: 2, max: 8, step: 0.5 })),
           gateItem(ctx, 'cd-bar-width', h('p', {
             class: 'pd-hint',
             text: dpi
               ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），元素框放不下时整体等比缩小'
               : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定',
           })),
+          gateItem(ctx, 'cd-bar-quiet-zone', fieldHelp('静区 (模块)', stepper({
+            value: o.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',
+            onCommit: v => patch({ barQuietZone: v }),
+          }), propertyTip('cd-bar-quiet-zone'))),
           gateItem(ctx, 'cd-show-text', switchField(ctx, '显示文本', o.hideTitle !== true, v => patch({ hideTitle: v ? undefined : true }))),
           gateItem(ctx, 'cd-font-size', field('文本字号（相对条高，条高为 30）', stepper({
             value: o.fontSize, min: 5, max: 24, placeholder: '默认 10',
@@ -179,7 +183,7 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
         divider('自定义设置'),
         isBarcode ? h('p', {
           class: 'pd-hint',
-          text: '条码尺寸由「条宽」与「打印机分辨率」结算：宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限',
+          text: '条码尺寸由「条宽」与「打印机分辨率」结算：宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限。要放大条码：先加条宽倍率，再收窄静区（左右白边会换成条宽），必要时关掉显示文本以让出文本区高度',
         }) : '',
         !isBarcode ? gateItem(ctx, 'cd-fit', selectField(ctx, '缩放模式', String(o.fit || 'contain'), IMAGE_FIT_OPTIONS,
           v => patch({ fit: v || undefined }))) : '',

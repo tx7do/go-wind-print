@@ -27,13 +27,20 @@
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">条宽（倍率）</span>
         <StepperInput :model-value="mainCell.barWidth ?? 2"
           :min="2"
-          :max="4"
+          :max="8"
           :step="0.5"
           @update:model-value="write(c => { c.barWidth = $event })" />
       </div>
       <p class="pd-hint" v-if="isBarcodeCell">{{ dotAligned
         ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），单元格放不下时整体等比缩小'
         : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定' }}</p>
+      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="barQuietTip" aria-label="字段说明" /></span>
+        <StepperInput :model-value="mainCell.barQuietZone"
+          :min="0"
+          :max="20"
+          placeholder="默认 10"
+          @update:model-value="write(c => { c.barQuietZone = $event ?? undefined })" />
+      </div>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">文本字号（相对条高，条高为 30）</span>
         <StepperInput :model-value="mainCell.barFontSize ?? 10"
           :min="5"
@@ -66,7 +73,7 @@
           placeholder="默认 0" @update:model-value="write(c => { c.qrQuietZone = $event ?? undefined })" />
       </div>
 
-      <p class="pd-hint" v-if="isBarcodeCell">单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限</p>
+      <p class="pd-hint" v-if="isBarcodeCell">单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限。要放大条码：先加条宽倍率，再收窄静区（左右白边会换成条宽），必要时关掉显示文本以让出文本区高度</p>
       <div class="pd-field" v-if="isQrcodeCell || isImageCell"><span class="pd-label">缩放模式</span>
         <select :value="mainCell.fit || 'contain'" class="pd-select" @change="write(c => { c.fit = ($event.target as HTMLSelectElement).value as any })">
           <option v-for="o in IMAGE_FIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
@@ -235,6 +242,8 @@ import CropAnchorField from './CropAnchorField.vue'
 
 /** 静区说明：文案单一来源在 core 的属性注册表，与元素台、common 宿主共用同一条 */
 const quietTip = propertyTip('cd-quiet-zone')
+/** 条形码静区说明：与二维码共用注册表入口 */
+const barQuietTip = propertyTip('cd-bar-quiet-zone')
 
 const props = defineProps<{
   element: RuntimeElement
@@ -305,6 +314,7 @@ function onCellTypeChange(v: string) {
       c.barcodeType = undefined
       c.showBarcodeText = undefined
       c.printerDpi = undefined
+      c.barQuietZone = undefined
     }
     if (v !== 'qrcode') {
       c.qrCodeLevel = undefined

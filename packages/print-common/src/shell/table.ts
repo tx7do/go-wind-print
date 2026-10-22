@@ -36,8 +36,8 @@ import type {
   ElementOptions, TableCell, TableRow, TableRowType, TableSelection, RuntimeElement, TextFit,
 } from '@worm-vue3-print/core/designer'
 import {
-  BARCODE_BAR_HEIGHT_MODULES, BARCODE_MARGIN_BOTTOM_MODULES, BARCODE_QUIET_ZONE_MODULES,
-  BARCODE_TEXT_FONT_SIZE_MODULES, DEFAULT_DEMO_DATA, barcodeAvailableBoxMm, barcodeUnitsPerModule,
+  BARCODE_BAR_HEIGHT_MODULES, BARCODE_MARGIN_BOTTOM_MODULES,
+  BARCODE_TEXT_FONT_SIZE_MODULES, DEFAULT_DEMO_DATA, barcodeAvailableBoxMm, barcodeQuietZoneModules, barcodeUnitsPerModule,
   canMergeReason, cellFitCapMm, cellFitWidthMm, cellImageBoxMm, clampResizedColumnWidth, cropStyleDeclarations, deleteCol, deleteRow,
   evaluateTemplate, insertCol, insertRow, mergeCells, normalizeSelection,
   resolveBarcodeDesignValue, resolveBarcodeSize, resolveCellBorderCss, resolveCellTextFit,
@@ -290,6 +290,7 @@ function cellCodeNode(ctx: TableCtx, ri: number, ci: number, cell: TableCell): H
   if (cell.cellType === 'barcode') {
     svg.setAttribute('preserveAspectRatio', FIT_TO_PAR[cell.fit || 'contain'] ?? 'xMidYMid meet')
     const unitPerModule = barcodeUnitsPerModule(cell.barWidth)
+    const quietModules = barcodeQuietZoneModules(cell.barQuietZone)
     let ok = true
     try {
       JsBarcode(svg, value, {
@@ -300,8 +301,8 @@ function cellCodeNode(ctx: TableCtx, ri: number, ci: number, cell: TableCell): H
         fontSize: (cell.barFontSize ?? BARCODE_TEXT_FONT_SIZE_MODULES) * unitPerModule,
         // 静区只留左右（与出图端同参）：上下留白会白白吃掉单元格高度
         margin: 0,
-        marginLeft: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
-        marginRight: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
+        marginLeft: quietModules * unitPerModule,
+        marginRight: quietModules * unitPerModule,
         marginTop: 0,
         marginBottom: BARCODE_MARGIN_BOTTOM_MODULES * unitPerModule,
       })

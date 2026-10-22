@@ -6,6 +6,7 @@ import {
   MM_PER_INCH,
   barcodeAvailableBoxMm,
   barcodePreferredModuleWidthMm,
+  barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   resolveBarcodeSize,
 } from './barcode-dot.js'
@@ -26,13 +27,27 @@ describe('条宽 → 首选模块宽度', () => {
     expect(barcodeUnitsPerModule(2)).toBe(1)
     expect(barcodeUnitsPerModule(3)).toBe(1.5)
     expect(barcodeUnitsPerModule(4)).toBe(2)
+    // 上限抬到 8（属性台可填 2~8）：每模块 4 用户单位、首选 1mm
+    expect(barcodeUnitsPerModule(8)).toBe(4)
     // 缺省值与非法值都按 barWidth=2 处理
     expect(barcodePreferredModuleWidthMm()).toBe(0.25)
     expect(barcodePreferredModuleWidthMm(4)).toBe(0.5)
+    expect(barcodePreferredModuleWidthMm(8)).toBe(1)
   })
 
   it('静区常量为 jsbarcode 缺省值 10 模块', () => {
     expect(BARCODE_QUIET_ZONE_MODULES).toBe(10)
+  })
+
+  it('barQuietZone 归一：未填回退 10，0 是合法档，负数按 0，小数向下取整', () => {
+    expect(barcodeQuietZoneModules()).toBe(10)
+    expect(barcodeQuietZoneModules(10)).toBe(10)
+    expect(barcodeQuietZoneModules(0)).toBe(0)
+    expect(barcodeQuietZoneModules(20)).toBe(20)
+    expect(barcodeQuietZoneModules(-5)).toBe(0)
+    expect(barcodeQuietZoneModules(3.7)).toBe(3)
+    expect(barcodeQuietZoneModules(Number.NaN)).toBe(10)
+    expect(barcodeQuietZoneModules(Number.POSITIVE_INFINITY)).toBe(10)
   })
 })
 

@@ -72,12 +72,14 @@ describe('CodeGroup 条形码元素：码制与自定义设置', () => {
     expect(w.findAll('select')).toHaveLength(2)
     expect(w.findAll('.pd-label').map(n => n.text())).not.toContain('缩放模式')
 
-    // 数字输入顺序：条宽 / 文本字号 / 最大宽度 / 最大高度
-    const numbers = w.findAll('input[type="number"]')
-    await numbers[2]!.setValue('30')
-    await numbers[2]!.trigger('change')
-    await numbers[3]!.setValue('10')
-    await numbers[3]!.trigger('change')
+    // 数字输入按标签定位（条宽 / 静区 / 文本字号 / 最大宽 / 最大高）：加字段不会串位
+    const numberByLabel = (label: string) =>
+      w.findAll('.pd-field').find(f => f.find('.pd-label').text().startsWith(label))!
+        .find('input[type="number"]')
+    await numberByLabel('最大宽度').setValue('30')
+    await numberByLabel('最大宽度').trigger('change')
+    await numberByLabel('最大高度').setValue('10')
+    await numberByLabel('最大高度').trigger('change')
     expect(element.options.maxWidth).toBe(30)
     expect(element.options.maxHeight).toBe(10)
   })
@@ -124,9 +126,9 @@ describe('CodeGroup 打印机分辨率（条宽点对齐）', () => {
     // 下拉：码制 / 打印机分辨率（条形码无缩放模式）
     expect(manual.findAll('select')).toHaveLength(2)
     expect(aligned.findAll('select')).toHaveLength(2)
-    // 数字输入：条宽 / 文本字号 / 最大宽度 / 最大高度 → 与是否点对齐无关
-    expect(manual.findAll('input[type="number"]')).toHaveLength(4)
-    expect(aligned.findAll('input[type="number"]')).toHaveLength(4)
+    // 数字输入：条宽 / 静区 / 文本字号 / 最大宽度 / 最大高度 → 与是否点对齐无关
+    expect(manual.findAll('input[type="number"]')).toHaveLength(5)
+    expect(aligned.findAll('input[type="number"]')).toHaveLength(5)
     expect(aligned.text()).toContain('可用「最大宽高」限制上限')
   })
 
@@ -171,15 +173,34 @@ describe('CodeGroup 二维码元素：静区 (模块)', () => {
   function mountQrcodePanel(element: RuntimeElement) {
     const w = mountCodeGroup(element)
     const field = w.findAll('.pd-field').find(f => f.find('.pd-label').text() === '静区 (模块)')
-    return { w, input: field?.find('input[type="number"]') }
+    return { w, field, input: field?.find('input[type="number"]') }
   }
 
-  it('二维码出「静区 (模块)」，条形码不出（白边只对二维码有意义）', () => {
-    expect(mountQrcodePanel(makeElement('qrcode')).input).toBeTruthy()
-    expect(mountQrcodePanel(makeElement('barcode')).input).toBeUndefined()
+  it('二维码与条形码各出「静区 (模块)」，档位与说明各自独立', () => {
+    const qr = mountQrcodePanel(makeElement('qrcode'))
+    const bar = mountQrcodePanel(makeElement('barcode'))
+    expect(bar.input, '条形码应出静区字段').toBeTruthy()
+    expect(qr.input!.attributes('placeholder')).toBe('默认 0')
+    expect(bar.input!.attributes('placeholder')).toBe('默认 10')
+    // 一维码静区下限是 10 模块（码制要求），可上调到 20；二维码上限 8
+    expect(qr.input!.attributes('max')).toBe('8')
+    expect(bar.input!.attributes('max')).toBe('20')
+    const barHelp = bar.field!.find('.pd-help')
+    expect(barHelp.exists(), '条形码静区标签后应有帮助图标').toBe(true)
+    expect(barHelp.attributes('data-tip')).toContain('一维码码制要求的下限')
   })
 
-  it('填 0 写 options.qrQuietZone = 0（0 档就是「无白边、码面铺满」，不能被当空清掉）', async () => {
+  it('条形码填 0 写 options.barQuietZone = 0（0 档就是「不留白边、白边换成条宽」，不能被当空清掉）', async () => {
+    const element = makeElement('barcode', {})
+    const { input } = mountQrcodePanel(element)
+    await input!.setValue('0')
+    await input!.trigger('change')
+    expect(element.options.barQuietZone).toBe(0)
+    // 静区字段按类型分写：条形码不该写二维码那一份
+    expect(element.options.qrQuietZone).toBeUndefined()
+  })
+
+  it('二维码填 0 写 options.qrQuietZone = 0（0 档就是「无白边、码面铺满」，不能被当空清掉）', async () => {
     const element = makeElement('qrcode', {})
     const { input } = mountQrcodePanel(element)
     await input!.setValue('0')

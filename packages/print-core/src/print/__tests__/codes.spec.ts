@@ -17,6 +17,11 @@ describe('codeSpecKey', () => {
       .not.toBe(codeSpecKey('123', 'qrcode', { qrQuietZone: 4 }))
     expect(codeSpecKey('123', 'qrcode', {}))
       .not.toBe(codeSpecKey('123', 'qrcode', { qrQuietZone: 0 }))
+    // 条形码静区同样影响几何（viewBox 宽 = 码值模块 + 2×静区）
+    expect(codeSpecKey('123', 'barcode', { barQuietZone: 0 }))
+      .not.toBe(codeSpecKey('123', 'barcode', { barQuietZone: 10 }))
+    expect(codeSpecKey('123', 'barcode', {}))
+      .not.toBe(codeSpecKey('123', 'barcode', { barQuietZone: 0 }))
   })
 })
 

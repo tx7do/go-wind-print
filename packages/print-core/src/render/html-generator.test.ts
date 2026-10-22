@@ -476,6 +476,39 @@ describe('页眉/页脚区域元素渲染', () => {
     expect(captured.targetHeightMm).toBeCloseTo(6 - 0.1323, 3)
   })
 
+  it('静区/条宽/条码文本字号透传给渲染器：元素与单元格两条路都吃到（0 档不能被假值判断吃掉）', () => {
+    let captured: CodeRenderOptions = {}
+    const tElement = makeAreaTemplate({
+      footer: {
+        height: 12,
+        elements: [makeAreaEl('barcode', {
+          testData: '12345678', barWidth: 6, barQuietZone: 0, fontSize: 12,
+        })] as any,
+      },
+    })
+    generateHtml(tElement, singlePage, undefined, { codeRenderer: stubRenderer(o => { captured = o }) })
+    expect(captured.barQuietZone).toBe(0)
+    expect(captured.barWidth).toBe(6)
+    expect(captured.fontSize).toBe(12)
+
+    let cellCaptured: CodeRenderOptions = {}
+    const t = makeTemplate({ ...matrixOptions(), tableDefaultFontSize: 10 })
+    t.elements[0].options._renderRows = (matrixOptions()._renderRows as any[]).map(r => ({
+      ...r,
+      cells: r.cells.map((c: any, i: number) =>
+        r.type === 'header' && i === 0
+          ? { ...c, cellType: 'barcode', content: '12345678', barQuietZone: 0, barWidth: 8, barFontSize: 14, fontSize: 9 }
+          : c),
+    }))
+    generateHtml(t, pageWith([
+      { elementId: 'tbl-1', type: 'table-slice', startRow: 0, endRow: 3 },
+    ]), undefined, { codeRenderer: stubRenderer(o => { cellCaptured = o }) })
+    expect(cellCaptured.barQuietZone).toBe(0)
+    expect(cellCaptured.barWidth).toBe(8)
+    // 单元格的条码文本字号取 barFontSize：正文字号 fontSize 不该拿来决定条高相对值（与画布 CellBarcode 同口径）
+    expect(cellCaptured.fontSize).toBe(14)
+  })
+
   it('表格未配置列宽时宽度不参与结算（可用宽度未知，只按行高与条宽落纸）', () => {
     let captured: CodeRenderOptions = {}
     const t = makeTemplate({ ...matrixOptions(), tableDefaultFontSize: 10, tableColWidths: [] })

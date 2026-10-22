@@ -68,6 +68,11 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
       { key: 'cd-type', keywords: ['码制', '条码类型', '条形码类型', 'barcodetype', 'code128', 'ean13', 'code39', 'itf14'] },
       { key: 'cd-dpi', keywords: ['打印机分辨率', 'dpi', '打印点', '点阵对齐', '203', '300'] },
       { key: 'cd-bar-width', keywords: ['条宽', '条粗细', 'barwidth', '模块宽'] },
+      {
+        key: 'cd-bar-quiet-zone',
+        keywords: ['条码静区', '条码白边', '条形码留白', '条码空白边', 'barquietzone'],
+        tip: '条形码左右两端的空白格数（1 格 = 1 条宽）：缺省 10，正是一维码码制要求的下限；数值越小白边越窄、同样的框内条越粗（可放大）。填 0 即不留白边，但静区参与「条→空→条」跳变，紧邻文字或表格线时可能扫不出，需实打验证',
+      },
       { key: 'cd-show-text', keywords: ['显示文本', '条码文本', '显示数字'] },
       { key: 'cd-font-size', keywords: ['条码字号', '文本字号'] },
       { key: 'cd-ec-level', keywords: ['纠错级别', '容错', 'qrcodelevel'] },

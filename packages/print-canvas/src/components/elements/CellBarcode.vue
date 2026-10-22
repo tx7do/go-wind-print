@@ -14,9 +14,9 @@ import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
 import {
   BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_MARGIN_BOTTOM_MODULES,
-  BARCODE_QUIET_ZONE_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
   barcodeAvailableBoxMm,
+  barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   resolveBarcodeSize,
 } from '@worm-vue3-print/core/designer'
@@ -28,6 +28,8 @@ const props = defineProps<{
   qrCodeLevel?: string
   /** 二维码静区（白边）宽度（模块），缺省按渲染器默认 0（码面铺满单元格） */
   qrQuietZone?: number
+  /** 条形码左右静区（白边）宽度（模块），缺省按 core 默认 10（一维码码制要求下限） */
+  barQuietZone?: number
   /**
    * 条形码下方是否显示文本，缺省视为「显示」（与出图端 `showBarcodeText` 同口径）。
    * 注意：Vue 会把缺省的布尔 prop 转成 false，调用方必须显式传 `cell.showBarcodeText !== false`。
@@ -98,6 +100,7 @@ function renderBarcode() {
   size.value = null
   if (!barcodeSvg.value) return
   const unitPerModule = barcodeUnitsPerModule(props.barWidth)
+  const quietModules = barcodeQuietZoneModules(props.barQuietZone)
   try {
     JsBarcode(barcodeSvg.value, props.value, {
       format: (props.barcodeType || 'CODE128') as any,
@@ -107,8 +110,8 @@ function renderBarcode() {
       fontSize: (props.barFontSize ?? BARCODE_TEXT_FONT_SIZE_MODULES) * unitPerModule,
       // 静区只留左右（与出图端同参）：上下留白会白白吃掉单元格高度
       margin: 0,
-      marginLeft: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
-      marginRight: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
+      marginLeft: quietModules * unitPerModule,
+      marginRight: quietModules * unitPerModule,
       marginTop: 0,
       marginBottom: BARCODE_MARGIN_BOTTOM_MODULES * unitPerModule,
     })
@@ -167,7 +170,7 @@ function render() {
 onMounted(render)
 watch(
   () => [
-    props.cellType, props.value, props.barcodeType, props.qrCodeLevel, props.qrQuietZone, props.showText,
+    props.cellType, props.value, props.barcodeType, props.qrCodeLevel, props.qrQuietZone, props.barQuietZone, props.showText,
     props.printerDpi, props.targetWidthMm, props.targetHeightMm,
     props.barWidth, props.barFontSize, props.maxWidth, props.maxHeight,
   ],

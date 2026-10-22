@@ -6,15 +6,16 @@
 //    出纸即「条宽忽宽忽窄」。给出 printerDpi 时按整数点反算最终尺寸（见 render/barcode-dot.ts）。
 // 2. shape-rendering="crispEdges"：抗锯齿会在条边缘生成灰像素，热敏头只有黑白两态，
 //    灰边被阈值化后条宽进一步失真（实测灰像素占墨迹 11.3% → 1.7%）。二维码一直是这么设的。
-// 3. 静区不能为 0：jsbarcode 默认 10 模块，此前被写死 margin:0，EAN13/UPC/ITF14 会直接扫不出。
+// 3. 静区缺省不给 0：jsbarcode 默认 10 模块，EAN13/UPC/ITF14 等码制没有静区会直接扫不出；
+//    现由 barQuietZone 逐元素可调（0~20，缺省仍是 10），二维码的静区另有 qrQuietZone（缺省 0）。
 
 import JsBarcode from 'jsbarcode'
 import QRCode from 'qrcode'
 import {
   BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_MARGIN_BOTTOM_MODULES,
-  BARCODE_QUIET_ZONE_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
+  barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   resolveBarcodeSize,
 } from '../render/barcode-dot.js'
@@ -40,6 +41,7 @@ function readViewBox(svg: SVGSVGElement): { width: number; height: number } | nu
 function renderBarcodeSvg(value: string, opts: CodeRenderOptions): string {
   const svg = document.createElementNS(SVG_NS, 'svg') as SVGSVGElement
   const unitPerModule = barcodeUnitsPerModule(opts.barWidth)
+  const quietModules = barcodeQuietZoneModules(opts.barQuietZone)
   JsBarcode(svg as unknown as SVGElement, value, {
     format: (opts.barcodeType || 'CODE128') as unknown as string,
     width: unitPerModule,
@@ -48,8 +50,8 @@ function renderBarcodeSvg(value: string, opts: CodeRenderOptions): string {
     fontSize: (opts.fontSize ?? BARCODE_TEXT_FONT_SIZE_MODULES) * unitPerModule,
     // 静区只留左右：上下留白会白白吃掉元素高度（jsbarcode 的 margin 是四边通配）
     margin: 0,
-    marginLeft: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
-    marginRight: BARCODE_QUIET_ZONE_MODULES * unitPerModule,
+    marginLeft: quietModules * unitPerModule,
+    marginRight: quietModules * unitPerModule,
     marginTop: 0,
     marginBottom: BARCODE_MARGIN_BOTTOM_MODULES * unitPerModule,
   })

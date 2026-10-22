@@ -279,7 +279,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         ], cell0.cellType || 'text', (v) => {
           write(c => {
             c.cellType = v === 'text' ? undefined : (v as TableCellType)
-            if (v !== 'barcode') { c.barcodeType = undefined; c.showBarcodeText = undefined; c.printerDpi = undefined }
+            if (v !== 'barcode') { c.barcodeType = undefined; c.showBarcodeText = undefined; c.printerDpi = undefined; c.barQuietZone = undefined }
             if (v !== 'qrcode') { c.qrCodeLevel = undefined; c.qrQuietZone = undefined }
           })
         }),
@@ -290,11 +290,16 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       isBarcodeCell ? switchRow('显示文本', cell0.showBarcodeText !== false,
         v => write(c => { c.showBarcodeText = v })) : '',
       isBarcodeCell
-        ? numField('条宽（倍率）', cell0.barWidth ?? 2, (c, v) => { c.barWidth = v }, { min: 2, max: 4, step: 0.5 })
+        ? numField('条宽（倍率）', cell0.barWidth ?? 2, (c, v) => { c.barWidth = v }, { min: 2, max: 8, step: 0.5 })
         : '',
       isBarcodeCell ? hint(dotAligned
         ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），单元格放不下时整体等比缩小'
         : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定') : '',
+      // 同二维码：走 stepper 而非 numField，0 档（不留白边）是合法值不能被归并成未设置
+      isBarcodeCell ? fieldHelp('静区 (模块)', stepper({
+        value: cell0.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',
+        onCommit: v => write(c => { c.barQuietZone = v }),
+      }), propertyTip('cd-bar-quiet-zone')) : '',
       isBarcodeCell
         ? numField('文本字号（相对条高，条高为 30）', cell0.barFontSize ?? 10, (c, v) => { c.barFontSize = v }, { min: 5, max: 24, placeholder: '默认 10' })
         : '',
@@ -314,7 +319,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         onCommit: v => write(c => { c.qrQuietZone = v }),
       }), propertyTip('cd-quiet-zone')) : '',
 
-      isBarcodeCell ? hint('单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限') : '',
+      isBarcodeCell ? hint('单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限。要放大条码：先加条宽倍率，再收窄静区（左右白边会换成条宽），必要时关掉显示文本以让出文本区高度') : '',
       (isQrcodeCell || isImageCell) ? selectRow('缩放模式', cell0.fit || 'contain', IMAGE_FIT_OPTIONS,
         v => write(c => { c.fit = v as NonNullable<TableCell['fit']> })) : '',
       isImageCell && cell0.fit === 'cover' ? cropAnchorField(ctx, {

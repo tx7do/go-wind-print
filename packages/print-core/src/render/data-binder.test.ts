@@ -112,6 +112,21 @@ describe('bindData 单元格码类配置透传', () => {
     // 0 是合法档位，不能被 or/falsy 判断吃掉
     expect(c.qrQuietZone).toBe(0)
   })
+
+  it('条形码单元格的 barQuietZone 进入 _renderRows（单元格字段是逐个白名单列举，漏一个属性台就静默失效）', () => {
+    const t = makeTemplate({
+      tableMode: 'static',
+      tableRows: [{
+        id: 'r1', type: 'static', height: 8,
+        cells: [cell({ formatter: '12345678', cellType: 'barcode', barQuietZone: 0, barWidth: 6, barFontSize: 14 })],
+      }],
+    })
+    const c = bindData(t, {}).elements[0]!.options._renderRows[0].cells[0]
+    // 0 档就是「不留白边」，必须原样透传
+    expect(c.barQuietZone).toBe(0)
+    expect(c.barWidth).toBe(6)
+    expect(c.barFontSize).toBe(14)
+  })
 })
 
 describe('文本元素 formatter 求值', () => {
