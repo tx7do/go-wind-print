@@ -381,6 +381,8 @@ npm run styles -w @worm-vue3-print/common
 
 **2026-10-22 更新**：1.3.8 已升版并双推（提交 `9f198c0`，npm 由维护者手工发）；IKOYG0、IKP3MU、IKOUJI、IKN95F 四条回帖已发并经匿名 API 复核；GitHub #4 已回帖并关闭。Gitee 五条仍保持 open/progressing，等待报告人验证或后续修复。
 
+**2026-10-22 二次更新（V1.3.8 重打）**：#IKPAGV 的字段名修复（`e6cc7dc`）并入 **V1.3.8**——四处更新记录（中英 CHANGELOG + canvas/common 两份 `help-content/changelog.ts`）同步后，`v1.3.8` 标签重打到登记提交 `fcf58fe` 并双推，原落点 `9f198c0` 作废；GitHub 发行版正文与 Gitee 发行版（`releases/1228054`，PATCH 200）同步更新，匿名复核两处 target 均为 `fcf58fe`。单测口径由 1729 例改 **1735 例**（canvas 58 文件 / 514 例、common 15 文件 / 176 例），全量构建、渲染服务 30 例与架构守卫均 exit 0。**npm 仍未发**（registry 实况 `latest=1.3.7`），安装包待手工：GitHub 发行版 assets=0，正文里的六个安装包链接在上传前为 404。
+
 ### T-13 #IKN95F 二维码尺寸无法增大 —— 代码已修，**2026-10-22 已回帖通知升级验证**
 
 - 报告人 hzybtm，10-18，50×70 标签上的独立二维码。**已把本项目用于生产**。
