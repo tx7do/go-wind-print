@@ -385,6 +385,8 @@ npm run styles -w @worm-vue3-print/common
 
 **2026-10-22 三次更新（更正 + 切 V1.3.9）**：二次更新里「npm 仍未发（registry 实况 `latest=1.3.7`）」是**照 npmmirror 读的错报**，公开更正——官方 registry 实况 `@worm-vue3-print/canvas` 与 `core` 的 `latest` **已是 1.3.8**（发布于 12:20:47 / 12:25:57 +0800）。取已发布产物开箱核对：`canvas@1.3.8` 的 `dist/canvas.css` 含 `.node-meta[data-v-*]{…flex-wrap:wrap…}` 与新 `.node-key` 规则、`dist/index.js` 含 `.node-meta` 结构 → **功能修复确实已随 1.3.8 出去**，缺的只是内置「更新记录」那条文案（发布发生在 `help-content` 改动之前，产物差 278 字节）。据此按用户选定的 **B 方案**另切 **V1.3.9** 纯补丁版：补该条文案 + 升版文件集（9 份 package.json、3 处 core 依赖范围、6 份 lock、README 直链表、Overview、print-client README 的 upload 示例、notes.md 换成本版正文）+ jquery 宿主 `sync-assets.mjs` 重跑；`common` 自身版本仍 `1.3.7-beta.0` 不随主线。**判据固化**：查 npm 发布面一律加 `--registry=https://registry.npmjs.org`，镜像会滞后一个版本。
 
+**2026-10-22 四次更新（V1.3.9 发布实况）**：升版提交 `7fe5b84`（27 文件）已双推；`v1.3.9` annotated 标签落点即该提交（自 `v1.3.8` 起 2 笔，与正文口径一致）并双推。GitHub Release id `420347466`（`V1.3.9(2026-10-22)`，正文取 `.github/release/notes.md` 双语全文，assets=0）；Gitee 发行版 id `1228403`（同标题，正文取中文 CHANGELOG V1.3.9 段 392 字，自动挂 `v1.3.9.zip/.tar.gz`，匿名复核 target=`7fe5b84`）。**Gitee 建发行版的坑**：`POST /repos/{owner}/{repo}/releases` 必须带 `target_commitish`，漏了回 `400 {"messages":["target_commitish is missing"]}`，而 `PATCH .../releases/{id}` 改正文时不必带。待办：npm 由维护者手工发 `1.3.9`（`publish:npm`），六个安装包按 `v1.3.9` 重打并只上传 GitHub；#IKPAGV 尚未向报告人回帖通知可验证。
+
 ### T-13 #IKN95F 二维码尺寸无法增大 —— 代码已修，**2026-10-22 已回帖通知升级验证**
 
 - 报告人 hzybtm，10-18，50×70 标签上的独立二维码。**已把本项目用于生产**。
