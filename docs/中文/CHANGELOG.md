@@ -2,6 +2,12 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## V1.3.9(2026-10-22)
+
+### 修复
+
+- **设计器内置「更新记录」漏登 #IKPAGV 那一条**（[Gitee #IKPAGV](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKPAGV)）：素材台字段树长名自适应换行的**功能修复已随 `1.3.8` 发布并在包内生效**（取证据于官方 registry 的 `canvas@1.3.8`：`dist/canvas.css` 已含 `.node-meta` 与新 `.node-key` 规则），但那条文案当时没进 `help-content/changelog.ts`，装了 1.3.8 的人在应用内的「更新记录」里看不到它。本版补齐该条文案（中英 CHANGELOG 与两份内置更新记录四处同步），并按新基线重打桌面客户端安装包。**功能与模板 schema 零变化**。
+
 ## V1.3.8(2026-10-22)
 
 ### 新增

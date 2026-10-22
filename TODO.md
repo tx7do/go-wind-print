@@ -381,7 +381,9 @@ npm run styles -w @worm-vue3-print/common
 
 **2026-10-22 更新**：1.3.8 已升版并双推（提交 `9f198c0`，npm 由维护者手工发）；IKOYG0、IKP3MU、IKOUJI、IKN95F 四条回帖已发并经匿名 API 复核；GitHub #4 已回帖并关闭。Gitee 五条仍保持 open/progressing，等待报告人验证或后续修复。
 
-**2026-10-22 二次更新（V1.3.8 重打）**：#IKPAGV 的字段名修复（`e6cc7dc`）并入 **V1.3.8**——四处更新记录（中英 CHANGELOG + canvas/common 两份 `help-content/changelog.ts`）同步后，`v1.3.8` 标签重打到登记提交 `fcf58fe` 并双推，原落点 `9f198c0` 作废；GitHub 发行版正文与 Gitee 发行版（`releases/1228054`，PATCH 200）同步更新，匿名复核两处 target 均为 `fcf58fe`。单测口径由 1729 例改 **1735 例**（canvas 58 文件 / 514 例、common 15 文件 / 176 例），全量构建、渲染服务 30 例与架构守卫均 exit 0。**npm 仍未发**（registry 实况 `latest=1.3.7`），安装包待手工：GitHub 发行版 assets=0，正文里的六个安装包链接在上传前为 404。
+**2026-10-22 二次更新（V1.3.8 重打）**：#IKPAGV 的字段名修复（`e6cc7dc`）并入 **V1.3.8**——四处更新记录（中英 CHANGELOG + canvas/common 两份 `help-content/changelog.ts`）同步后，`v1.3.8` 标签重打到登记提交 `fcf58fe` 并双推，原落点 `9f198c0` 作废；GitHub 发行版正文与 Gitee 发行版（`releases/1228054`，PATCH 200）同步更新，匿名复核两处 target 均为 `fcf58fe`。单测口径由 1729 例改 **1735 例**（canvas 58 文件 / 514 例、common 15 文件 / 176 例），全量构建、渲染服务 30 例与架构守卫均 exit 0。**安装包待手工**：GitHub 发行版 assets=0，正文里的六个安装包链接在上传前为 404。
+
+**2026-10-22 三次更新（更正 + 切 V1.3.9）**：二次更新里「npm 仍未发（registry 实况 `latest=1.3.7`）」是**照 npmmirror 读的错报**，公开更正——官方 registry 实况 `@worm-vue3-print/canvas` 与 `core` 的 `latest` **已是 1.3.8**（发布于 12:20:47 / 12:25:57 +0800）。取已发布产物开箱核对：`canvas@1.3.8` 的 `dist/canvas.css` 含 `.node-meta[data-v-*]{…flex-wrap:wrap…}` 与新 `.node-key` 规则、`dist/index.js` 含 `.node-meta` 结构 → **功能修复确实已随 1.3.8 出去**，缺的只是内置「更新记录」那条文案（发布发生在 `help-content` 改动之前，产物差 278 字节）。据此按用户选定的 **B 方案**另切 **V1.3.9** 纯补丁版：补该条文案 + 升版文件集（9 份 package.json、3 处 core 依赖范围、6 份 lock、README 直链表、Overview、print-client README 的 upload 示例、notes.md 换成本版正文）+ jquery 宿主 `sync-assets.mjs` 重跑；`common` 自身版本仍 `1.3.7-beta.0` 不随主线。**判据固化**：查 npm 发布面一律加 `--registry=https://registry.npmjs.org`，镜像会滞后一个版本。
 
 ### T-13 #IKN95F 二维码尺寸无法增大 —— 代码已修，**2026-10-22 已回帖通知升级验证**
 
@@ -528,7 +530,7 @@ npm run styles -w @worm-vue3-print/common
 - 实测（canvas demo 与 common 宿主示例各自注入同一组长字段）：中文名 **148px 完整无省略**，变量名落到第二行；
   原始 14 条字段仍全部单行 **33px**，密度未变；两侧数值逐条一致（含 `flex-wrap: wrap` 计算值）。
 - 契约测试两处先红后绿（`.node-meta` 结构、整行 title、分组 title）：canvas `FieldTreePanel.spec.ts` 3 例、common `field-tree.spec.ts` 3 例。
-- 对外待办：`v1.3.8` 标签重打并双推后，在 #IKPAGV 回帖告知修复已合入、可验证；报告人未验证前 issue 保持 `progressing`。
+- 对外待办：功能修复已实测**就在 npm `canvas@1.3.8` 包内生效**，报告人装 1.3.8 即可验证；应用内「更新记录」的那条文案随 `1.3.9` 补齐。在 #IKPAGV 回帖告知可验证，报告人确认前 issue 保持 `progressing`。
 
 ### 执行顺序建议
 

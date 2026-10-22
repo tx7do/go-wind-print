@@ -142,13 +142,13 @@ npm run pack:client:linux
 
 ```bash
 gh auth login   # 仅首次
-gh release upload v1.3.8 \
-  clients/print-client/dist/WormPrintClient-1.3.8-mac-x64.dmg \
-  clients/print-client/dist/WormPrintClient-1.3.8-mac-arm64.dmg \
-  clients/print-client/dist/WormPrintClient-1.3.8-win-x64.exe \
-  clients/print-client/dist/WormPrintClient-1.3.8-linux-amd64.deb \
-  clients/print-client/dist/WormPrintClient-1.3.8-linux-x86_64.rpm \
-  clients/print-client/dist/WormPrintClient-1.3.8-linux-x86_64.AppImage \
+gh release upload v1.3.9 \
+  clients/print-client/dist/WormPrintClient-1.3.9-mac-x64.dmg \
+  clients/print-client/dist/WormPrintClient-1.3.9-mac-arm64.dmg \
+  clients/print-client/dist/WormPrintClient-1.3.9-win-x64.exe \
+  clients/print-client/dist/WormPrintClient-1.3.9-linux-amd64.deb \
+  clients/print-client/dist/WormPrintClient-1.3.9-linux-x86_64.rpm \
+  clients/print-client/dist/WormPrintClient-1.3.9-linux-x86_64.AppImage \
   clients/print-client/dist/SHA256SUMS.txt --clobber
 ```
 
