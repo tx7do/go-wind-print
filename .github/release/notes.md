@@ -36,7 +36,7 @@ npm install @worm-vue3-print/core@^1.3.9 @worm-vue3-print/canvas@^1.3.9
 
 ### 桌面客户端安装包
 
-安装包基线为 `v1.3.9` 标签提交；本版安装包由维护者手工构建并上传到本发行版：
+安装包基线为 `v1.3.9` 标签提交（实际构建自 `5e141be`，与标签树只差 `TODO.md` 台账两行，代码内容逐字一致）；六个安装包与校验和清单已作为本发行版附件上传：
 
 - [WormPrintClient-1.3.9-mac-x64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.9/WormPrintClient-1.3.9-mac-x64.dmg)
 - [WormPrintClient-1.3.9-mac-arm64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.9/WormPrintClient-1.3.9-mac-arm64.dmg)
@@ -46,7 +46,7 @@ npm install @worm-vue3-print/core@^1.3.9 @worm-vue3-print/canvas@^1.3.9
 - [WormPrintClient-1.3.9-linux-x86_64.AppImage](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.9/WormPrintClient-1.3.9-linux-x86_64.AppImage)
 - [SHA256SUMS.txt](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.9/SHA256SUMS.txt)
 
-上传前以上链接为 404。安装包只挂在 GitHub（Gitee 发行版附件单文件上限 100 MB，装不下 Electron 产物）。下载不动或掉速时，把链接交给迅雷 / IDM / qBittorrent 续传；GitHub 页面本身打不开则属访问受阻，换网络或走源码构建。Linux 三包未经真机验证：出纸依赖 CUPS，AppImage 需 `libfuse2`（只有 fuse3 的发行版用 `--appimage-extract-and-run`），deb/rpm 内 `chrome-sandbox` 为非 setuid。
+以上七个附件已上传并逐个复核：GitHub 资产字节数与本地 `stat` 逐一对齐（621 B ~ 139 MB），直链全部回 `200`。安装包只挂在 GitHub（Gitee 发行版附件单文件上限 100 MB，装不下 Electron 产物）。下载不动或掉速时，把链接交给迅雷 / IDM / qBittorrent 续传；GitHub 页面本身打不开则属访问受阻，换网络或走源码构建。Linux 三包未经真机验证：出纸依赖 CUPS，AppImage 需 `libfuse2`（只有 fuse3 的发行版用 `--appimage-extract-and-run`），deb/rpm 内 `chrome-sandbox` 为非 setuid。
 
 ### 质量
 
@@ -55,6 +55,8 @@ npm install @worm-vue3-print/core@^1.3.9 @worm-vue3-print/canvas@^1.3.9
 - 渲染服务：`npm run test -w @worm-vue3-print/render` **9 文件 / 30 例**（真实 Chromium）全过。
 - `npm run lint:print-architecture` 通过。
 - 发布面取证：官方 registry `@worm-vue3-print/{core,canvas}` 的 `latest` 已是 `1.3.8`（发布于 2026-10-22 12:20 / 12:25 +0800），npmmirror 镜像当时仍显示 `1.3.7` —— 判据一律指名 `registry.npmjs.org`。
+- 安装包载荷核对：mac x64 / mac arm64 / win 的 `app.asar` 与 deb（`data/opt/WormPrintClient/resources/app.asar`）、rpm（`./opt/...`）解包后**同为 5,435,317 字节**，内含 22 处 `1.3.9` 与 HTML 直打通路标记 `worm-print-client-html`；AppImage 内嵌 squashfs 本机无工具可解，只给到校验和级证据。
+- 构建通路：mac/win 在宿主用 `ELECTRON_MIRROR` / `ELECTRON_BUILDER_BINARIES_MIRROR`（npmmirror）出包；Linux 三包走 Docker（`node:22-bookworm`，容器内装 `rpmbuild`）。构建前已把构建卷里 1.3.5/1.3.6/1.3.7 的旧 Linux 产物改名避让（`dist.pre-1.3.9-backup`），确保 `dist/` 只有本次六件。
 - 本版**未新增测试**（纯文案与基线），1.3.9 的 npm 发布由维护者手工执行。
 
 ---
@@ -91,7 +93,7 @@ Only `core` and `canvas` have stable releases on npm. The experimental `@worm-vu
 
 ### Desktop client installers
 
-Installer baseline is the `v1.3.9` tag commit; this release's installers are built and uploaded by the maintainer:
+Installer baseline is the `v1.3.9` tag commit (actually built from `5e141be`, whose tree differs from the tag only by two ledger lines in `TODO.md`, so the code content is identical); all six installers plus the checksum list are attached to this release:
 
 - [WormPrintClient-1.3.9-mac-x64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.9/WormPrintClient-1.3.9-mac-x64.dmg)
 - [WormPrintClient-1.3.9-mac-arm64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.9/WormPrintClient-1.3.9-mac-arm64.dmg)
@@ -101,7 +103,7 @@ Installer baseline is the `v1.3.9` tag commit; this release's installers are bui
 - [WormPrintClient-1.3.9-linux-x86_64.AppImage](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.9/WormPrintClient-1.3.9-linux-x86_64.AppImage)
 - [SHA256SUMS.txt](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.9/SHA256SUMS.txt)
 
-Until they are uploaded the links above are 404. Installers are hosted on GitHub only (Gitee release attachments are capped at 100 MB per file). If downloads stall, hand the links to a resumable downloader. The three Linux packages are not verified on real hardware: printing depends on CUPS, AppImage needs `libfuse2` (use `--appimage-extract-and-run` on fuse3-only distributions), and `chrome-sandbox` is not setuid inside deb/rpm.
+All seven attachments are uploaded and re-checked one by one: every GitHub asset size matches the local `stat` byte count (621 B ~ 139 MB) and every direct link returns `200`. Installers are hosted on GitHub only (Gitee release attachments are capped at 100 MB per file). If downloads stall, hand the links to a resumable downloader. The three Linux packages are not verified on real hardware: printing depends on CUPS, AppImage needs `libfuse2` (use `--appimage-extract-and-run` on fuse3-only distributions), and `chrome-sandbox` is not setuid inside deb/rpm.
 
 ### Quality
 
@@ -110,4 +112,6 @@ Until they are uploaded the links above are 404. Installers are hosted on GitHub
 - Render service: `npm run test -w @worm-vue3-print/render` — **9 files / 30 cases** in real Chromium.
 - `npm run lint:print-architecture` passes.
 - Registry check: `latest` for `@worm-vue3-print/{core,canvas}` is already `1.3.8` on `registry.npmjs.org` (published 2026-10-22 12:20 / 12:25 +0800) while npmmirror still showed `1.3.7` — always pin the registry when checking.
+- Installer payload check: the `app.asar` inside mac x64, mac arm64, the Windows NSIS exe, the deb (`data/opt/WormPrintClient/resources/app.asar`) and the rpm (`./opt/...`) is **the same 5,435,317 bytes** in every artifact, carrying 22 `1.3.9` literals and the `worm-print-client-html` direct-print marker; the AppImage's embedded squashfs cannot be unpacked on this host, so it stays at checksum-level evidence.
+- Build route: mac/win built on the host with `ELECTRON_MIRROR` / `ELECTRON_BUILDER_BINARIES_MIRROR` pointed at npmmirror; the three Linux packages via Docker (`node:22-bookworm` with `rpmbuild` installed in-container). Before building, the stale 1.3.5/1.3.6/1.3.7 Linux artifacts inside the build volume were renamed out of the way (`dist.pre-1.3.9-backup`) so `dist/` ends up with exactly this release's six files.
 - **No new tests in this release** (copy and baseline only); the npm publish of 1.3.9 is run manually by the maintainer.
