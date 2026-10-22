@@ -513,6 +513,21 @@ npm run styles -w @worm-vue3-print/common
 - 修后实测（demo 9303，同一 `{image}` 绑定单元格）：`.pd-crop-thumb` 的 src 已是示例图、`natural=120x120`、两条 note 都在（示例说明 + 余量报数），不再出现「按一张不存在的图给出可挪量」。
 - **同轮连带修掉一条取景框几何错**（用户批注「示例图片未能完整显示」的真因）：`.pd-crop-preview` 是块级、撑满面板宽 **215px**，而示例图只有 **96×96** → 取景窗按容器百分比落位，红框被拉成 **215×98 的长方形**、还把方形示例图罩住裁暗。改 `.pd-crop-preview { width: fit-content; max-width: 100% }` 让容器贴住图本身（common `designer.css` 由 canvas 派生，重建 canvas 后 `npm run styles -w common` 自动跟上）。修后实测：容器 98×98、图 96×96、红框与图同框（100% 时正好盖住整张）；单元格台点一次「放大比例 +」（105%）→ 红框收成 **93.4×93.4（95.2381%）居中**、note 报「水平可挪 1.3mm、垂直可挪 1.3mm」→ 取景窗从此按图本身取景，不再有多余的长方形空白。
 
+### T-18 #IKPAGV 素材台字段名过长把中文名挤没 —— 10-22 已修（自适应换行），并入 V1.3.8 重发
+
+- 报告人 mrwangwei，10-21 提，附截图；维护者 10-22 11:33 已回帖「10 月 23 日版本修复」。issue 状态 `progressing`。
+- 根因是实测不是看图猜：字段行是 `.node-label{flex:1}` 与 `.node-key{flex-shrink:0}` 同行，224px 侧栏里行内容只有 146px，
+  长变量名把中文名压到 **0px**，变量名自身 251px 冲出面板被裁。common `panels.ts` 同结构，样式由 canvas 派生。
+- 视觉伴侣给了三档并逐档量盒模型：A 单行限宽省略（中文名 75px，仍省略）、B 自适应换行（推荐）、C 行内水平滚动 → 用户选 **B**。
+- 实现：`.node-meta` 包裹中文名与变量名并 `flex-wrap:wrap`，放得下同行、放不下变量名落第二行；两侧仍超长各自省略，
+  整行 `title` 给出「中文名 (变量名)」全文，分组名补 `title`。修复提交 `e6cc7dc`。
+- 不选水平滚动的理由：字段行本身是拖拽源，行内横向滚动与拖拽起手打架，224px 侧栏每行一条滚动条也难扫读；
+  Figma 变量面板、Ant Design / Element Plus 树、PatternFly 截断规范一律走「省略 + 悬停全量」。
+- 实测（canvas demo 与 common 宿主示例各自注入同一组长字段）：中文名 **148px 完整无省略**，变量名落到第二行；
+  原始 14 条字段仍全部单行 **33px**，密度未变；两侧数值逐条一致（含 `flex-wrap: wrap` 计算值）。
+- 契约测试两处先红后绿（`.node-meta` 结构、整行 title、分组 title）：canvas `FieldTreePanel.spec.ts` 3 例、common `field-tree.spec.ts` 3 例。
+- 对外待办：`v1.3.8` 标签重打并双推后，在 #IKPAGV 回帖告知修复已合入、可验证；报告人未验证前 issue 保持 `progressing`。
+
 ### 执行顺序建议
 
 | 序 | 项 | 性质 | 代价 |
