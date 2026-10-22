@@ -2,6 +2,25 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## V1.3.8(2026-10-22)
+
+### 新增
+
+- 图片**裁剪锚点改为可视化取位**（[GitHub issue #4](https://github.com/worm-longliu/worm-vue3-print/issues/4)）：属性台从单一文本值改为「位置档下拉 + 可动轴数字框 + 原图可视窗示意」——红框就是最终会被打印的那块画面，换档、改数字时同步移动。有图片自然尺寸时只显示真正可动的那一轴（两轴都能动才出九宫格），拿不到尺寸时降级为两框；无法归一化的存量写法（mm 偏移、四值语法、`calc`）进入「自定义」并原样保留。缩放模式 `cover` 的用户可见名统一改为「剪裁（等比铺满后裁边）」，档位表收编到 core 一份，canvas 与 print-common 同源。
+- 图片**裁剪放大比例** `fitScale`（100~400，仅「剪裁」档消费）：图与框同比例时，等比铺满后恰好等于框、一条边都裁不掉；放大比例把画面按百分比再推大，两轴才各多出一条可裁的边。声明落在 core 新增的 `render/crop-style.ts`，出纸、画布与 print-common 五处同源；`transform: scale()` 的缩放原点复用同一条锚点值（锚点既是取位钉住点也是放大不动点）。100 与缺省不落声明，存量模板逐字不变。
+
+### 变更
+
+- **锚点行只在「剪裁」档出现**：包含 / 拉伸填满 / 原始尺寸 / 缩小四档不再显示裁剪锚点与放大比例——这些档没有真被裁掉的边，方框配方图时整行只报「两轴都没有可挪的余量」属噪声。canvas 与 print-common 的元素台、单元格台四处统一。
+- 表格**含图单元格选「剪裁」后出纸行高不再被图片撑高**：`cover` 档把外框钉在可用框高、`<img>` 铺满该盒；真 Chromium 实测声明 12mm 的行由约 23.8mm 回到 12mm，取顶 / 取底时画面按锚点裁切（取顶打出顶端红带、取底打出底端蓝带）。其余四档逐字保持存量形态。**注意**：既有模板里表格图片单元格若用了「剪裁」，升级后行高会变矮，请复核版式。
+
+### 修复
+
+- **大写金额万 / 亿 节单位丢失**（[Gitee #IKOYG0](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKOYG0)）：原实现按四位一节换算时，节单位取的是「当前节」下标，首个满四位时下标仍落在第 0 节、取到空串，万 / 亿永远拼不上。现改为按四位一节从高位向下拼接，节单位取本节下标，并补齐跨节零；顺带纠正角位为 0 而分位非 0 时「元」后必须写「零」、不足一元保留「元」位。仅「≥1 万」「x.0y 元」「0<|金额|<1」三类输出变化，全部由错转对。
+- **字体下拉展开时把宿主撑变形**（[Gitee #IKP3MU](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKP3MU)）：候选列表此前留在文档流里，展开时把顶栏收纳单元由 28px 撑到 157px、属性台字体字段下移 122px；现改为浮层并按可用空间上下翻档，顶栏 /「更多」面板 / 属性台三处不再被撑开。该缺陷自 1.3.3 格式工具栏并入顶栏起存在，不是 1.3.7 工具栏收纳的回归。
+- **含表格与横竖线的单页模板被拆成两页**（[Gitee #IKOUJI](https://gitee.com/liulong_oschina/worm-vue3-print/issues/IKOUJI)，C3）：分页预算原按一维纵向流累加，两条与表格横向不相交的竖线也会吃掉纵向预算，表格放不下即虚假换页；换页后元素改用流式光标，设计坐标随之丢失。现改为按横向占用列记账，横竖线与表格各算各列；报告人模板由 2 页 / 横线跳到第 2 页 y=38.9 恢复为 1 页 / y=86.8（设计 86.87）。**说明**：同一 issue 内的 C2（表格跟随区数据驱动漂移）与 C1（跟随区内竖线高度丢失）仍未修复，已登记 TODO T-11，本次不宣称全部关闭。
+- 设计态**未求值的图片表达式**（如 `{image}`）不再被当成真实图片：属性台回落到内置示例图并明确标注「示例图」，换图或加载失败时清掉上一张图的可挪量与取景窗，不再出现「破图 + 旧余量」；同时修正取景示意框被面板宽度拉成横条的几何错（红框现与示例图同框）。
+
 ## V1.3.7(2026-10-19)
 
 ### 新增
@@ -12,8 +31,6 @@
 - 表格**单元格两端对齐**：属性台「水平对齐」补第 4 档「两端」（canvas 与 print-common 同位同文案）。此前格式工具栏的第 4 格在单元格上下文里已经能写入 `align: 'justify'`（`useFormatToolbar` 在 `context==='cells'` 复用同一对齐面板），但属性台看不到也点不到，且出纸只输出 `text-align:justify`——真实设计器实测 83px 宽的表头格里内容仍停在 48px。现三端补齐：core `matrixCellStyle()` 成对输出 `text-align-last:justify`，canvas `TableElement` 与 print-common `table.ts` 的单元格样式同步；真实设计器点「两端」后同一格行盒 48px → 撑满内容宽 73px。缺省仍按 `left`/`center` 走，存量模板零变化（仅 `align === 'justify'` 时多这一条声明）。
 - 长文本**首行缩进** `longTextIndent` 真正落纸（属性台「外观」组同时补上「首行缩进 (字符)」入口与说明）：`text-indent` 以 **em** 输出（随字号走，`textFit='shrink'` 把字号缩小后缩进同步变窄），与 Word/WPS「首行缩进 2 字符」同形态；画布与 print-common 两处由 `pt` 同步改为 `em`。仅 `longText` 元素消费，给 `text` 元素塞该键不生效——与画布语义对齐。
 - 图片**裁剪锚点** `objectPosition`：独立 image 与表格单元格图片的 `<img>` 输出 `object-position`（如 `center 20%`，证件照保住头顶）；属性台「外观」组为 image 新增「缩放模式」与「裁剪锚点」，表格单元格属性面板同步补「裁剪锚点」（仅图片单元格显示）（canvas 与 print-common 同位同文案，说明挂 `button.pd-help`，文案单一来源是 core 的 `PROPERTY_REGISTRY`）。含 `;`、引号、`url()` 等非法字符的值整条丢弃（宿主侧 CSSOM 同样丢弃，两端行为一致）。
-- 图片**裁剪锚点行收回「只有剪裁档才出现」**，并新增**剪裁放大比例** `fitScale`：锚点行此前对 `contain`／`none`／`scale-down` 也出（那一档挪的是框内空位），实测方框配方图时整行只报「两轴都没有可挪的余量」，属噪声——现 canvas 与 print-common 的元素台都改成只在 `fit === 'cover'` 出，与两端单元格台同一门禁。`fitScale`（100~400，**仅 `cover` 消费**）解决的是「图与框同比例时根本裁不掉任何东西」：铺满后把画面按百分比再推大，两轴才各多出一条可裁的边。落点三端同源——core 新增 `render/crop-style.ts`（`cropScalePct` / `cropStyleDeclarations` / `sanitizeObjectPosition`，经 `/designer` 再导出），画布 `ImageElement`/`CellImage`、print-common `imageStyle`/`table.ts` 与出纸 `html-generator` 都展开同一份声明，`transform: scale()` 的 `transform-origin` **复用同一条 `objectPosition` 值**（锚点既是取位钉住点也是放大不动点），原 `html-generator` 私有的锚点净化函数迁入该模块。画布实测（28.2mm 方框 + 120×120 方图 + 200%）：img 视觉盒 106.6px → 213.2px（比值 2.000），锚点 `0% 0%` 把图左上钉在框左上、右下各溢出 106.6px，`100% 100%` 反之，属性台提示同步报「水平可挪 28.2mm、垂直可挪 28.2mm」；改回 100 即 `transform: none`，存量模板逐字不变。
-
 - 桌面客户端出纸通路：**HTML 直打**。core 产出的最终 HTML 直接交给 `webContents.print({ silent: true })`，与浏览器 `window.print()` 同源：纸张按渲染管线算出的 `paperMm` 以**微米**显式声明，边距恒 `none`，出纸前把 `deviceName/pageSize/copies/landscape` 落日志（`Chromium 原生打印参数`）。三端都不再依赖外部命令。勾选「保留生成的 PDF」时才额外产出同一份 `printToPDF` 结果作为比对**参考件**（不勾选则渲染停在准备阶段，省一次出图）；任务记录新增 `printRoute` 留痕，旧记录按 `pdf` 理解。macOS 实测（支持自定义尺寸的标签队列）：落盘介质精确等于声明值（60×40 / 80×60 / 100×80 mm，`/Rotate=0`、内容正立），比 PDF 通路 `printToPDF` 的取整结果（60.4×40.2 mm）更准；`silent` 未弹交互框，60s 回调兜底未触发。
 - 设计器顶部工具栏**自适应收纳**：宽度不足以容纳全部按钮组时，按固定优先级链（剪贴板 → 格式刷 → 缩放 → 排列/视图 → 边框 → 颜色 → 对齐 → 文字样式 → 字体与字号）从链首起把按钮组收进新出现的「更多」下拉，面板内保留原有分组标题与图标网格形态；全部收完仍放不下时品牌区文字转为省略号截断。判定函数 `resolveToolbarOverflow` 落在 `@worm-vue3-print/core/designer`，canvas 与 print-common 两套宿主共用同一链序。canvas 侧用 `Teleport` 搬运，组件实例不重挂载，因此「边框」面板里选好的线型/粗细/颜色在窗口反复缩放后存活；common 侧因整树重建模型改为重绘后置遍搬运，并新增 `openMore` 状态使「更多」与内层下拉能同时展开。
 - demo 顶部操作区接入同一套收纳：常驻「worm-vue3-print」标识、标题与「打印输出」，其余 9 项按 模板 ID → 业务类型 → 宿主示例切换 → 清空 → 导入模板 → 导出模板 → 自定义字段与数据 → 批量打印 → 加载示例 的顺序收进「更多」，面板用 demo 自身视觉、宿主自持 DOM。改前实测 640px 宽时顶部条只有 45px 高而「自定义字段与数据」按钮被压到 156px 高（逐字竖排），11 个文本项全部折行并溢出条底 55px；改后同宽度全部收进面板，无一项竖排、无溢出。左右分隔改由显式 `.demo-spacer` 承担（原 `.demo-print-btn:first-of-type { margin-left: auto }` 在按钮被包成收纳单元后已选不中）。
