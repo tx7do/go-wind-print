@@ -2,9 +2,10 @@
   PrintHtmlPreview：浏览器端 HTML 打印预览（不依赖服务端 PDF）。
   内部完成 数据绑定 → 隐藏 iframe 测量 → 分页 → 多页 HTML 渲染；
   父组件通过 ref 调用 print() 触发浏览器原生打印（@page 控制纸张与分页）。
+  预览缩放只作用于屏幕查看，出纸时由 @media print 复位，不改动渲染产物本身。
 -->
 <template>
-  <div class="print-html-preview">
+  <div ref="rootRef" class="print-html-preview">
     <div v-if="errorMsg" class="print-html-preview-error">
       <span>预览渲染失败：{{ errorMsg }}</span>
     </div>
@@ -15,14 +16,27 @@
       class="print-html-preview-iframe"
       title="打印预览"
     />
+    <div v-if="templateJson && !rendering && !errorMsg" class="print-html-preview-zoom">
+      <button
+        v-for="preset in presets"
+        :key="preset.key"
+        type="button"
+        class="print-html-preview-zoom-btn"
+        :class="{ active: preset.key === zoomKey }"
+        :title="preset.tip"
+        @click="zoomKey = preset.key"
+      >{{ preset.label }}</button>
+      <span class="print-html-preview-zoom-note">仅屏幕缩放，打印不受影响</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { PrintTemplateData } from '@worm-vue3-print/core'
 import { renderHtmlPages } from '@worm-vue3-print/core/browser'
 import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
+import { defaultZoomKey, paperWidthPx, resolvePrinterDpi, zoomPresets } from '../composables/usePreviewZoom'
 
 const props = defineProps<{
   /** 模板 JSON（设计器 TemplateData 结构兼容） */
@@ -47,10 +61,58 @@ const emit = defineEmits<{
 }>()
 
 const iframeRef = ref<HTMLIFrameElement>()
+const rootRef = ref<HTMLDivElement>()
 const rendering = ref(false)
 const errorMsg = ref('')
 /** 渲染序列：过期的渲染结果丢弃，避免快速重渲染竞态 */
 let renderSeq = 0
+
+/** 注入 iframe 的缩放守卫样式 id：重渲染会换文档，靠它判断是否需要重新注入 */
+const ZOOM_GUARD_ID = 'print-preview-zoom-guard'
+
+const printerDpi = computed(() => resolvePrinterDpi(props.templateJson))
+/** 容器宽（px）：适配档据此算整数倍，渲染后与窗口变化时重新量 */
+const containerPx = ref(0)
+const presets = computed(() =>
+  zoomPresets(printerDpi.value, containerPx.value, paperWidthPx(props.templateJson)),
+)
+const zoomKey = ref(defaultZoomKey(printerDpi.value))
+const zoomValue = computed(
+  () => presets.value.find(p => p.key === zoomKey.value)?.value ?? 1,
+)
+
+function measureContainer(): void {
+  containerPx.value = rootRef.value?.clientWidth ?? 0
+}
+
+/** 档位因模板变化（如删掉最后一处 printerDpi）而消失时，落回默认档 */
+function syncZoomKey(): void {
+  if (!presets.value.some(p => p.key === zoomKey.value)) {
+    zoomKey.value = defaultZoomKey(printerDpi.value)
+  }
+}
+
+/**
+ * 缩放只写进预览文档，不改渲染产物：
+ * 一条带 `@media print` 复位的规则——`print()` 走 iframe 自身排版与 @page 分页，
+ * 屏幕放大必须在打印媒介下打回 1，否则会连带改掉分页。
+ */
+function applyViewZoom(): void {
+  const doc = iframeRef.value?.contentWindow?.document
+  if (!doc?.documentElement) return
+  let guard = doc.getElementById(ZOOM_GUARD_ID) as HTMLStyleElement | null
+  if (!guard) {
+    guard = doc.createElement('style')
+    guard.id = ZOOM_GUARD_ID
+    ;(doc.head ?? doc.documentElement).appendChild(guard)
+  }
+  guard.textContent = `html{zoom:${zoomValue.value}}@media print{html{zoom:1 !important}}`
+}
+
+function onWindowResize(): void {
+  measureContainer()
+  applyViewZoom()
+}
 
 async function rerender() {
   if (!props.templateJson) {
@@ -76,6 +138,10 @@ async function rerender() {
       doc.write(html)
       doc.close()
     }
+    // 新文档里没有上次的缩放守卫，量一次容器宽再补写档位与缩放规则
+    measureContainer()
+    syncZoomKey()
+    applyViewZoom()
     emit('rendered', pageCount, copies)
   } catch (e) {
     if (seq !== renderSeq) return
@@ -100,11 +166,26 @@ watch(
   { immediate: true, deep: true },
 )
 
-onBeforeUnmount(() => {
-  renderSeq++
+watch(zoomValue, () => applyViewZoom())
+
+onMounted(() => {
+  measureContainer()
+  syncZoomKey()
+  applyViewZoom()
+  window.addEventListener('resize', onWindowResize)
 })
 
-defineExpose({ print, rerender })
+onBeforeUnmount(() => {
+  renderSeq++
+  window.removeEventListener('resize', onWindowResize)
+})
+
+/** 宿主可程序化切档（嵌入端自带缩放控件时用），非法档位名忽略 */
+function setViewZoom(key: string): void {
+  if (presets.value.some(p => p.key === key)) zoomKey.value = key
+}
+
+defineExpose({ print, rerender, setViewZoom, zoomKey, presets })
 </script>
 
 <style scoped>
@@ -132,5 +213,45 @@ defineExpose({ print, rerender })
 }
 .print-html-preview-error {
   color: #f56c6c;
+}
+/* 缩放条浮在预览右上：不占布局，避免各宿主（demo 与设计器弹框）为它改容器结构 */
+.print-html-preview-zoom {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border: 1px solid var(--pd-border-soft, #ebeef5);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.print-html-preview-zoom-btn {
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--pd-text-muted, #909399);
+  font-size: 11px;
+  line-height: 18px;
+  cursor: pointer;
+  transition: color .14s ease, background .14s ease;
+}
+.print-html-preview-zoom-btn:hover {
+  background: var(--pd-sidebar-hover, #f0f3f9);
+  color: var(--pd-text, #2a2e37);
+}
+.print-html-preview-zoom-btn.active {
+  background: var(--pd-accent, #165DFF);
+  color: #fff;
+  font-weight: 600;
+}
+.print-html-preview-zoom-note {
+  padding-right: 4px;
+  color: var(--pd-text-muted, #909399);
+  font-size: 11px;
 }
 </style>
