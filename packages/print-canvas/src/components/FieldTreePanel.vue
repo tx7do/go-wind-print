@@ -12,7 +12,7 @@
         >
           <span class="expand-icon">{{ collapsedGroups.has(group.key) && !searching ? '▶' : '▼' }}</span>
           <span class="node-icon">{{ group.isList ? '📋' : '📁' }}</span>
-          <span class="group-label">{{ group.label }}</span>
+          <span class="group-label" :title="group.label">{{ group.label }}</span>
         </div>
         <div v-show="!group.key || searching || !collapsedGroups.has(group.key)">
           <div
@@ -20,12 +20,15 @@
             :key="field.fieldKey"
             class="field-row"
             draggable="true"
+            :title="`${field.fieldLabel} (${field.fieldKey})`"
             :style="{ paddingLeft: (group.key ? 22 : 8) + 'px' }"
             @dragstart="onDragStart($event, field)"
           >
             <span class="node-icon">📄</span>
-            <span class="node-label">{{ field.fieldLabel }}</span>
-            <span class="node-key">({{ field.fieldKey }})</span>
+            <span class="node-meta">
+              <span class="node-label">{{ field.fieldLabel }}</span>
+              <span class="node-key">({{ field.fieldKey }})</span>
+            </span>
           </div>
         </div>
       </template>
@@ -136,16 +139,32 @@ function onDragStart(event: DragEvent, field: PrintBusinessField) {
   filter: saturate(.6);
   opacity: .9;
 }
-.node-label {
+.node-meta {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 4px;
+  row-gap: 1px;
+}
+.node-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .node-key {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
   color: var(--pd-text-muted, #909399);
-  flex-shrink: 0;
 }
 .group-label {
   flex: 1;
