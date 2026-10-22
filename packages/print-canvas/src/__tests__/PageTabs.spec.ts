@@ -75,14 +75,14 @@ describe('PageTabs', () => {
 
   it('悬停带 data-tip 的元素 300ms 后显示自定义 tooltip', async () => {
     const w = mount(PageTabs, { props: { pages: [{ name: '封面' }], activeIndex: 0, multi: true } })
-    expect(w.find('.page-tabs-tip').exists()).toBe(false)
+    expect(w.find('.pd-hover-tip').exists()).toBe(false)
     await w.find('[data-test="duplicate-page"]').trigger('mouseover')
     vi.advanceTimersByTime(300)
     await nextTick()
-    expect(w.find('.page-tabs-tip').exists()).toBe(true)
-    expect(w.find('.page-tabs-tip').text()).toBe('复制当前页「封面」')
+    expect(w.find('.pd-hover-tip').exists()).toBe(true)
+    expect(w.find('.pd-hover-tip').text()).toBe('复制当前页「封面」')
     // 移出后隐藏
     await w.find('[data-test="duplicate-page"]').trigger('mouseout')
-    expect(w.find('.page-tabs-tip').exists()).toBe(false)
+    expect(w.find('.pd-hover-tip').exists()).toBe(false)
   })
 })

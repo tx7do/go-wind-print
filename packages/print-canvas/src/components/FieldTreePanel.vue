@@ -1,5 +1,5 @@
 <template>
-  <div class="field-tree-panel">
+  <div class="field-tree-panel" @mouseover="onTipOver" @mouseout="onTipOut" @mouseleave="hideTip">
     <div class="panel-title">业务字段</div>
     <input v-model="searchText" class="pd-input search-input" type="search" placeholder="搜索字段..." aria-label="搜索字段" />
     <div class="tree-container">
@@ -12,7 +12,7 @@
         >
           <span class="expand-icon">{{ collapsedGroups.has(group.key) && !searching ? '▶' : '▼' }}</span>
           <span class="node-icon">{{ group.isList ? '📋' : '📁' }}</span>
-          <span class="group-label" :title="group.label">{{ group.label }}</span>
+          <span class="group-label" :data-tip="group.label">{{ group.label }}</span>
         </div>
         <div v-show="!group.key || searching || !collapsedGroups.has(group.key)">
           <div
@@ -20,7 +20,7 @@
             :key="field.fieldKey"
             class="field-row"
             draggable="true"
-            :title="`${field.fieldLabel} (${field.fieldKey})`"
+            :data-tip="`${field.fieldLabel} (${field.fieldKey})`"
             :style="{ paddingLeft: (group.key ? 22 : 8) + 'px' }"
             @dragstart="onDragStart($event, field)"
           >
@@ -34,6 +34,8 @@
       </template>
     </div>
     <p v-if="filteredGroups.length === 0" class="pd-empty">暂无字段</p>
+    <!-- 长名称被省略时悬停看全：侧栏 overflow 会裁掉 CSS ::after 气泡，改用 fixed 浮层 -->
+    <div v-if="tip" ref="tipEl" class="pd-hover-tip" :style="{ left: `${tip.x}px`, top: `${tip.y}px` }">{{ tip.text }}</div>
   </div>
 </template>
 
@@ -41,6 +43,7 @@
 import { ref, computed } from 'vue'
 import type { PrintBusinessField } from '@worm-vue3-print/core/designer'
 import { groupFields, filterGroups } from '@worm-vue3-print/core/designer'
+import { useHoverTip } from '../composables/useHoverTip'
 
 const props = defineProps<{
   fields: PrintBusinessField[]
@@ -52,6 +55,7 @@ const emit = defineEmits<{
 
 const searchText = ref('')
 const collapsedGroups = ref<Set<string>>(new Set())
+const { tip, tipEl, onTipOver, onTipOut, hideTip } = useHoverTip()
 
 const searching = computed(() => !!searchText.value.trim())
 const filteredGroups = computed(() =>

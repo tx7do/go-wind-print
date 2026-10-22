@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // 字段树长名称显示（common 侧）：与 canvas FieldTreePanel.spec.ts 同口径——
-// .node-meta 包裹中文名与变量名，整行 title 与分组 title 带出完整文本。
+// .node-meta 包裹中文名与变量名，整行 data-tip 与分组 data-tip 带出完整文本（浮层由 print-designer 的 JS 提示承担）。
 import { describe, it, expect } from 'vitest'
 import type { PrintBusinessField } from '@worm-vue3-print/core/designer'
 import { DesignerStore } from '../../core/store'
@@ -50,13 +50,15 @@ describe('素材台字段树长字段显示', () => {
     expect(row.querySelector('.node-meta > .node-key')?.textContent).toBe(`(${LONG_KEY})`)
   })
 
-  it('整行 title 带出完整中文名与变量名', () => {
+  it('整行 data-tip 带出完整中文名与变量名，不残留原生 title', () => {
     const host = paint()
-    expect(rowOf(host).getAttribute('title')).toBe(`${LONG_LABEL} (${LONG_KEY})`)
+    const row = rowOf(host)
+    expect(row.getAttribute('data-tip')).toBe(`${LONG_LABEL} (${LONG_KEY})`)
+    expect(row.getAttribute('title')).toBeNull()
   })
 
-  it('分组标题 title 带出完整分组名', () => {
+  it('分组标题 data-tip 带出完整分组名', () => {
     const host = paint()
-    expect(host.querySelector('.field-group-header .group-label')?.getAttribute('title')).toBe('客户信息')
+    expect(host.querySelector('.field-group-header .group-label')?.getAttribute('data-tip')).toBe('客户信息')
   })
 })

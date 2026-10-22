@@ -37,6 +37,12 @@ import designerCss from './styles/designer.css?inline'
 
 const RULER_THICK = 20
 
+/**
+ * 走 JS 浮层 tooltip 的容器：这些区域带 overflow 裁剪，CSS ::after 气泡会被切掉，
+ * 必须用 fixed 浮层（与 canvas 的 useHoverTip 消费方一一对应）。
+ */
+const HOVER_TIP_CONTAINERS = '.page-tabs, .field-tree-panel'
+
 /** Ctrl/⌘ 组合键白名单：不在表内的组合键不拦截浏览器默认行为（与 canvas useKeyboard 一致） */
 const HANDLED_CTRL_KEYS = new Set(['z', 'y', 'a', 'c', 'x', 'v', 'd', 'g', '1', 'l', 'r', 'e', 't', 'b', '0'])
 
@@ -119,9 +125,9 @@ export class PrintDesignerElement extends HTMLElement {
   private unmountHelp: (() => void) | null = null
   private drag: DragState | null = null
   private snapTimer: ReturnType<typeof setTimeout> | null = null
-  /** 页签 tooltip：挂在 shadow root 上的浮层（canvas 的 .page-tabs-tip 等价物） */
-  private pageTipEl: HTMLElement | null = null
-  private pageTipTimer: ReturnType<typeof setTimeout> | null = null
+  /** 悬浮提示浮层：挂在 shadow root 上（canvas 的 useHoverTip / .pd-hover-tip 等价物） */
+  private hoverTipEl: HTMLElement | null = null
+  private hoverTipTimer: ReturnType<typeof setTimeout> | null = null
   private resize: ResizeState | null = null
   private raf = 0
   private lastSelKey = ''
@@ -234,8 +240,8 @@ export class PrintDesignerElement extends HTMLElement {
     // 帮助弹窗的 document 级 Esc 监听随卸载一起摘除
     this.unmountHelp?.()
     this.unmountHelp = null
-    // 页签 tooltip 与吸附闪烁点的定时器随卸载摘除
-    this.hidePageTip()
+    // 悬浮提示与吸附闪烁点的定时器随卸载摘除
+    this.hideHoverTip()
     if (this.snapTimer) { clearTimeout(this.snapTimer); this.snapTimer = null }
   }
 
@@ -1151,15 +1157,15 @@ export class PrintDesignerElement extends HTMLElement {
       const inMenu = path.some(n => (n as HTMLElement).classList?.contains('context-menu'))
       if (this.menu.visible && !inMenu) { this.menu.visible = false; this.repaint() }
     })
-    // 页签自定义 tooltip：canvas 的 PageTabs 用事件委托 + 300ms 延迟显示 `.page-tabs-tip`
-    // （fixed 定位，不受页签列表 overflow 裁剪）。工具栏/格式栏的 tip 是 CSS ::after，无需 JS。
+    // 自定义 tooltip：canvas 的 useHoverTip 用事件委托 + 300ms 延迟显示 `.pd-hover-tip`
+    // （fixed 定位，不受页签列表与素材台的 overflow 裁剪）。工具栏/格式栏的 tip 是 CSS ::after，无需 JS。
     // 监听挂在 shadow root 上：宿主元素只能拿到被重定向后的 target，取不到 shadow 内的节点。
     this.root.addEventListener('mouseover', (ev) => {
       const el = (ev as MouseEvent).target as HTMLElement | null
       const tip = el?.closest?.('[data-tip]') as HTMLElement | null
-      if (!tip || !tip.closest('.page-tabs')) return
-      if (this.pageTipTimer) clearTimeout(this.pageTipTimer)
-      this.pageTipTimer = setTimeout(() => this.showPageTip(tip), 300)
+      if (!tip || !tip.closest(HOVER_TIP_CONTAINERS)) return
+      if (this.hoverTipTimer) clearTimeout(this.hoverTipTimer)
+      this.hoverTipTimer = setTimeout(() => this.showHoverTip(tip), 300)
     })
     this.root.addEventListener('mouseout', (ev) => {
       const e = ev as MouseEvent
@@ -1167,28 +1173,33 @@ export class PrintDesignerElement extends HTMLElement {
       if (!tip) return
       // 同一目标内部（图标与文字之间）移动不隐藏
       if ((e.relatedTarget as HTMLElement | null)?.closest?.('[data-tip]') === tip) return
-      this.hidePageTip()
+      this.hideHoverTip()
     })
   }
 
-  private showPageTip(el: HTMLElement) {
+  private showHoverTip(el: HTMLElement) {
     const text = el.dataset.tip
     if (!text) return
-    this.hidePageTip()
+    this.hideHoverTip()
     const rect = el.getBoundingClientRect()
-    // 与 canvas 同口径：水平以目标中心对齐并粗夹到视口内
-    const x = Math.min(Math.max(rect.left + rect.width / 2, 80), window.innerWidth - 80)
-    this.pageTipEl = render(h('div', {
-      class: 'page-tabs-tip',
-      style: { left: `${x}px`, top: `${rect.bottom + 6}px` },
+    // 与 canvas 同口径：先按目标中心摆放，量出浮层实宽后再夹回视口（长字段名会宽过侧栏）
+    const center = rect.left + rect.width / 2
+    this.hoverTipEl = render(h('div', {
+      class: 'pd-hover-tip',
+      style: { left: `${center}px`, top: `${rect.bottom + 6}px` },
       text,
     }), this.root) as HTMLElement
+    const half = this.hoverTipEl.offsetWidth / 2
+    if (!half) return
+    const min = half + 8
+    const max = Math.max(window.innerWidth - half - 8, min)
+    this.hoverTipEl.style.left = `${Math.min(Math.max(center, min), max)}px`
   }
 
-  private hidePageTip() {
-    if (this.pageTipTimer) { clearTimeout(this.pageTipTimer); this.pageTipTimer = null }
-    this.pageTipEl?.remove()
-    this.pageTipEl = null
+  private hideHoverTip() {
+    if (this.hoverTipTimer) { clearTimeout(this.hoverTipTimer); this.hoverTipTimer = null }
+    this.hoverTipEl?.remove()
+    this.hoverTipEl = null
   }
 
   private manualGuides() {

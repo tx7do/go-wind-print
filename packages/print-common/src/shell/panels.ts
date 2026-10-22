@@ -117,12 +117,12 @@ function fieldsPane(ctx: ShellCtx) {
       }, [
         h('span', { class: 'expand-icon', text: collapsed ? '▶' : '▼' }),
         h('span', { class: 'node-icon', text: group.isList ? '📋' : '📁' }),
-        h('span', { class: 'group-label', text: group.label, title: group.label }),
+        h('span', { class: 'group-label', text: group.label, 'data-tip': group.label }),
       ]) : ''
       const rows = collapsed ? [] : group.fields.map(field => h('div', {
         class: 'field-row',
         draggable: true,
-        title: `${field.fieldLabel} (${field.fieldKey})`,
+        'data-tip': `${field.fieldLabel} (${field.fieldKey})`,
         style: { paddingLeft: `${group.key ? 22 : 8}px` },
         onDragstart: (ev: Event) => {
           (ev as DragEvent).dataTransfer?.setData('fieldKey', field.fieldKey)

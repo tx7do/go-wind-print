@@ -31,14 +31,15 @@
       <button data-test="move-right" :data-tip="`后移「${activeName}」`" :disabled="activeIndex >= pages.length - 1" @click="$emit('move', activeIndex, activeIndex + 1)">→</button>
     </div>
     <!-- 自定义 tooltip：fixed 定位挂在本组件根下，不受页签列表 overflow 裁剪，z-index 高于画布各层 -->
-    <div v-if="tip" class="page-tabs-tip" :style="{ left: `${tip.x}px`, top: `${tip.y}px` }">{{ tip.text }}</div>
+    <div v-if="tip" ref="tipEl" class="pd-hover-tip" :style="{ left: `${tip.x}px`, top: `${tip.y}px` }">{{ tip.text }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import type { TemplateData } from '@worm-vue3-print/core/designer'
 import { TILING_SINGLE_PAGE_TIP } from '../composables/useDesignerState'
+import { useHoverTip } from '../composables/useHoverTip'
 
 const props = defineProps<{
   pages: TemplateData[]
@@ -87,40 +88,8 @@ function cancelRename() {
   editingIndex.value = -1
 }
 
-// 自定义 tooltip：事件委托到根节点，读 data-tip 与目标位置，延迟 300ms 显示避免滑过闪烁
-interface TipState { text: string; x: number; y: number }
-const tip = ref<TipState | null>(null)
-let tipTimer: ReturnType<typeof setTimeout> | null = null
-
-function showTipFor(el: HTMLElement) {
-  const text = el.dataset.tip
-  if (!text) return
-  const rect = el.getBoundingClientRect()
-  // 水平以目标中心对齐并夹取到视口内（粗夹即可，translateX(-50%) 后偏差可忽略）
-  const x = Math.min(Math.max(rect.left + rect.width / 2, 80), window.innerWidth - 80)
-  tip.value = { text, x, y: rect.bottom + 6 }
-}
-
-function onTipOver(e: MouseEvent) {
-  const el = (e.target as HTMLElement).closest?.('[data-tip]') as HTMLElement | null
-  if (!el) return
-  if (tipTimer) clearTimeout(tipTimer)
-  tipTimer = setTimeout(() => showTipFor(el), 300)
-}
-
-function onTipOut(e: MouseEvent) {
-  const el = (e.target as HTMLElement).closest?.('[data-tip]') as HTMLElement | null
-  // 在同一目标内部移动（子元素间切换）不隐藏
-  if (el && (e.relatedTarget as HTMLElement | null)?.closest?.('[data-tip]') === el) return
-  hideTip()
-}
-
-function hideTip() {
-  if (tipTimer) { clearTimeout(tipTimer); tipTimer = null }
-  tip.value = null
-}
-
-onUnmounted(hideTip)
+// 自定义 tooltip：与素材台字段树共用 useHoverTip（浮层形态见 native-controls.css 的 .pd-hover-tip）
+const { tip, tipEl, onTipOver, onTipOut, hideTip } = useHoverTip()
 </script>
 
 <style scoped>
@@ -180,18 +149,5 @@ onUnmounted(hideTip)
 .page-tabs-actions button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-.page-tabs-tip {
-  position: fixed;
-  z-index: 9999;
-  transform: translateX(-50%);
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: rgba(42, 46, 55, 0.92);
-  color: #fff;
-  font-size: 12px;
-  line-height: 1.4;
-  white-space: nowrap;
-  pointer-events: none;
 }
 </style>

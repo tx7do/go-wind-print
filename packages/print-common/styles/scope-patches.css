@@ -74,3 +74,11 @@
   white-space: normal;
   z-index: 120;
 }
+
+/* 泄漏修正：页签与素材台的提示由 JS 挂 fixed 浮层（.pd-hover-tip），而顶部栏的
+   [data-tip]::after 剥掉 [data-v-*] 后会在同一元素上再叠一个 CSS 气泡 → 悬停出两份提示。
+   canvas 侧该规则只作用于顶部栏按钮，这里把浮层容器内的气泡整体关掉。 */
+.page-tabs [data-tip]::after,
+.field-tree-panel [data-tip]::after {
+  content: none;
+}

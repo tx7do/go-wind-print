@@ -84,6 +84,28 @@
   opacity: 1;
   visibility: visible;
 }
+/* 会被容器裁剪的悬浮提示（页签列表、素材台侧栏）改由 JS 挂 fixed 浮层：
+   类名与定位由组件负责，形态只在这里声明一次，canvas 与 Common 共用。 */
+.pd-hover-tip {
+  position: fixed;
+  z-index: 9999;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(42, 46, 55, 0.92);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  /* 不写死 nowrap：长字段名的整条「中文名 (变量名)」可以宽过视口，
+     换行 + max-width 才让全文始终可读；短提示仍按内容宽度保持一行。
+     width: max-content 是必需的——只设 left 时 shrink-to-fit 的可用宽会被算成「视口 - left」，
+     右侧元素（页签操作按钮）的气泡会被压成多行。 */
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
 .pd-input,
 .pd-select,
 textarea.pd-input {
