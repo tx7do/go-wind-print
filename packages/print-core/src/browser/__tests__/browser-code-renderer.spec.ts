@@ -155,3 +155,50 @@ describe('browserCodeRenderer 降级契约', () => {
     expect(() => browserCodeRenderer.render('', 'qrcode')).toThrow()
   })
 })
+
+describe('browserCodeRenderer 条形码条高（barHeightMm，只算条区不含文字）', () => {
+  const sizeOf = (opts: Parameters<typeof browserCodeRenderer.render>[2]) => {
+    const svg = browserCodeRenderer.render('12345678', 'barcode', opts)
+    return {
+      widthMm: Number(/width="([\d.]+)mm"/.exec(svg)?.[1]),
+      heightMm: Number(/height="([\d.]+)mm"/.exec(svg)?.[1]),
+    }
+  }
+
+  it('未填条高逐毫米不变（99×44 模块 × 0.25mm）', () => {
+    expect(sizeOf({})).toEqual({ widthMm: 24.75, heightMm: 11 })
+  })
+
+  it('填 20mm：条区按期望兑现成 80 模块（整图 94 模块 × 0.25 = 23.5mm），条宽一分不损', () => {
+    const size = sizeOf({ barHeightMm: 20 })
+    expect(size.heightMm).toBeCloseTo(23.5, 6)
+    expect(size.widthMm).toBeCloseTo(24.75, 6)
+  })
+
+  it('框高 14.1mm 装不下期望 20mm：条高让位到 42 模块，条宽仍是 0.25mm/模块', () => {
+    const size = sizeOf({ barHeightMm: 20, targetWidthMm: 56.4, targetHeightMm: 14.1 })
+    expect(size.heightMm).toBeCloseTo(14, 6)
+    expect(size.heightMm).toBeLessThanOrEqual(14.1)
+    expect(size.widthMm).toBeCloseTo(24.75, 6)
+  })
+
+  it('粒度跟着条宽走：barWidth=4（0.5mm/模块）填 10mm → 条区 20 模块', () => {
+    const size = sizeOf({ barWidth: 4, barHeightMm: 10 })
+    expect(size.heightMm).toBeCloseTo(16.5, 6)
+    expect(size.widthMm).toBeCloseTo(49.5, 6)
+  })
+
+  it('填 0 与非法值回退缺省档，不改变出纸', () => {
+    for (const barHeightMm of [0, -5, Number.NaN]) {
+      expect(sizeOf({ barHeightMm })).toEqual({ widthMm: 24.75, heightMm: 11 })
+    }
+  })
+
+  it('设了 printerDpi 时条高同样落在整数打印点上', () => {
+    const svg = browserCodeRenderer.render('12345678', 'barcode', { barHeightMm: 20, printerDpi: 203 })
+    const heightMm = Number(/height="([\d.]+)mm"/.exec(svg)?.[1])
+    // 0.25mm 在 203dpi 下吸附到 2 点 = 0.25025mm/模块，20mm ÷ 该粒度 = 80 模块 → 整图 94 模块
+    expect(heightMm).toBeCloseTo(94 * (2 * 25.4 / 203), 6)
+    expect((heightMm * 203) / 25.4).toBeCloseTo(Math.round((heightMm * 203) / 25.4), 6)
+  })
+})

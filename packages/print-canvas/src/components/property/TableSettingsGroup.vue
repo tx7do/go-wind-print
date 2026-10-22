@@ -7,6 +7,9 @@
           <option v-for="f in listFieldOptions" :key="f.value" :value="f.value">{{ f.label }}</option>
         </select>
       </div>
+      <div class="pd-field"><span class="pd-label">默认字体</span>
+        <FontSelect v-model="element.options.tableDefaultFontFamily" />
+      </div>
       <div class="pd-field"><span class="pd-label">默认字号 (pt)</span>
         <StepperInput v-model="element.options.tableDefaultFontSize" :min="5" :max="72" placeholder="默认" />
       </div>
@@ -34,6 +37,7 @@ import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import { syncTableElementSize } from '@worm-vue3-print/core/designer'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
+import FontSelect from './FontSelect.vue'
 
 const props = defineProps<{
   element: RuntimeElement

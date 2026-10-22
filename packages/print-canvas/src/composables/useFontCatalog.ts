@@ -1,7 +1,9 @@
-// 字体下拉的数据源：模板级字体声明（宿主经 PrintDesigner 的 fonts prop 传入）。
-// 声明随模板保存、由各端按 @font-face 加载，设计器不查询任何出图端的系统字体。
+// 字体下拉的数据源：模板级字体声明（宿主经 PrintDesigner 的 fonts prop 传入），
+// 再拼上 core 的静态系统字体候选（免字体文件、本机已装）。
+// 声明随模板保存、由各端按 @font-face 加载；系统候选只做「零配置便捷档」，
+// 三端装了什么字体各不相同（服务端容器内中文只有 Noto CJK），跨端字面不保证一致。
 import { computed, inject, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
-import type { PrintFontDeclaration } from '@worm-vue3-print/core'
+import { withSystemFontOptions, type PrintFontDeclaration } from '@worm-vue3-print/core'
 import { FONT_CATALOG_KEY } from './useHostAdapter'
 
 /** 下拉候选项：family 写入模板，label 仅用于界面展示 */
@@ -10,11 +12,11 @@ export interface FontOption {
   label?: string
 }
 
-/** 空目录：宿主未声明字体时的兜底 */
-export const EMPTY_FONT_CATALOG: ComputedRef<readonly FontOption[]> = computed(() => [])
+/** 空目录：宿主未声明字体时仍给出系统字体候选 */
+export const EMPTY_FONT_CATALOG: ComputedRef<readonly FontOption[]> = computed(() => withSystemFontOptions())
 
 /**
- * 由 PrintDesigner 调用：把模板字体声明整理为下拉候选项。
+ * 由 PrintDesigner 调用：把模板字体声明整理为下拉候选项，并追加系统字体候选。
  * 去空白、丢空值、族名大小写不敏感去重，保留声明顺序（顺序即宿主期望的优先级）。
  */
 export function useFontCatalog(
@@ -32,7 +34,8 @@ export function useFontCatalog(
       const label = font.label?.trim()
       out.push(label ? { family, label } : { family })
     }
-    return out
+    // 宿主档在前、系统档在后；同族名以宿主声明为准（合并与去重在 core 单点）
+    return withSystemFontOptions(out)
   })
   return { catalog }
 }

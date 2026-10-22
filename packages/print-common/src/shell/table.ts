@@ -36,13 +36,14 @@ import type {
   ElementOptions, TableCell, TableRow, TableRowType, TableSelection, RuntimeElement, TextFit,
 } from '@worm-vue3-print/core/designer'
 import {
-  BARCODE_BAR_HEIGHT_MODULES, BARCODE_MARGIN_BOTTOM_MODULES,
+  BARCODE_MARGIN_BOTTOM_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES, DEFAULT_DEMO_DATA, barcodeAvailableBoxMm, barcodeQuietZoneModules, barcodeUnitsPerModule,
   canMergeReason, cellFitCapMm, cellFitWidthMm, cellImageBoxMm, clampResizedColumnWidth, cropStyleDeclarations, deleteCol, deleteRow,
-  evaluateTemplate, insertCol, insertRow, mergeCells, normalizeSelection,
-  resolveBarcodeDesignValue, resolveBarcodeSize, resolveCellBorderCss, resolveCellTextFit,
+  evaluateTemplate, insertCol, insertRow, layoutBarcodeSize, mergeCells, normalizeSelection,
+  resolveBarcodeDesignValue, resolveCellBorderCss, resolveCellTextFit,
   resolveShrinkMinFontSize, setRowType, splitCells, syncTableElementSize,
 } from '@worm-vue3-print/core/designer'
+import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
 import type { DesignerStore } from '../core/store'
 import { SVG_NS_CONST, h } from '../core/h'
 import type { El } from '../core/h'
@@ -192,7 +193,7 @@ function cellStyle(ctx: TableCtx, cell: TableCell): Record<string, string> {
   // 设计态下无边框边补虚拟虚线（仅设计稿展示，预览/打印输出不受影响）
   const borderOpts = { designMode: true, showGhostBorder: ctx.store.showTableGhostBorder }
   return {
-    fontFamily: cell.fontFamily || 'inherit',
+    fontFamily: resolveCanvasFontFamily(cell.fontFamily ?? ctx.options.tableDefaultFontFamily),
     textAlign: cell.align ?? 'left',
     // justify 不拉伸段落末行，单行单元格需显式声明才撑满列宽（与画布/出纸同策）
     ...(cell.align === 'justify' ? { textAlignLast: 'justify' } : {}),
@@ -291,12 +292,12 @@ function cellCodeNode(ctx: TableCtx, ri: number, ci: number, cell: TableCell): H
     svg.setAttribute('preserveAspectRatio', FIT_TO_PAR[cell.fit || 'contain'] ?? 'xMidYMid meet')
     const unitPerModule = barcodeUnitsPerModule(cell.barWidth)
     const quietModules = barcodeQuietZoneModules(cell.barQuietZone)
-    let ok = true
-    try {
+    /** 生成一趟码面并读回 viewBox：条区模块数由 core 的条高布局给出，未填条高只走一趟 */
+    const measure = (barHeightModules: number) => {
       JsBarcode(svg, value, {
         format: cell.barcodeType || 'CODE128',
         width: unitPerModule,
-        height: BARCODE_BAR_HEIGHT_MODULES * unitPerModule,
+        height: barHeightModules * unitPerModule,
         displayValue: cell.showBarcodeText !== false,
         fontSize: (cell.barFontSize ?? BARCODE_TEXT_FONT_SIZE_MODULES) * unitPerModule,
         // 静区只留左右（与出图端同参）：上下留白会白白吃掉单元格高度
@@ -306,10 +307,24 @@ function cellCodeNode(ctx: TableCtx, ri: number, ci: number, cell: TableCell): H
         marginTop: 0,
         marginBottom: BARCODE_MARGIN_BOTTOM_MODULES * unitPerModule,
       })
-    } catch {
-      ok = false
+      const viewBox = readViewBox(svg)
+      return viewBox ? { widthUnits: viewBox.width, heightUnits: viewBox.height } : null
     }
-    if (!ok) {
+    let layout: ReturnType<typeof layoutBarcodeSize> | null = null
+    try {
+      layout = layoutBarcodeSize({
+        barHeightMm: cell.barHeight,
+        // 最大宽高并入可用框（与出图端同一助手），作为结算上限而非事后 CSS 缩放
+        boxWidthMm: barcodeAvailableBoxMm(cellBoxWidthMm(ctx, ci, cell), cell.maxWidth),
+        boxHeightMm: barcodeAvailableBoxMm(cellCapMm(ctx, ri, cell), cell.maxHeight),
+        dpi: cell.printerDpi,
+        barWidth: cell.barWidth,
+        measure,
+      })
+    } catch {
+      layout = null
+    }
+    if (!layout) {
       // 码值不符合码制：回退文本占位（与 CellBarcode.vue 的 v-show/v-if 结果一致）
       svg.style.display = 'none'
       const fallback = document.createElement('span')
@@ -318,18 +333,7 @@ function cellCodeNode(ctx: TableCtx, ri: number, ci: number, cell: TableCell): H
       holder.appendChild(fallback)
       return holder
     }
-    const viewBox = readViewBox(svg)
-    const settled = viewBox
-      ? resolveBarcodeSize({
-        unitWidth: viewBox.width / unitPerModule,
-        unitHeight: viewBox.height / unitPerModule,
-        // 最大宽高并入可用框（与出图端同一助手），作为结算上限而非事后 CSS 缩放
-        boxWidthMm: barcodeAvailableBoxMm(cellBoxWidthMm(ctx, ci, cell), cell.maxWidth),
-        boxHeightMm: barcodeAvailableBoxMm(cellCapMm(ctx, ri, cell), cell.maxHeight),
-        dpi: cell.printerDpi,
-        barWidth: cell.barWidth,
-      })
-      : null
+    const settled = layout.size
     // 结算尺寸就是最终 mm，不再叠加缩放限制，避免二次缩放
     if (settled) {
       svg.style.width = `${settled.widthMm}mm`

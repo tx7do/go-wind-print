@@ -12,13 +12,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import JsBarcode from 'jsbarcode'
 import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
 import {
-  BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_MARGIN_BOTTOM_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
   barcodeAvailableBoxMm,
   barcodeQuietZoneModules,
   barcodeUnitsPerModule,
-  resolveBarcodeSize,
+  layoutBarcodeSize,
 } from '@worm-vue3-print/core/designer'
 
 const props = defineProps<{
@@ -48,6 +47,8 @@ const props = defineProps<{
   barWidth?: number
   /** 条码下方文本字号（相对条高，条高为 30），缺省 BARCODE_TEXT_FONT_SIZE_MODULES */
   barFontSize?: number
+  /** 条区高度（mm，不含下方文本），缺省按 30 模块的等比档；条宽优先，框高不足时由条高让位 */
+  barHeight?: number
 }>()
 
 const barcodeSvg = ref<SVGSVGElement | null>(null)
@@ -92,20 +93,23 @@ const imgStyle = computed(() => ({
 }))
 
 /**
- * 与出图端（browser-code-renderer）共用同一份 jsbarcode 参数：
- * 单元格现在支持 barWidth 倍率，unitPerModule = barWidth / 2（与独立条码元素同口径）。
+ * 与出图端（browser-code-renderer）共用同一份 jsbarcode 参数与条高布局：
+ * 单元格现在支持 barWidth 倍率，unitPerModule = barWidth / 2（与独立条码元素同口径）；
+ * 填了条高则先探模块数与粒度、必要时按目标条高重生成一趟，未填只生成一趟。
  */
 function renderBarcode() {
   svgOk.value = false
   size.value = null
   if (!barcodeSvg.value) return
+  const svg = barcodeSvg.value
   const unitPerModule = barcodeUnitsPerModule(props.barWidth)
   const quietModules = barcodeQuietZoneModules(props.barQuietZone)
-  try {
-    JsBarcode(barcodeSvg.value, props.value, {
+  /** 生成一趟码面并读回 viewBox，条区模块数交给 core 决定 */
+  const measure = (barHeightModules: number) => {
+    JsBarcode(svg, props.value, {
       format: (props.barcodeType || 'CODE128') as any,
       width: unitPerModule,
-      height: BARCODE_BAR_HEIGHT_MODULES * unitPerModule,
+      height: barHeightModules * unitPerModule,
       displayValue: props.showText !== false,
       fontSize: (props.barFontSize ?? BARCODE_TEXT_FONT_SIZE_MODULES) * unitPerModule,
       // 静区只留左右（与出图端同参）：上下留白会白白吃掉单元格高度
@@ -115,27 +119,29 @@ function renderBarcode() {
       marginTop: 0,
       marginBottom: BARCODE_MARGIN_BOTTOM_MODULES * unitPerModule,
     })
-  } catch {
-    return /* 码值不符合码制：回退文本占位 */
+    const viewBox = readViewBox(svg)
+    return viewBox ? { widthUnits: viewBox.width, heightUnits: viewBox.height } : null
   }
-  svgOk.value = true
 
-  // 与出图端共用同一份结算算法：条宽定首选尺寸，有 dpi 时吸附到整数打印点，可用宽高不足则等比缩小
-  const viewBox = readViewBox(barcodeSvg.value)
-  const settled = viewBox
-    ? resolveBarcodeSize({
-      unitWidth: viewBox.width / unitPerModule,
-      unitHeight: viewBox.height / unitPerModule,
+  try {
+    const layout = layoutBarcodeSize({
+      barHeightMm: props.barHeight,
       // 最大宽高并入可用框（与出图端同一助手），作为结算上限而非事后 CSS 缩放
       boxWidthMm: barcodeAvailableBoxMm(props.targetWidthMm, props.maxWidth),
       boxHeightMm: barcodeAvailableBoxMm(props.targetHeightMm, props.maxHeight),
       dpi: props.printerDpi,
       barWidth: props.barWidth,
+      measure,
     })
-    : null
-  size.value = settled ? { width: `${settled.widthMm}mm`, height: `${settled.heightMm}mm` } : null
+    svgOk.value = true
+    size.value = layout.size
+      ? { width: `${layout.size.widthMm}mm`, height: `${layout.size.heightMm}mm` }
+      : null
+  } catch {
+    return /* 码值不符合码制：回退文本占位 */
+  }
   // 抗锯齿会在条边缘生成灰像素，热敏头只有黑白两态 → 与出图端一致地关掉
-  barcodeSvg.value.setAttribute('shape-rendering', 'crispEdges')
+  svg.setAttribute('shape-rendering', 'crispEdges')
 }
 
 /** jsbarcode 会把 viewBox 写成 "0 0 W H"；解析失败时返回 null（不启用点对齐） */
@@ -172,7 +178,7 @@ watch(
   () => [
     props.cellType, props.value, props.barcodeType, props.qrCodeLevel, props.qrQuietZone, props.barQuietZone, props.showText,
     props.printerDpi, props.targetWidthMm, props.targetHeightMm,
-    props.barWidth, props.barFontSize, props.maxWidth, props.maxHeight,
+    props.barWidth, props.barFontSize, props.barHeight, props.maxWidth, props.maxHeight,
   ],
   render,
 )

@@ -187,6 +187,8 @@ export interface TableCell {
    * 白边是「条→空→条」跳变的一部分，压到 0 时若相邻格有文字或边框线，可能扫不出，需自行验证。
    */
   barQuietZone?: number
+  /** 条区高度（mm，不含下方文字），仅 cellType='barcode' 时生效：折算粒度为每模块物理宽，框高不足时由条高让位 */
+  barHeight?: number
   showBarcodeText?: boolean   // 条形码下方是否显示文本，仅 cellType='barcode' 时生效
   /**
    * 打印机分辨率（点/英寸，常见 203/300/600），仅 cellType='barcode' 时生效：
@@ -305,6 +307,12 @@ export interface ElementOptions {
    * 压到 0 后若紧邻文字或表格线可能扫不出，需自行验证。
    */
   barQuietZone?: number
+  /**
+   * 条区高度（mm，不含下方文字），缺省按 30 模块的等比档。
+   * 折算粒度就是「每模块物理宽」，所以实际落纸只能精确到它的整数倍；可用框高装不下时由条高
+   * 让位，绝不反过来挤窄条宽——条宽是热敏出纸清晰度的第一来源（结算见 render/barcode-dot.ts）。
+   */
+  barHeight?: number
   barAutoWidth?: string
   /**
    * 打印机分辨率（点/英寸，常见 203/300/600）：条形码尺寸由「条宽 → dpi → 等比缩小」结算
@@ -347,6 +355,8 @@ export interface ElementOptions {
   tableRows?: TableRow[]
   tableColWidths?: number[]              // 列宽 mm
   tableDefaultFontSize?: number          // 单元格未设置时的继承基线
+  /** 单元格未设置 fontFamily 时的继承基线（与 tableDefaultFontSize 同一优先级口径） */
+  tableDefaultFontFamily?: string
   tableDefaultColor?: string
   tableDefaultPadding?: number           // mm
   /** 列表数据源路径（data 行迭代的数据数组） */

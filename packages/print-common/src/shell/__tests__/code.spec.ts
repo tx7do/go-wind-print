@@ -171,32 +171,38 @@ describe('common 二维码元素静区（元素属性台）', () => {
   })
 })
 
+function makeBarcode(options: Partial<RuntimeElement['options']> = {}): RuntimeElement {
+  return {
+    id: 'el-barcode',
+    options: { left: 0, top: 0, width: 60, height: 20, testData: '12345678', ...options },
+    printElementType: { type: 'barcode', title: '条形码' },
+  }
+}
+
+/** 走真实渲染路径：renderBarcode 出壳 → hydrateCodes 用 jsbarcode 补图 */
+async function paintBarcode(options: Partial<RuntimeElement['options']> = {}) {
+  const el = makeBarcode(options)
+  const host = document.createElement('div')
+  document.body.replaceChildren(host)
+  render(renderBarcode(el), host)
+  hydrateCodes(host as unknown as ShadowRoot, [el])
+  await new Promise(r => setTimeout(r, 300))
+  const svg = host.querySelector('svg')
+  if (!svg) throw new Error('条形码未出图')
+  const viewBox = (svg.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/)
+  const mm = (value: string) => Number(value.replace(/mm$/, '') || 'NaN')
+  return {
+    /** viewBox 宽度（用户单位）= 模块数 × (barWidth/2) */
+    userUnits: Number(viewBox[2]),
+    /** viewBox 高度（用户单位）=（条区 + 文本区 + 下间距）模块 × (barWidth/2) */
+    heightUnits: Number(viewBox[3]),
+    widthMm: mm(String(svg.style.width)),
+    heightMm: mm(String(svg.style.height)),
+  }
+}
+
 /** 条形码：静区（barQuietZone）与条宽上限 8 必须与出图端、canvas 同源 */
 describe('common 条形码静区（元素绘制 + 两端属性台）', () => {
-  function makeBarcode(options: Partial<RuntimeElement['options']> = {}): RuntimeElement {
-    return {
-      id: 'el-barcode',
-      options: { left: 0, top: 0, width: 60, height: 20, testData: '12345678', ...options },
-      printElementType: { type: 'barcode', title: '条形码' },
-    }
-  }
-
-  /** 走真实渲染路径：renderBarcode 出壳 → hydrateCodes 用 jsbarcode 补图 */
-  async function paintBarcode(options: Partial<RuntimeElement['options']> = {}) {
-    const el = makeBarcode(options)
-    const host = document.createElement('div')
-    document.body.replaceChildren(host)
-    render(renderBarcode(el), host)
-    hydrateCodes(host as unknown as ShadowRoot, [el])
-    await new Promise(r => setTimeout(r, 300))
-    const svg = host.querySelector('svg')
-    if (!svg) throw new Error('条形码未出图')
-    return {
-      /** viewBox 宽度（用户单位）= 模块数 × (barWidth/2) */
-      userUnits: Number((svg.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/)[2]),
-      widthMm: Number(String(svg.style.width).replace(/mm$/, '') || 'NaN'),
-    }
-  }
 
   it('缺省左右各 10 模块（79 模块码值 → 99），barQuietZone 0 即不留白边', async () => {
     expect((await paintBarcode()).userUnits).toBe(99)
@@ -256,5 +262,88 @@ describe('common 条形码静区（元素绘制 + 两端属性台）', () => {
     input!.dispatchEvent(new Event('input', { bubbles: true }))
     input!.dispatchEvent(new Event('change', { bubbles: true }))
     expect(store.elements[0]!.options.barQuietZone).toBe(0)
+  })
+})
+
+/** 条高（barHeight，mm）：条宽优先、框高不足时由条高让位，与 core/canvas 同一份结算 */
+describe('common 条形码条高（元素绘制 + 两端属性台）', () => {
+  /** 元素属性台：条形码元素走真实的 renderPropertyPanel 路径 */
+  function paintElementPanel(type: 'barcode' | 'qrcode') {
+    const store = new DesignerStore()
+    store.addElement(type, { left: 10, top: 10, width: 60, height: 20 } as never)
+    const element = store.elements[0]!
+    store.selectOne(element.id)
+    const ctx: ShellCtx = {
+      store,
+      format: new FormatToolbar(store),
+      state: {
+        leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
+        openDd: null, collapsedGroups: new Set<string>(), renamingPage: null,
+      } as unknown as ShellState,
+      repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false, host: { fonts: [] },
+    } as unknown as ShellCtx
+    const host = document.createElement('div')
+    document.body.replaceChildren(host)
+    render(renderPropertyPanel(ctx), host)
+    return { host, element }
+  }
+
+  const heightField = (host: HTMLElement) =>
+    Array.from(host.querySelectorAll<HTMLElement>('.pd-field'))
+      .find(f => f.querySelector('.pd-label')?.textContent?.startsWith('条高'))
+  const heightInput = (host: HTMLElement) =>
+    heightField(host)?.querySelector('input[type="number"]') as HTMLInputElement | undefined
+
+  it('框高足够时按期望兑现：条区折算成 80 模块重出图，条宽一分不损', async () => {
+    const thin = await paintBarcode({})
+    const tall = await paintBarcode({ barHeight: 20, height: 60 })
+    // 80 条区 + 12 文本区 + 2 下间距 = 94 模块（barWidth 缺省 2 → 每模块 1 用户单位）
+    expect(tall.heightUnits).toBe(94)
+    expect(tall.userUnits, '条宽侧不该被条高挤窄').toBe(thin.userUnits)
+    expect(tall.widthMm).toBeCloseTo(thin.widthMm, 6)
+    expect(tall.heightMm).toBeCloseTo(94 * 0.25, 6)
+  })
+
+  it('元素框高 20mm 装不下期望 20mm 条高：条高让位，整图收到 80 模块 = 20mm，条宽照旧', async () => {
+    const thin = await paintBarcode({})
+    const squeezed = await paintBarcode({ barHeight: 20 })
+    // 框高 20mm、文字区 14 模块 × 0.25mm = 3.5mm → 条区上限 floor((20 − 3.5) ÷ 0.25) = 66
+    expect(squeezed.heightUnits).toBe(80)
+    expect(squeezed.heightMm).toBeCloseTo(20, 6)
+    expect(squeezed.userUnits, '让位的该是条高而不是条宽').toBe(thin.userUnits)
+    expect(squeezed.widthMm).toBeCloseTo(thin.widthMm, 6)
+  })
+
+  it('未填 / 填 0 / 填非法值都逐毫米回退缺省档', async () => {
+    const base = await paintBarcode({})
+    for (const barHeight of [undefined, 0, -5, Number.NaN]) {
+      expect(await paintBarcode({ barHeight }), `barHeight=${barHeight} 应等于缺省档`).toEqual(base)
+    }
+  })
+
+  it('元素属性台出「条高 (mm)」：占位指向缺省档、说明取注册表那一条，填 20 真写进元素', () => {
+    const { host, element } = paintElementPanel('barcode')
+    const input = heightInput(host)
+    expect(input, '条形码元素应出条高字段').toBeTruthy()
+    expect(input!.placeholder).toContain('默认')
+    expect(heightField(host)!.querySelector('.pd-help')!.getAttribute('data-tip')).toContain('条宽')
+    input!.value = '20'
+    input!.dispatchEvent(new Event('input', { bubbles: true }))
+    input!.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(element.options.barHeight).toBe(20)
+  })
+
+  it('二维码元素不出条高字段（条区只有一维码才有）', () => {
+    expect(heightInput(paintElementPanel('qrcode').host)).toBeUndefined()
+  })
+
+  it('单元格属性台出「条高 (mm)」，填 20 真写进单元格', () => {
+    const { host, cell } = paintCellProps({}, 'barcode')
+    const input = heightInput(host)
+    expect(input, '条形码单元格应出条高字段').toBeTruthy()
+    input!.value = '20'
+    input!.dispatchEvent(new Event('input', { bubbles: true }))
+    input!.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(cell().barHeight).toBe(20)
   })
 })

@@ -71,7 +71,7 @@
 | `formatter` | 内容表达式，如 `'单价 ¥{MONEY(product.price)}'` |
 | `fontSize` | 字号 pt |
 | `fontWeight` | `bold` / `normal` |
-| `fontFamily` / `color` / `backgroundColor` | 字体、前景、背景 |
+| `fontFamily` / `color` / `backgroundColor` | 字体、前景、背景；`fontFamily` **缺省 `SimHei`（黑体）**，详见下「字体档位」 |
 | `textAlign` | `left` / `center` / `right` / `justify` |
 
 | `verticalAlign` | `top` / `middle` / `bottom` |
@@ -80,11 +80,29 @@
 | `borderWidth` `borderStyle` `borderColor` | 边框（宽度 pt） |
 | `zIndex` `locked` `visible` | 层级 / 锁定 / 可见 |
 
+#### 字体档位（免字体文件 vs 模板字体）
+
+`fontFamily` 写的是 **CSS 族名**，分两类：
+
+- **本机系统字体**（免字体文件，设计器下拉已列出）：`SimHei` 黑体 / `Heiti SC` 黑体-简 /
+  `Hiragino Sans GB` 冬青黑体 / `Noto Sans CJK SC` 思源黑体 / `Microsoft YaHei` 微软雅黑 /
+  `PingFang SC` 苹方 / `SimSun` 宋体 / `KaiTi` 楷体 / `FangSong` 仿宋。
+  单点清单在 core 的 `print/fonts.ts`（`SYSTEM_FONT_OPTIONS`），改档位只改那一处。
+- **模板声明字体**（宿主 `fonts` prop + `@font-face`）：只有这类才随模板分发、三端字面一致。
+
+系统字体**三端解析不同**：画布、浏览器直印、桌面客户端用「用户机」装了什么，服务端 PDF 用渲染容器
+装了什么（镜像内中文只有 `fonts-noto-cjk`）。族名在本机缺失时按兜底栈逐级回落（`toFontFamilyStack`），
+不会出豆腐块，但字宽随之变化，可能引起换行与分页差异——跨端字面要求严格就走模板声明字体。
+
+热敏（203dpi＝8 点/mm）建议黑体系（`SimHei` / `Heiti SC` / `Noto Sans CJK SC`）；宋体、楷体、仿宋是
+衬线或细笔画，出纸易断笔发虚。**字重保持缺省 `normal`**：写 `bold` 而模板没挂对应字重的字体文件时，
+Chromium 会合成粗体，度量漂移会静默改分页。
+
 ### 类型专属
 
 | 类型 | 字段 |
 |---|---|
-| `barcode` | `barcodeType`（`code128`/`ean13`/`code39`/`itf14`，默认 code128）、`barWidth`（模块倍率 2~8，每模块首选宽 = 倍率/2 × 0.25mm）、`barQuietZone`（条码左右静区白边，单位「模块」，0~20，**缺省 10**＝一维码码制要求下限；越小白边越窄、同框内条越粗）、`printerDpi`（203/300/600，给出则吸附整数打印点，热敏强烈建议给）、`hideTitle` |
+| `barcode` | `barcodeType`（`code128`/`ean13`/`code39`/`itf14`，默认 code128）、`barWidth`（模块倍率 2~8，每模块首选宽 = 倍率/2 × 0.25mm）、`barQuietZone`（条码左右静区白边，单位「模块」，0~20，**缺省 10**＝一维码码制要求下限；越小白边越窄、同框内条越粗）、`barHeight`（条区高度 mm，**不含下方文字**；缺省按 30 模块，粒度＝每模块宽，框高不足时条高让位）、`printerDpi`（203/300/600，给出则吸附整数打印点，热敏强烈建议给）、`hideTitle` |
 | `qrcode` | `qrCodeLevel`（`L`/`M`/`Q`/`H`）、`qrQuietZone`（静区白边，单位「模块」，0~8，缺省 0＝不留白边、码面等比铺满元素框）、`fit`（缺省 `contain`）、`maxWidth`/`maxHeight` |
 | `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`，缺省 `contain`；属性台里 `cover` 显示为「剪裁（等比铺满后裁边）」）、`objectPosition`（裁剪锚点，**建议写 `<x>% <y>%`**，如 `50% 0%` 取图顶端；缺省不输出＝`50% 50%` 居中）、`fitScale`（剪裁放大比例，100~400 的百分数，**仅 `fit: 'cover'` 消费**：铺满后把画面再推大这么多才有可裁的边，`transform-origin` 取的就是同一条 `objectPosition`；100 与缺省同形、不要写出来）、`maxWidth`/`maxHeight` |
 | `longText` | `longTextIndent`（首行缩进，单位 **em**＝「N 个字符宽」，随字号走；仅 `longText` 消费，写在 `text` 上不生效） |
@@ -108,7 +126,8 @@
 2. `barQuietZone` 收窄（缺省 10 → 例如 4 或 0）：左右各 10 模块的白边直接换成条宽，8 位数字 CODE128C 图形 99 模块里有 20 模块是白边，填 0 最多可让条粗 ~25%（码值越长占比越小，12 位约 12%）；
 3. 关掉文本（元素 `hideTitle: true` / 单元格 `showBarcodeText: false`）：文本区占 12 模块（总高 44 → 32），当**高度**是受限轴时条宽可 +37%；
 4. 加列宽/行高、把单元格 `padding` 调小（内容宽 = 列宽 − 2×padding − 塌陷边框）。
-判据：受限轴看 `min(可用宽/总模块, 可用高/总模块)`，总模块 = 码值模块 + 2×`barQuietZone`，总高模块 = 30 +（有文本再 +`barFontSize`/缺省 10 + 2）。
+5. **只要条码变高、不想动条宽**：`barHeight`（mm，**条区本体高度，不含下方文字**）。口径是「条宽优先」——它按每模块物理宽折算成条区模块数，所以只能落到该粒度的整数倍（`barWidth=4` 即 0.5mm 步进）；可用框高装不下时**由条高让位，条宽一分不损**（8 位数字 + 默认条宽在 14.1mm 框内填 20mm，实际得到整图 14mm）。未填按 30 模块，存量模板逐毫米不变。
+判据：受限轴看 `min(可用宽/总模块, 可用高/总模块)`，总模块 = 码值模块 + 2×`barQuietZone`，总高模块 = 条区（缺省 30，给了 `barHeight` 则按 `barHeight ÷ 每模块宽` 折算）+（有文本再 +`barFontSize`/缺省 10 + 2）。
 **边界豁免**：`barQuietZone: 0` 压掉的白边参与「条→空→条」跳变，紧邻文字或表格线时可能扫不出（一维码静区是码制硬要求，不像二维码能靠框外白纸兜底），必须实打验证；缺省 10 不要改。
 
 **二维码铺满口径**：图形走 `<img>`，写 `width/height:100%` 再配 `object-fit`（缺省 `contain`），码面等比贴住元素框短边；
@@ -125,6 +144,7 @@
     "left": 0, "top": 23, "width": 128, "height": 30,
     "tableColWidths": [40, 20, 20, 20, 14, 14],   // 列宽 mm，和 == width
     "tableDefaultFontSize": 8,
+    "tableDefaultFontFamily": "SimHei",             // 单元格未设 family 时的基线（新建表格自带）
     "tableDefaultPadding": 1,
     "dataSource": "goods",                        // 明细行迭代的数组路径
     "tableRows": [
@@ -144,7 +164,7 @@
 - 单元格常用字段：`formatter`、`cellType`（`text`/`barcode`/`qrcode`/`image`）、`align`（`left`/`center`/`right`/`justify`，`justify` = 撑满列宽含末行，渲染端成对输出 `text-align:justify;text-align-last:justify`）、`valign`、
   `fontSize`、`fontWeight`、`color`、`backgroundColor`、`padding`、`borders`（`{top,right,bottom,left}`，
   每边 `{width(pt), style, color}`）、`colspan`、`rowspan`
-- 单元格条码另支持 `barcodeType` / `barWidth`（2~8） / `barQuietZone`（静区白边 0~20，缺省 10） / `printerDpi` / `showBarcodeText` / `barFontSize`
+- 单元格条码另支持 `barcodeType` / `barWidth`（2~8） / `barQuietZone`（静区白边 0~20，缺省 10） / `barHeight`（条区高度 mm，不含文字，缺省按 30 模块） / `printerDpi` / `showBarcodeText` / `barFontSize`
 
 > 单据抬头常用「纯 header 行的表格」做栅格排版——这不是异常，不必为它配 `dataSource`。
 

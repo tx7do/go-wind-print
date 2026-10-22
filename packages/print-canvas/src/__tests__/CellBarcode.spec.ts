@@ -163,3 +163,31 @@ describe('CellBarcode 条形码静区 barQuietZone（与出图端同源）', () 
     expect(thick.widthMm).toBeCloseTo(99, 6)
   })
 })
+
+describe('CellBarcode 条高（barHeight，mm 只算条区不含文字）', () => {
+  it('填 20mm：条区折算成 80 模块重出图，条宽一分不损', async () => {
+    const wrapper = await mountCell({ barHeight: 20, targetWidthMm: 0, targetHeightMm: 0 })
+    const svg = wrapper.find('svg').element as SVGSVGElement
+    // 80 条区 + 12 文本区 + 2 下间距 = 94
+    expect(svg.getAttribute('viewBox'), '应看到第二趟按目标条高重生成的图').toBe('0 0 99 94')
+    const style = wrapper.find('svg').attributes('style') ?? ''
+    expect(mmOf(style, 'height')).toBeCloseTo(94 * 0.25, 6)
+    expect(mmOf(style, 'width')).toBeCloseTo(99 * 0.25, 6)
+  })
+
+  it('单元格高度装不下期望条高时条高让位，条宽保持 0.25mm/模块', async () => {
+    const style = await mountCellStyle({ barHeight: 20, targetWidthMm: 56.4, targetHeightMm: 14.1 })
+    // 文字区实测 14 模块 → 条区上限 floor((14.1 − 3.5) ÷ 0.25) = 42 → 整图 56 模块 = 14mm
+    expect(mmOf(style, 'height')).toBeCloseTo(14, 6)
+    expect(mmOf(style, 'height')).toBeLessThanOrEqual(14.1)
+    expect(mmOf(style, 'width')).toBeCloseTo(99 * 0.25, 6)
+  })
+
+  it('不填或填 0 与今天逐毫米一致（99×44 模块 × 0.25mm，且只生成一趟）', async () => {
+    for (const barHeight of [undefined, 0, -5]) {
+      const wrapper = await mountCell({ barHeight, targetWidthMm: 0, targetHeightMm: 0 })
+      expect(wrapper.find('svg').element.getAttribute('viewBox')).toBe('0 0 99 44')
+      expect(mmOf(wrapper.find('svg').attributes('style') ?? '', 'height')).toBeCloseTo(44 * 0.25, 6)
+    }
+  })
+})

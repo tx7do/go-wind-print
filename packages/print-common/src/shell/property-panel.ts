@@ -165,6 +165,10 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
             value: o.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',
             onCommit: v => patch({ barQuietZone: v }),
           }), propertyTip('cd-bar-quiet-zone'))),
+          gateItem(ctx, 'cd-bar-height', fieldHelp('条高 (mm)', stepper({
+            value: o.barHeight, min: 1, max: 100, placeholder: '默认 30 模块',
+            onCommit: v => patch({ barHeight: v ?? undefined }),
+          }), propertyTip('cd-bar-height'))),
           gateItem(ctx, 'cd-show-text', switchField(ctx, '显示文本', o.hideTitle !== true, v => patch({ hideTitle: v ? undefined : true }))),
           gateItem(ctx, 'cd-font-size', field('文本字号（相对条高，条高为 30）', stepper({
             value: o.fontSize, min: 5, max: 24, placeholder: '默认 10',

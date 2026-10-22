@@ -628,3 +628,48 @@ describe('TableElement 单元格两端对齐', () => {
     expect(mountCell('center')).not.toContain('text-align-last')
   })
 })
+
+describe('TableElement 单元格字体继承', () => {
+  function mountCellTd(options: Record<string, any>, cellOverrides: Record<string, any> = {}) {
+    const element: RuntimeElement = {
+      id: 'el-table',
+      options: {
+        left: 0, top: 0, width: 50, height: 10,
+        tableColWidths: [50],
+        tableRows: [{
+          id: 'row-1', type: 'header', height: 10,
+          cells: [{ id: 'cell-1', formatter: '文本', ...cellOverrides }],
+        }],
+        ...options,
+      },
+      printElementType: { type: 'table', title: '表格' },
+    }
+    const wrapper = mount(TableElement, {
+      props: { element, designMode: true },
+      global: {
+        provide: {
+          [TABLE_EDIT_KEY]: {
+            tableSelection: ref<TableSelection | null>(null),
+            setTableSelection: () => {}, recordHistory: () => {}, maxTableWidth: ref(Infinity),
+          },
+        },
+      },
+    })
+    return (wrapper.find('td').attributes('style') ?? '').replace(/\s/g, '')
+  }
+
+  it('未设字体时吃表格默认字体，并与出图端同口径带兜底栈', () => {
+    expect(mountCellTd({ tableDefaultFontFamily: 'SimHei' }))
+      .toContain('font-family:SimHei,"MicrosoftYaHei"')
+  })
+
+  it('单元格自己的字体优先于表格默认字体', () => {
+    const s = mountCellTd({ tableDefaultFontFamily: 'SimHei' }, { fontFamily: 'SimSun' })
+    expect(s).toContain('font-family:SimSun,')
+    expect(s).not.toContain('SimHei')
+  })
+
+  it('两者都未设置时交还 CSS 继承', () => {
+    expect(mountCellTd({})).toContain('font-family:inherit')
+  })
+})

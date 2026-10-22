@@ -131,6 +131,17 @@ export function tableSettingsGroup(ctx: ShellCtx, el: RuntimeElement): El {
     pdForm([
       selectRow('列表数据源字段', o.dataSource ?? '', listFields, (v) => commit({ dataSource: v || undefined }), true),
       h('div', { class: 'pd-field' }, [
+        h('span', { class: 'pd-label', text: '默认字体' }),
+        renderFontSelect({
+          id: 'table-default-font',
+          state: ctx.state,
+          fonts: ctx.host.fonts,
+          value: o.tableDefaultFontFamily,
+          placeholder: '默认',
+          onChange: v => commit({ tableDefaultFontFamily: v || undefined }),
+        }),
+      ]),
+      h('div', { class: 'pd-field' }, [
         h('span', { class: 'pd-label', text: '默认字号 (pt)' }),
         stepper({
           value: optNum(o.tableDefaultFontSize), min: 0, max: 72, placeholder: '默认',
@@ -279,7 +290,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         ], cell0.cellType || 'text', (v) => {
           write(c => {
             c.cellType = v === 'text' ? undefined : (v as TableCellType)
-            if (v !== 'barcode') { c.barcodeType = undefined; c.showBarcodeText = undefined; c.printerDpi = undefined; c.barQuietZone = undefined }
+            if (v !== 'barcode') { c.barcodeType = undefined; c.showBarcodeText = undefined; c.printerDpi = undefined; c.barQuietZone = undefined; c.barHeight = undefined }
             if (v !== 'qrcode') { c.qrCodeLevel = undefined; c.qrQuietZone = undefined }
           })
         }),
@@ -300,6 +311,10 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         value: cell0.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',
         onCommit: v => write(c => { c.barQuietZone = v }),
       }), propertyTip('cd-bar-quiet-zone')) : '',
+      isBarcodeCell ? fieldHelp('条高 (mm)', stepper({
+        value: cell0.barHeight, min: 1, max: 100, placeholder: '默认 30 模块',
+        onCommit: v => write(c => { c.barHeight = v ?? undefined }),
+      }), propertyTip('cd-bar-height')) : '',
       isBarcodeCell
         ? numField('文本字号（相对条高，条高为 30）', cell0.barFontSize ?? 10, (c, v) => { c.barFontSize = v }, { min: 5, max: 24, placeholder: '默认 10' })
         : '',

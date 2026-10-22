@@ -39,6 +39,13 @@
             placeholder="默认 10"
             @update:model-value="element.options.barQuietZone = $event ?? undefined; emitChange()" />
         </div>
+        <div class="pd-field" v-show="showItem('cd-bar-height')"><span class="pd-label">条高 (mm)<button type="button" class="pd-help" :data-tip="barHeightTip" aria-label="字段说明" /></span>
+          <StepperInput :model-value="element.options.barHeight"
+            :min="1"
+            :max="100"
+            placeholder="默认 30 模块"
+            @update:model-value="element.options.barHeight = $event ?? undefined; emitChange()" />
+        </div>
         <div class="pd-field" v-show="showItem('cd-show-text')"><span class="pd-label">显示文本</span>
           <input :checked="element.options.hideTitle !== true" type="checkbox" class="pd-switch"
             @input="element.options.hideTitle = ($event.target as HTMLInputElement).checked ? undefined : true; emitChange()" />
@@ -107,6 +114,8 @@ import StepperInput from './StepperInput.vue'
 const quietTip = propertyTip('cd-quiet-zone')
 /** 条形码静区（左右白边）说明：与二维码同口径走注册表，避免两套宿主各写一份 */
 const barQuietTip = propertyTip('cd-bar-quiet-zone')
+/** 条高说明：粒度与「条宽优先的让位规则」都在这条文案里，画布所见即实际落纸，不另挂常驻提示 */
+const barHeightTip = propertyTip('cd-bar-height')
 
 const props = defineProps<{
   element: RuntimeElement

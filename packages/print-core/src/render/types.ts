@@ -152,6 +152,8 @@ export interface RenderCell {
   qrQuietZone?: number
   /** 条形码静区（左右白边）宽度（模块），仅 cellType='barcode' 时生效；缺省 10 = 码制要求下限，0 = 不留白边 */
   barQuietZone?: number
+  /** 条区高度（mm，不含下方文本），仅 cellType='barcode' 时生效；缺省按 30 模块的等比档 */
+  barHeight?: number
   /** 条码模块宽度倍率（2-8），仅 cellType='barcode' 时生效：每模块首选宽度 = 倍率/2 × 0.25mm */
   barWidth?: number
   /** 条码下方文本字号（相对条高，条高为 30），仅 cellType='barcode' 时生效 */
@@ -211,6 +213,11 @@ export interface CodeRenderOptions {
   qrQuietZone?: number
   /** 条形码静区（左右白边）宽度，单位「模块」，仅 barcode 类型使用；缺省 10（= 一维码码制要求下限），0 = 不留白边 */
   barQuietZone?: number
+  /**
+   * 条区高度（mm，不含下方文本），仅 barcode 类型使用；缺省按 30 模块的等比档。
+   * 条宽优先：本字段只决定条区占多少模块，粒度是每模块物理宽；可用框高不足时条高让位，不挤窄条宽。
+   */
+  barHeightMm?: number
   /** 条形码下方是否显示文本 */
   showText?: boolean
   /** 条码模块宽度倍率（2-8）；决定每模块的首选物理宽度（倍率/2 × 0.25mm），给 dpi 后吸附到最近整数点 */

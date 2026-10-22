@@ -509,6 +509,32 @@ describe('页眉/页脚区域元素渲染', () => {
     expect(cellCaptured.fontSize).toBe(14)
   })
 
+  it('条高 barHeight 透传成渲染器的 barHeightMm：元素与单元格两条路都吃到', () => {
+    let captured: CodeRenderOptions = {}
+    const tElement = makeAreaTemplate({
+      footer: {
+        height: 12,
+        elements: [makeAreaEl('barcode', { testData: '12345678', barHeight: 20 })] as any,
+      },
+    })
+    generateHtml(tElement, singlePage, undefined, { codeRenderer: stubRenderer(o => { captured = o }) })
+    expect(captured.barHeightMm).toBe(20)
+
+    let cellCaptured: CodeRenderOptions = {}
+    const t = makeTemplate({ ...matrixOptions(), tableDefaultFontSize: 10 })
+    t.elements[0].options._renderRows = (matrixOptions()._renderRows as any[]).map(r => ({
+      ...r,
+      cells: r.cells.map((c: any, i: number) =>
+        r.type === 'header' && i === 0
+          ? { ...c, cellType: 'barcode', content: '12345678', barHeight: 20 }
+          : c),
+    }))
+    generateHtml(t, pageWith([
+      { elementId: 'tbl-1', type: 'table-slice', startRow: 0, endRow: 3 },
+    ]), undefined, { codeRenderer: stubRenderer(o => { cellCaptured = o }) })
+    expect(cellCaptured.barHeightMm).toBe(20)
+  })
+
   it('表格未配置列宽时宽度不参与结算（可用宽度未知，只按行高与条宽落纸）', () => {
     let captured: CodeRenderOptions = {}
     const t = makeTemplate({ ...matrixOptions(), tableDefaultFontSize: 10, tableColWidths: [] })
@@ -1040,6 +1066,31 @@ describe('单元格与文本元素的字体输出', () => {
     }), pageWith([{ elementId: 'tbl-1', type: 'table-slice', startRow: 0, endRow: 1 }]))
     const td = html.slice(html.indexOf('<td'), html.indexOf('</td>'))
     expect(td).not.toContain('font-family')
+  })
+
+  it('单元格未设时继承 tableDefaultFontFamily（与默认字号同一优先级口径）', () => {
+    const html = generateHtml(makeTemplate({
+      tableColWidths: [100],
+      tableDefaultFontFamily: 'SimHei',
+      _repeatHeaderCount: 0,
+      _renderRows: [
+        { type: 'data', height: 8, cells: [{ ...baseCell, content: 'A' }] },
+      ],
+    }), pageWith([{ elementId: 'tbl-1', type: 'table-slice', startRow: 0, endRow: 1 }]))
+    expect(html).toContain(`font-family:&quot;SimHei&quot;, ${STACK_SUFFIX}`)
+  })
+
+  it('单元格自己的 fontFamily 优先于表格默认字体', () => {
+    const html = generateHtml(makeTemplate({
+      tableColWidths: [100],
+      tableDefaultFontFamily: 'SimHei',
+      _repeatHeaderCount: 0,
+      _renderRows: [
+        { type: 'data', height: 8, cells: [{ ...baseCell, content: 'A', fontFamily: 'SimSun' }] },
+      ],
+    }), pageWith([{ elementId: 'tbl-1', type: 'table-slice', startRow: 0, endRow: 1 }]))
+    expect(html).toContain(`font-family:&quot;SimSun&quot;, ${STACK_SUFFIX}`)
+    expect(html).not.toContain('&quot;SimHei&quot;')
   })
 
   it('文本元素 fontFamily 输出转义引号与兜底栈（原为裸值）', () => {

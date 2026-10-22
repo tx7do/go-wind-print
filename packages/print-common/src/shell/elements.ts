@@ -14,6 +14,7 @@ import {
   resolveShrinkMinFontSize,
 } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
 import { h } from '../core/h'
 import type { DesignerStore } from '../core/store'
 import { renderBarcode, renderQrcode } from './code'
@@ -62,7 +63,7 @@ export function textLikeStyle(el: RuntimeElement) {
   const style: Record<string, string> = {
     fontSize: `${base}pt`,
     fontWeight: o.fontWeight || 'normal',
-    fontFamily: o.fontFamily || 'inherit',
+    fontFamily: resolveCanvasFontFamily(o.fontFamily),
     color: o.color || '#333',
     backgroundColor: o.backgroundColor || 'transparent',
     textAlign: o.textAlign || 'left',
@@ -204,7 +205,7 @@ function content(el: RuntimeElement, designMode: boolean, host?: { store: Design
         style: {
           fontSize: `${o.fontSize || 12}pt`,
           fontWeight: o.fontWeight || 'normal',
-          fontFamily: o.fontFamily || 'inherit',
+          fontFamily: resolveCanvasFontFamily(o.fontFamily),
           color: o.color || '#333',
           textAlign: o.textAlign || 'left',
           ...(o.textAlign === 'justify' ? { textAlignLast: 'justify' } : {}),

@@ -4,13 +4,12 @@
 import JsBarcode from 'jsbarcode'
 import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
 import {
-  BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_MARGIN_BOTTOM_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
   barcodeAvailableBoxMm,
   barcodeQuietZoneModules,
   barcodeUnitsPerModule,
-  resolveBarcodeSize,
+  layoutBarcodeSize,
 } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
@@ -56,11 +55,12 @@ function drawBarcode(el: RuntimeElement, svg: SVGSVGElement) {
   const o = el.options
   const unitPerModule = barcodeUnitsPerModule(o.barWidth)
   const quietModules = barcodeQuietZoneModules(o.barQuietZone)
-  try {
+  /** 生成一趟码面并读回 viewBox：条区模块数由 core 的条高布局给出，未填条高只走一趟 */
+  const measure = (barHeightModules: number) => {
     JsBarcode(svg, codeText(el), {
       format: String(o.barcodeType || 'CODE128'),
       width: unitPerModule,
-      height: BARCODE_BAR_HEIGHT_MODULES * unitPerModule,
+      height: barHeightModules * unitPerModule,
       displayValue: !o.hideTitle,
       fontSize: ((o.fontSize ?? BARCODE_TEXT_FONT_SIZE_MODULES) as number) * unitPerModule,
       // 静区只留左右（与出图端同参）：上下留白会白白吃掉元素高度
@@ -70,23 +70,24 @@ function drawBarcode(el: RuntimeElement, svg: SVGSVGElement) {
       marginTop: 0,
       marginBottom: BARCODE_MARGIN_BOTTOM_MODULES * unitPerModule,
     })
-  } catch {
-    svg.replaceChildren()
-    return
+    const viewBox = readViewBox(svg)
+    return viewBox ? { widthUnits: viewBox.width, heightUnits: viewBox.height } : null
   }
-  const viewBox = readViewBox(svg)
-  const settled = viewBox
-    ? resolveBarcodeSize({
-      unitWidth: viewBox.width / unitPerModule,
-      unitHeight: viewBox.height / unitPerModule,
+  try {
+    const layout = layoutBarcodeSize({
+      barHeightMm: o.barHeight,
       boxWidthMm: barcodeAvailableBoxMm(o.width, o.maxWidth),
       boxHeightMm: barcodeAvailableBoxMm(o.height, o.maxHeight),
       dpi: o.printerDpi,
       barWidth: o.barWidth,
+      measure,
     })
-    : null
-  svg.style.width = settled ? `${settled.widthMm}mm` : ''
-  svg.style.height = settled ? `${settled.heightMm}mm` : ''
+    svg.style.width = layout.size ? `${layout.size.widthMm}mm` : ''
+    svg.style.height = layout.size ? `${layout.size.heightMm}mm` : ''
+  } catch {
+    svg.replaceChildren()
+    return
+  }
   svg.setAttribute('shape-rendering', 'crispEdges')
 }
 

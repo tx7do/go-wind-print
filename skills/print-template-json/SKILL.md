@@ -85,6 +85,7 @@ agent_created: true
 | `code` | `barcodeType` | `dpi` | `printerDpi` |
 | `level` | `qrCodeLevel` | `cols`/`rows`/`source` | 表格三件套 |
 | `quiet` | `qrQuietZone`（二维码静区白边，模块 0~8，缺省 0＝码面铺满元素框） | `barQuiet` | `barQuietZone`（条形码左右白边，模块 0~20，缺省 10＝码制下限；越小条越粗） |
+| `barHeight` | `barHeight`（条形码**条区高度 mm，不含下方文字**；缺省按 30 模块。条宽优先：粒度＝每模块物理宽，框高不足时条高让位、条宽不动） | | |
 | `indent` | `longTextIndent`（长文本首行缩进，**单位 em＝字符数**，仅 `longText` 消费） | `anchor` | `objectPosition`（图片裁剪锚点，**建议写 `<x>% <y>%`**，如 `50% 0%` 取图顶端；`center 20%` 等等价写法也吃） |
 
 **排版三项的版本与判据**（生成模板前先看宿主用的是哪个包版本）：

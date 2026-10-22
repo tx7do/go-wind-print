@@ -41,6 +41,13 @@
           placeholder="默认 10"
           @update:model-value="write(c => { c.barQuietZone = $event ?? undefined })" />
       </div>
+      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">条高 (mm)<button type="button" class="pd-help" :data-tip="barHeightTip" aria-label="字段说明" /></span>
+        <StepperInput :model-value="mainCell.barHeight"
+          :min="1"
+          :max="100"
+          placeholder="默认 30 模块"
+          @update:model-value="write(c => { c.barHeight = $event ?? undefined })" />
+      </div>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">文本字号（相对条高，条高为 30）</span>
         <StepperInput :model-value="mainCell.barFontSize ?? 10"
           :min="5"
@@ -244,6 +251,8 @@ import CropAnchorField from './CropAnchorField.vue'
 const quietTip = propertyTip('cd-quiet-zone')
 /** 条形码静区说明：与二维码共用注册表入口 */
 const barQuietTip = propertyTip('cd-bar-quiet-zone')
+/** 条高说明：与元素台同源，两条宿主共用一条文案 */
+const barHeightTip = propertyTip('cd-bar-height')
 
 const props = defineProps<{
   element: RuntimeElement
@@ -315,6 +324,7 @@ function onCellTypeChange(v: string) {
       c.showBarcodeText = undefined
       c.printerDpi = undefined
       c.barQuietZone = undefined
+      c.barHeight = undefined
     }
     if (v !== 'qrcode') {
       c.qrCodeLevel = undefined

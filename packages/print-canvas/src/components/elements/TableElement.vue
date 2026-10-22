@@ -36,6 +36,7 @@
                 :target-height-mm="cellCapMm(ri, cell)"
                 :bar-width="cell.barWidth"
                 :bar-font-size="cell.barFontSize"
+                :bar-height="cell.barHeight"
               />
               <CellImage
                 v-else-if="cell.cellType === 'image'"
@@ -120,6 +121,7 @@ import {
   insertRow, deleteRow, insertCol, deleteCol, setRowType, syncTableElementSize,
   resolveCellBorderCss, clampResizedColumnWidth,
 } from '@worm-vue3-print/core/designer'
+import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
 import { TABLE_EDIT_KEY, type TableEditContext } from '../../composables/useTableSelection'
 import { SELECTED_IDS_KEY } from '../../composables/useSelection'
 import TableContextMenu from './TableContextMenu.vue'
@@ -273,7 +275,7 @@ function cellStyle(_row: TableRow, cell: TableCell): Record<string, string> {
   // 设计态下无边框边补虚拟虚线（仅设计稿展示，预览/打印输出不受影响）
   const borderOpts = { designMode: props.designMode, showGhostBorder: props.showTableGhostBorder }
   return {
-    fontFamily: cell.fontFamily || 'inherit',
+    fontFamily: resolveCanvasFontFamily(cell.fontFamily ?? o.tableDefaultFontFamily),
     textAlign: cell.align ?? 'left',
     // justify 不拉伸段落末行，单行单元格需显式声明才撑满列宽（与出纸/common 同策）
     ...(cell.align === 'justify' ? { textAlignLast: 'justify' } : {}),

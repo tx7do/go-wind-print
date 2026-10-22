@@ -17,6 +17,7 @@ export function codeSpecKey(
     opts.fontSize ?? null,
     opts.qrQuietZone ?? null,
     opts.barQuietZone ?? null,
+    opts.barHeightMm ?? null,
   ])
 }
 

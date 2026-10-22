@@ -2,12 +2,16 @@
 // 条码落纸尺寸的三条规则：条宽定首选 → 设了 dpi 就吸附到整数打印点（dpi 优先）→ 框不够等比缩小。
 import { describe, it, expect } from 'vitest'
 import {
+  BARCODE_BAR_HEIGHT_MODULES,
   BARCODE_QUIET_ZONE_MODULES,
   MM_PER_INCH,
   barcodeAvailableBoxMm,
+  barcodeBarHeightModules,
   barcodePreferredModuleWidthMm,
   barcodeQuietZoneModules,
   barcodeUnitsPerModule,
+  barcodeWidthBoundModuleWidthMm,
+  layoutBarcodeSize,
   resolveBarcodeSize,
 } from './barcode-dot.js'
 
@@ -176,5 +180,184 @@ describe('可用框并入最大宽高', () => {
   it('两者都未知时返回 0（不约束）', () => {
     expect(barcodeAvailableBoxMm(0, undefined)).toBe(0)
     expect(barcodeAvailableBoxMm(undefined, undefined)).toBe(0)
+  })
+})
+
+describe('条高 mm → 条区模块数（条宽优先，框高收敛）', () => {
+  it('未填、非法或非正条高回退缺省 30 模块：存量模板逐毫米不变', () => {
+    const base = { moduleWidthMm: 0.5 }
+    expect(barcodeBarHeightModules(base)).toBe(BARCODE_BAR_HEIGHT_MODULES)
+    expect(barcodeBarHeightModules({ ...base, barHeightMm: 0 })).toBe(BARCODE_BAR_HEIGHT_MODULES)
+    expect(barcodeBarHeightModules({ ...base, barHeightMm: -5 })).toBe(BARCODE_BAR_HEIGHT_MODULES)
+    expect(barcodeBarHeightModules({ ...base, barHeightMm: Number.NaN })).toBe(BARCODE_BAR_HEIGHT_MODULES)
+    expect(barcodeBarHeightModules({ ...base, barHeightMm: Number.POSITIVE_INFINITY })).toBe(BARCODE_BAR_HEIGHT_MODULES)
+  })
+
+  it('每模块宽未知（≤0）时没有折算粒度，回退缺省档', () => {
+    expect(barcodeBarHeightModules({ barHeightMm: 25, moduleWidthMm: 0 })).toBe(BARCODE_BAR_HEIGHT_MODULES)
+    expect(barcodeBarHeightModules({ barHeightMm: 25, moduleWidthMm: -1 })).toBe(BARCODE_BAR_HEIGHT_MODULES)
+  })
+
+  it('按每模块宽反算并吸附到整数模块（条高的粒度就是条宽的粒度）', () => {
+    expect(barcodeBarHeightModules({ barHeightMm: 15, moduleWidthMm: 0.5 })).toBe(30)
+    expect(barcodeBarHeightModules({ barHeightMm: 25, moduleWidthMm: 0.5 })).toBe(50)
+    expect(barcodeBarHeightModules({ barHeightMm: 12, moduleWidthMm: 0.5 })).toBe(24)
+    // 24.4 → 24、24.6 → 25：只能精确到每模块宽的整数倍
+    expect(barcodeBarHeightModules({ barHeightMm: 12.2, moduleWidthMm: 0.5 })).toBe(24)
+    expect(barcodeBarHeightModules({ barHeightMm: 12.3, moduleWidthMm: 0.5 })).toBe(25)
+  })
+
+  it('框高不足时条高让位，不把条宽压窄', () => {
+    // 框高 14.1mm、文字区 14 模块 × 0.5mm = 7mm → 条区上限 (14.1-7)/0.5 = 14.2 → 14 模块
+    expect(barcodeBarHeightModules({
+      barHeightMm: 25, moduleWidthMm: 0.5, boxHeightMm: 14.1, textModules: 14,
+    })).toBe(14)
+  })
+
+  it('框高未知（≤0）时不收敛，按期望条高兑现', () => {
+    expect(barcodeBarHeightModules({
+      barHeightMm: 25, moduleWidthMm: 0.5, boxHeightMm: 0, textModules: 14,
+    })).toBe(50)
+    expect(barcodeBarHeightModules({ barHeightMm: 25, moduleWidthMm: 0.5, boxHeightMm: -1 })).toBe(50)
+  })
+
+  it('文字区单独就超框时仍给 1 模块，条码不至于完全打不出', () => {
+    expect(barcodeBarHeightModules({
+      barHeightMm: 25, moduleWidthMm: 0.5, boxHeightMm: 5, textModules: 14,
+    })).toBe(1)
+  })
+
+  it('期望条高小于缺省档时按期望缩小（条高不是只放大）', () => {
+    expect(barcodeBarHeightModules({ barHeightMm: 5, moduleWidthMm: 0.5 })).toBe(10)
+  })
+})
+
+describe('条宽侧上限：条高的折算粒度来源', () => {
+  it('未设 dpi：取条宽首选与框宽上限的小者', () => {
+    // 79 模块 × 0.5mm = 39.5mm，56.4mm 框装得下 → 按首选
+    expect(barcodeWidthBoundModuleWidthMm({ unitWidth: 79, boxWidthMm: 56.4, barWidth: 4 })).toBe(0.5)
+    // 200 模块 × 0.5mm = 100mm 放不下 → 被框宽压到 0.282mm
+    expect(barcodeWidthBoundModuleWidthMm({ unitWidth: 200, boxWidthMm: 56.4, barWidth: 4 }))
+      .toBeCloseTo(56.4 / 200, 9)
+  })
+
+  it('框宽未知（≤0）时不约束，直接按首选', () => {
+    expect(barcodeWidthBoundModuleWidthMm({ unitWidth: 79, boxWidthMm: 0, barWidth: 4 })).toBe(0.5)
+    expect(barcodeWidthBoundModuleWidthMm({ unitWidth: 79, boxWidthMm: -1, barWidth: 4 })).toBe(0.5)
+  })
+
+  it('设了 dpi：吸附到整数打印点', () => {
+    // 200 模块在 56.4mm 框内是 0.282mm ≈ 2.25 点，只能取 2 点
+    const mm = barcodeWidthBoundModuleWidthMm({ unitWidth: 200, boxWidthMm: 56.4, dpi: 203, barWidth: 4 })
+    expect(dotsOf(mm, 203)).toBeCloseTo(2, 6)
+    // 框宽足够时按首选吸附：0.5mm 在 203dpi 下是 3.996 点 → 4 点
+    const roomy = barcodeWidthBoundModuleWidthMm({ unitWidth: 79, boxWidthMm: 56.4, dpi: 203, barWidth: 4 })
+    expect(dotsOf(roomy, 203)).toBeCloseTo(4, 6)
+  })
+
+  it('框宽连 1 点/模块都放不下时退回连续值（与整图结算同规则）', () => {
+    const mm = barcodeWidthBoundModuleWidthMm({ unitWidth: 200, boxWidthMm: 3, dpi: 203, barWidth: 4 })
+    expect(dotsOf(mm, 203)).toBeLessThan(1)
+    expect(mm).toBeCloseTo(3 / 200, 9)
+  })
+
+  it('与整图结算的区别：本函数不看框高，才不会让条高挤窄条宽', () => {
+    const widthBound = barcodeWidthBoundModuleWidthMm({ unitWidth: 79, boxWidthMm: 56.4, barWidth: 4 })
+    const settled = resolveBarcodeSize({
+      unitWidth: 79, unitHeight: 44, boxWidthMm: 56.4, boxHeightMm: 6, barWidth: 4,
+    })
+    expect(widthBound).toBe(0.5)
+    expect(settled.moduleWidthMm).toBeLessThan(0.5)
+  })
+})
+
+describe('layoutBarcodeSize 两趟布局：条宽优先，条高收敛', () => {
+  /** 仿 jsbarcode 的几何：宽 99 模块，高 =（条区 + 12 文字 + 2 间距）×每模块用户单位数 */
+  function fakeMeasure(upm: number, seen: number[]) {
+    return (barHeightModules: number) => {
+      seen.push(barHeightModules)
+      return { widthUnits: 99 * upm, heightUnits: (barHeightModules + 12 + 2) * upm }
+    }
+  }
+
+  it('未填条高：只生成一趟，尺寸与直接结算逐毫米一致', () => {
+    const seen: number[] = []
+    const layout = layoutBarcodeSize({
+      boxWidthMm: 56.4, boxHeightMm: 14.1, barWidth: 2, measure: fakeMeasure(1, seen),
+    })
+    expect(seen).toEqual([BARCODE_BAR_HEIGHT_MODULES])
+    const direct = resolveBarcodeSize({
+      unitWidth: 99, unitHeight: 44, boxWidthMm: 56.4, boxHeightMm: 14.1, barWidth: 2,
+    })
+    expect(layout.size).toEqual(direct)
+    expect(layout.barHeightModules).toBe(BARCODE_BAR_HEIGHT_MODULES)
+  })
+
+  it('折算结果正好是缺省档时短路第二趟（7.5mm ÷ 0.25mm = 30 模块）', () => {
+    const seen: number[] = []
+    const layout = layoutBarcodeSize({
+      barHeightMm: 7.5, boxWidthMm: 56.4, boxHeightMm: 14.1, barWidth: 2, measure: fakeMeasure(1, seen),
+    })
+    expect(seen).toEqual([BARCODE_BAR_HEIGHT_MODULES])
+    expect(layout.barHeightModules).toBe(BARCODE_BAR_HEIGHT_MODULES)
+  })
+
+  it('期望条高超出框高：条高让位到 42 模块，条宽一分不损', () => {
+    const seen: number[] = []
+    const layout = layoutBarcodeSize({
+      barHeightMm: 25, boxWidthMm: 56.4, boxHeightMm: 14.1, barWidth: 2, measure: fakeMeasure(1, seen),
+    })
+    // 第一趟拿模块数，第二趟按收敛后的条区模块数重生成
+    expect(seen).toEqual([BARCODE_BAR_HEIGHT_MODULES, 42])
+    expect(layout.barHeightModules).toBe(42)
+    if (!layout.size) throw new Error('布局未结算出尺寸')
+    // 条宽侧上限 0.25mm 未被条高挤窄
+    expect(layout.size.moduleWidthMm).toBe(0.25)
+    expect(layout.size.scaledDown).toBe(false)
+    // 整图 42 + 14 = 56 模块 × 0.25mm = 14mm，仍在 14.1mm 框内
+    expect(layout.size.heightMm).toBeCloseTo(14, 9)
+    expect(layout.size.heightMm).toBeLessThanOrEqual(14.1)
+    expect(layout.size.widthMm).toBeCloseTo(99 * 0.25, 9)
+  })
+
+  it('框高未知（≤0）时不收敛，条高按期望兑现', () => {
+    const seen: number[] = []
+    const layout = layoutBarcodeSize({
+      barHeightMm: 25, boxWidthMm: 56.4, boxHeightMm: 0, barWidth: 2, measure: fakeMeasure(1, seen),
+    })
+    expect(seen[1]).toBe(100)
+    if (!layout.size) throw new Error('布局未结算出尺寸')
+    expect(layout.size.heightMm).toBeCloseTo((100 + 14) * 0.25, 9)
+  })
+
+  it('粒度跟着条宽侧走：框宽压窄条宽时，条高按压制后的每模块宽折算', () => {
+    const seen: number[] = []
+    const upm = 2
+    const layout = layoutBarcodeSize({
+      barHeightMm: 10, boxWidthMm: 30, boxHeightMm: 40, barWidth: 4,
+      measure: (barHeightModules) => {
+        seen.push(barHeightModules)
+        // 200 模块码值 × 每模块 2 用户单位；高同上
+        return { widthUnits: 200 * upm, heightUnits: (barHeightModules + 14) * upm }
+      },
+    })
+    // 框宽 30mm ÷ 200 模块 = 0.15mm/模块，条宽首选 0.5mm 被压到 0.15 → 10mm ÷ 0.15 = 67 模块
+    expect(seen[1]).toBe(67)
+    if (!layout.size) throw new Error('布局未结算出尺寸')
+    expect(layout.size.moduleWidthMm).toBeCloseTo(0.15, 9)
+  })
+
+  it('生成失败（无 viewBox）时不结算，条高档回缺省', () => {
+    const seen: number[] = []
+    const layout = layoutBarcodeSize({
+      barHeightMm: 25, boxWidthMm: 56.4, boxHeightMm: 14.1, barWidth: 2,
+      measure: (barHeightModules) => {
+        seen.push(barHeightModules)
+        return null
+      },
+    })
+    expect(seen).toEqual([BARCODE_BAR_HEIGHT_MODULES])
+    expect(layout.size).toBeNull()
+    expect(layout.barHeightModules).toBe(BARCODE_BAR_HEIGHT_MODULES)
   })
 })

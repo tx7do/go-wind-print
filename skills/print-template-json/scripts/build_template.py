@@ -33,6 +33,9 @@ TYPE_TITLES = {
     'pageNumber': '页码',
 }
 
+# 新建元素的默认字体族名，与 core 的 DEFAULT_PRINT_FONT_FAMILY 同值（热敏出纸笔画更实）
+DEFAULT_PRINT_FONT_FAMILY = 'SimHei'
+
 # 简写键 → 原生 ElementOptions 键（通用项）
 COMMON_ALIAS = {
     'text': 'formatter',      # 文本/条码/二维码的内容（支持 {field} 与表达式）
@@ -58,6 +61,7 @@ TYPE_ALIAS = {
         'code': 'barcodeType',   # code128 / ean13 / code39 / itf14 ...
         'barWidth': 'barWidth',  # 模块宽度倍率 2~8，每模块首选宽 = 倍率/2 × 0.25mm
         'barQuiet': 'barQuietZone',  # 条码静区（左右白边，模块）0~20，缺省 10；0＝白边换成条宽
+        'barHeight': 'barHeight',    # 条区高度（mm，不含下方文字），缺省按 30 模块；条宽优先，框高不足时条高让位
         'dpi': 'printerDpi',     # 203/300/600，给出则吸附整数打印点
         'hideTitle': 'hideTitle',
     },
@@ -76,6 +80,7 @@ TYPE_ALIAS = {
         'cols': None,            # 特殊处理：列宽数组 → tableColWidths
         'rows': None,            # 特殊处理：行定义 → tableRows
         'size': 'tableDefaultFontSize',
+        'family': 'tableDefaultFontFamily',  # 表格的 family 即单元格默认字体（逐格仍可用 cells[].family 覆盖）
         'padding': 'tableDefaultPadding',
         'color': 'tableDefaultColor',
     },
@@ -103,6 +108,7 @@ CELL_ALIAS = {
     'level': 'qrCodeLevel',
     'quiet': 'qrQuietZone',
     'barQuiet': 'barQuietZone',
+    'barHeight': 'barHeight',
     'padding': 'padding',
     'textFit': 'textFit',
     'wordWrap': 'wordWrap',
@@ -200,6 +206,11 @@ def build_options(spec: Dict[str, Any], etype: str) -> Dict[str, Any]:
         options.setdefault('qrCodeLevel', 'M')
     if etype in ('text', 'longText'):
         options.setdefault('fontSize', 9)
+    # 与 core 的 createDefaultOptions 同口径：新建元素默认黑体（热敏 203dpi 出纸笔画更实）。
+    # 显式写 family 时以 family 为准；family 给 null/空串即清成「默认」，交还 CSS 继承。
+    options.setdefault('fontFamily', DEFAULT_PRINT_FONT_FAMILY)
+    if etype == 'table':
+        options.setdefault('tableDefaultFontFamily', DEFAULT_PRINT_FONT_FAMILY)
     return options
 
 

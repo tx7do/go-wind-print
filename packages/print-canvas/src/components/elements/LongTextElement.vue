@@ -17,6 +17,7 @@ import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { resolveTextBinding } from '@worm-vue3-print/core/designer'
 import { resolveElementTextFit, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
 import { useShrinkFit } from '../../composables/useShrinkFit'
+import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
 
 const props = defineProps<{
   element: RuntimeElement
@@ -40,7 +41,7 @@ const textStyle = computed(() => {
   return {
     fontSize: baseFontSize.value + 'pt',
     fontWeight: o.fontWeight || 'normal',
-    fontFamily: o.fontFamily || 'inherit',
+    fontFamily: resolveCanvasFontFamily(o.fontFamily),
     color: o.color || '#333',
     backgroundColor: o.backgroundColor || 'transparent',
     textAlign: o.textAlign || 'left',

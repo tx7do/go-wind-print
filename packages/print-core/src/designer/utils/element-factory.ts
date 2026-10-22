@@ -1,5 +1,6 @@
 // web/src/components/print/utils/element-factory.ts
 import type { RuntimeElement, ElementType, ElementOptions } from '../types.js'
+import { DEFAULT_PRINT_FONT_FAMILY } from '../../print/fonts.js'
 import { createDefaultTable } from './table-matrix.js'
 
 export function generateId(): string {
@@ -8,7 +9,11 @@ export function generateId(): string {
 
 export function createDefaultOptions(type: ElementType): ElementOptions {
   // pt → mm：20/50/120/20 → 7/17.6/42.3/7.1
-  const base: ElementOptions = { left: 7, top: 17.6, width: 42.3, height: 7.1 }
+  // 默认字体给黑体：兜底栈头部的微软雅黑/苹方是屏幕优化字体，热敏（203dpi 1-bit）出纸笔画发虚
+  const base: ElementOptions = {
+    left: 7, top: 17.6, width: 42.3, height: 7.1,
+    fontFamily: DEFAULT_PRINT_FONT_FAMILY,
+  }
 
   switch (type) {
     case 'text':
@@ -27,6 +32,7 @@ export function createDefaultOptions(type: ElementType): ElementOptions {
         tableRows: rows,
         tableColWidths: colWidths,
         tableDefaultFontSize: 10,
+        tableDefaultFontFamily: DEFAULT_PRINT_FONT_FAMILY,
         tableDefaultColor: '#333333',
         tableDefaultPadding: 1,
         fields: [],

@@ -56,6 +56,79 @@ export function barcodePreferredModuleWidthMm(barWidth?: number): number {
   return barcodeUnitsPerModule(barWidth) * BARCODE_MODULE_WIDTH_MM
 }
 
+export interface BarcodeBarHeightInput {
+  /** 期望条区高度（mm，不含下方文字）；未填或非法一律回退缺省档 */
+  barHeightMm?: number
+  /** 每模块物理宽度（mm）：条高的折算粒度，来自条宽与点阵的结算 */
+  moduleWidthMm: number
+  /** 可用框高（mm）；≤0 视为未知，不做收敛 */
+  boxHeightMm?: number
+  /** 文字区占用的模块数（jsbarcode 的 fontSize + textMargin + 下间距），由实测 viewBox 反推 */
+  textModules?: number
+}
+
+/**
+ * 把期望条高折算成 jsbarcode 的条区模块数。
+ * 条高只能落「每模块宽」的整数倍，且框高不够时由条高让位——条宽是清晰度的第一来源，
+ * 绝不被条高挤窄（挤窄即回到条宽忽宽忽窄的老问题）。
+ */
+export function barcodeBarHeightModules(input: BarcodeBarHeightInput): number {
+  const { barHeightMm, moduleWidthMm, boxHeightMm, textModules } = input
+  const hasHeight = typeof barHeightMm === 'number' && Number.isFinite(barHeightMm) && barHeightMm > 0
+  const hasGranularity = typeof moduleWidthMm === 'number' && Number.isFinite(moduleWidthMm) && moduleWidthMm > 0
+  // 未填或没有折算粒度时回退缺省档：存量模板（不带 barHeight）必须逐毫米不变
+  if (!hasHeight || !hasGranularity) return BARCODE_BAR_HEIGHT_MODULES
+  const wanted = Math.max(1, Math.round(barHeightMm / moduleWidthMm))
+  const hasBox = typeof boxHeightMm === 'number' && Number.isFinite(boxHeightMm) && boxHeightMm > 0
+  if (!hasBox) return wanted
+  const text = typeof textModules === 'number' && Number.isFinite(textModules) && textModules > 0 ? textModules : 0
+  const cap = Math.floor((boxHeightMm - text * moduleWidthMm) / moduleWidthMm)
+  return Math.max(1, Math.min(wanted, cap))
+}
+
+export interface BarcodeWidthBoundInput {
+  /** 条码总宽（模块，含左右静区） */
+  unitWidth: number
+  /** 可用框宽（mm）；≤0 视为未知，不约束 */
+  boxWidthMm: number
+  /** 打印机分辨率（点/英寸）；非正数或缺失视为不对齐点阵 */
+  dpi?: number
+  /** 条码模块宽度倍率（2-8），缺省 2 */
+  barWidth?: number
+}
+
+/**
+ * 点阵吸附的共用内核：首选每模块宽折算成打印点后取整，并受每模块宽的框侧上限约束。
+ * 连 1 点/模块都放不下时返回 null，由调用方退回连续等比缩放（宁可缩小也不溢出可用框）。
+ */
+function dotAlignedModuleWidth(
+  preferredMm: number,
+  maxModuleMm: number,
+  dotsPerMm: number,
+): { dotsPerModule: number; preferredDots: number; moduleWidthMm: number } | null {
+  const preferredDots = Math.max(1, Math.round(preferredMm * dotsPerMm))
+  const maxDots = Math.floor(maxModuleMm * dotsPerMm)
+  if (maxDots < 1) return null
+  const dotsPerModule = Math.min(preferredDots, maxDots)
+  return { dotsPerModule, preferredDots, moduleWidthMm: dotsPerModule / dotsPerMm }
+}
+
+/**
+ * 条宽侧的每模块宽：只由条宽、点阵与框宽决定，完全不看条高。
+ * 条高要折算成模块数就必须先有一个不被条高污染的粒度，否则「填高把条宽压窄」会循环咬住自己。
+ */
+export function barcodeWidthBoundModuleWidthMm(input: BarcodeWidthBoundInput): number {
+  const preferredMm = barcodePreferredModuleWidthMm(input.barWidth)
+  const unitWidth = Math.max(1, Math.ceil(input.unitWidth))
+  const maxModuleMm = input.boxWidthMm > 0 ? input.boxWidthMm / unitWidth : Number.POSITIVE_INFINITY
+  const dpi = input.dpi
+  if (typeof dpi === 'number' && Number.isFinite(dpi) && dpi > 0) {
+    const aligned = dotAlignedModuleWidth(preferredMm, maxModuleMm, dpi / MM_PER_INCH)
+    if (aligned) return aligned.moduleWidthMm
+  }
+  return Math.min(preferredMm, maxModuleMm)
+}
+
 export interface BarcodeSizeInput {
   /** 总宽度（模块，含左右静区） */
   unitWidth: number
@@ -114,20 +187,15 @@ export function resolveBarcodeSize(input: BarcodeSizeInput): BarcodeSize {
 
   const dpi = input.dpi
   if (typeof dpi === 'number' && Number.isFinite(dpi) && dpi > 0) {
-    const dotsPerMm = dpi / MM_PER_INCH
     // DPI 优先：首选条宽换算成打印点后取整，落在点阵网格上
-    const preferredDots = Math.max(1, Math.round(preferredModuleMm * dotsPerMm))
-    // 可用框允许的最大整数点数；< 1 表示连 1 点/模块都放不下，点对齐不可行
-    const maxDots = Math.floor(maxModuleMm * dotsPerMm)
-    if (maxDots >= 1) {
-      const dotsPerModule = Math.min(preferredDots, maxDots)
-      const moduleWidthMm = dotsPerModule / dotsPerMm
+    const aligned = dotAlignedModuleWidth(preferredModuleMm, maxModuleMm, dpi / MM_PER_INCH)
+    if (aligned) {
       return {
-        moduleWidthMm,
-        widthMm: unitWidth * moduleWidthMm,
-        heightMm: unitHeight * moduleWidthMm,
-        dotsPerModule,
-        scaledDown: dotsPerModule < preferredDots,
+        moduleWidthMm: aligned.moduleWidthMm,
+        widthMm: unitWidth * aligned.moduleWidthMm,
+        heightMm: unitHeight * aligned.moduleWidthMm,
+        dotsPerModule: aligned.dotsPerModule,
+        scaledDown: aligned.dotsPerModule < aligned.preferredDots,
       }
     }
     // 连 1 点/模块都放不下 → 落到下方：放弃点对齐，按框等比缩放（比让条码溢出可用框更好）
@@ -141,4 +209,76 @@ export function resolveBarcodeSize(input: BarcodeSizeInput): BarcodeSize {
     dotsPerModule: null,
     scaledDown: moduleWidthMm < preferredModuleMm,
   }
+}
+
+/** 一趟码面的 viewBox 用户单位宽高 */
+export interface BarcodeViewBoxUnits {
+  widthUnits: number
+  heightUnits: number
+}
+
+export interface BarcodeLayoutInput {
+  /** 期望条区高度（mm，不含下方文字）；未填即缺省档，且只生成一趟 */
+  barHeightMm?: number
+  /** 可用框宽（mm）；≤0 视为未知 */
+  boxWidthMm: number
+  /** 可用框高（mm）；≤0 视为未知 */
+  boxHeightMm: number
+  /** 打印机分辨率（点/英寸） */
+  dpi?: number
+  /** 条码模块宽度倍率（2-8） */
+  barWidth?: number
+  /** 按给定条区模块数生成一趟码面并读回 viewBox；生成失败返回 null */
+  measure: (barHeightModules: number) => BarcodeViewBoxUnits | null
+}
+
+export interface BarcodeLayout {
+  /** 最终采用的条区模块数，即生成端最后一次写入 jsbarcode 的 height 档位 */
+  barHeightModules: number
+  /** 落纸尺寸；码值非法或读不到 viewBox 时为 null，由调用方走既有降级 */
+  size: BarcodeSize | null
+}
+
+/**
+ * 条高布局的趟序：先用缺省条高生成一趟拿模块数，再据此定粒度反算条区模块数，必要时重生成。
+ * 之所以必须两趟：每模块宽由「框宽 ÷ 模块数」得出，而模块数只有生成后才知道，
+ * 条高又要用每模块宽折算 —— 直接在结算里带上条高，就会让条高反过来挤窄条宽。
+ * 未填条高、或折算结果恰是缺省档时只走一趟，与历史行为逐毫米一致。
+ */
+export function layoutBarcodeSize(input: BarcodeLayoutInput): BarcodeLayout {
+  const upm = barcodeUnitsPerModule(input.barWidth)
+  const settle = (units: BarcodeViewBoxUnits): BarcodeSize => resolveBarcodeSize({
+    unitWidth: units.widthUnits / upm,
+    unitHeight: units.heightUnits / upm,
+    boxWidthMm: input.boxWidthMm,
+    boxHeightMm: input.boxHeightMm,
+    dpi: input.dpi,
+    barWidth: input.barWidth,
+  })
+
+  const first = input.measure(BARCODE_BAR_HEIGHT_MODULES)
+  if (!first) return { barHeightModules: BARCODE_BAR_HEIGHT_MODULES, size: null }
+  const hasHeight = typeof input.barHeightMm === 'number' && Number.isFinite(input.barHeightMm) && input.barHeightMm > 0
+  if (!hasHeight) return { barHeightModules: BARCODE_BAR_HEIGHT_MODULES, size: settle(first) }
+
+  // 文字区占用直接由第一趟实测高减掉条区缺省档得出，比按常量估准：jsbarcode 的 textMargin 不随倍率缩放
+  const textModules = Math.max(0, first.heightUnits / upm - BARCODE_BAR_HEIGHT_MODULES)
+  const barHeightModules = barcodeBarHeightModules({
+    barHeightMm: input.barHeightMm,
+    moduleWidthMm: barcodeWidthBoundModuleWidthMm({
+      unitWidth: first.widthUnits / upm,
+      boxWidthMm: input.boxWidthMm,
+      dpi: input.dpi,
+      barWidth: input.barWidth,
+    }),
+    boxHeightMm: input.boxHeightMm,
+    textModules,
+  })
+  if (barHeightModules === BARCODE_BAR_HEIGHT_MODULES) {
+    return { barHeightModules, size: settle(first) }
+  }
+
+  const second = input.measure(barHeightModules)
+  if (!second) return { barHeightModules: BARCODE_BAR_HEIGHT_MODULES, size: null }
+  return { barHeightModules, size: settle(second) }
 }

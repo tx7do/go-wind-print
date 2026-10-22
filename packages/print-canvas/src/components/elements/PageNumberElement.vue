@@ -7,6 +7,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
 
 const props = defineProps<{
   element: RuntimeElement
@@ -19,7 +20,7 @@ const textStyle = computed(() => {
   return {
     fontSize: (o.fontSize || 12) + 'pt',
     fontWeight: o.fontWeight || 'normal',
-    fontFamily: o.fontFamily || 'inherit',
+    fontFamily: resolveCanvasFontFamily(o.fontFamily),
     color: o.color || '#333',
     textAlign: (o.textAlign || 'left') as 'left' | 'center' | 'right' | 'justify',
     // justify 不拉伸段落末行，单行页码需显式声明才撑满行宽（出纸走 core textStyle，画布不能落后）

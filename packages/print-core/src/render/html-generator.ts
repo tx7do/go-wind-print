@@ -514,6 +514,8 @@ function codeImgHtml(
       // 0 是合法档（无白边），必须用 typeof 判定而非 or/?? 之类假值判断
       qrQuietZone: typeof opts.qrQuietZone === 'number' ? opts.qrQuietZone : undefined,
       barQuietZone: typeof opts.barQuietZone === 'number' ? opts.barQuietZone : undefined,
+      // 条高（mm）：元素台与单元格台都写 barHeight，非法/未填交由布局函数回退缺省档
+      barHeightMm: typeof opts.barHeight === 'number' ? opts.barHeight : undefined,
       showText: opts.hideTitle !== undefined ? !opts.hideTitle : opts.showBarcodeText,
       barWidth: typeof opts.barWidth === 'number' ? opts.barWidth : undefined,
       // 元素台的条码文本字号是 fontSize；单元格台的文本字号是 barFontSize（单元格的 fontSize 是正文字号，不该拿来决定条码）
@@ -566,8 +568,9 @@ function matrixCellStyle(cell: RenderCell, opts: Record<string, any>): string {
   const fontSize = cell.fittedFontSize ?? cell.fontSize ?? opts.tableDefaultFontSize
   const color = cell.color ?? opts.tableDefaultColor
   const padding = cell.padding ?? opts.tableDefaultPadding ?? 1
+  const fontFamily = cell.fontFamily ?? opts.tableDefaultFontFamily
   if (fontSize) parts.push(`font-size:${fontSize}pt`)
-  if (cell.fontFamily) parts.push(`font-family:${escapeInlineStyleValue(toFontFamilyStack(cell.fontFamily))}`)
+  if (fontFamily) parts.push(`font-family:${escapeInlineStyleValue(toFontFamilyStack(fontFamily))}`)
   if (cell.fontWeight) parts.push(`font-weight:${cell.fontWeight}`)
   if (color) parts.push(`color:${color}`)
   if (cell.backgroundColor) parts.push(`background-color:${cell.backgroundColor}`)

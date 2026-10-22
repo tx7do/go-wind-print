@@ -126,9 +126,9 @@ describe('CodeGroup 打印机分辨率（条宽点对齐）', () => {
     // 下拉：码制 / 打印机分辨率（条形码无缩放模式）
     expect(manual.findAll('select')).toHaveLength(2)
     expect(aligned.findAll('select')).toHaveLength(2)
-    // 数字输入：条宽 / 静区 / 文本字号 / 最大宽度 / 最大高度 → 与是否点对齐无关
-    expect(manual.findAll('input[type="number"]')).toHaveLength(5)
-    expect(aligned.findAll('input[type="number"]')).toHaveLength(5)
+    // 数字输入：条宽 / 静区 / 条高 / 文本字号 / 最大宽度 / 最大高度 → 与是否点对齐无关
+    expect(manual.findAll('input[type="number"]')).toHaveLength(6)
+    expect(aligned.findAll('input[type="number"]')).toHaveLength(6)
     expect(aligned.text()).toContain('可用「最大宽高」限制上限')
   })
 
@@ -250,5 +250,38 @@ describe('PropertyPanel 挂载条码设置分组', () => {
 
   it('文本元素不显示「条码设置」', () => {
     expect(mountPanel(makeElement('text')).text()).not.toContain('条码设置')
+  })
+})
+
+describe('CodeGroup 条形码元素：条高 (mm)', () => {
+  /** 按标签定位条高字段：不依赖数字输入框顺序，加字段不会串位 */
+  function mountBarHeightPanel(element: RuntimeElement) {
+    const w = mountCodeGroup(element)
+    const field = w.findAll('.pd-field').find(f => f.find('.pd-label').text().startsWith('条高'))
+    return { w, field, input: field?.find('input[type="number"]') }
+  }
+
+  it('条形码出「条高 (mm)」，二维码不出（条区只有一维码才有）', () => {
+    expect(mountBarHeightPanel(makeElement('barcode')).input, '条形码应出条高字段').toBeTruthy()
+    expect(mountBarHeightPanel(makeElement('qrcode')).input).toBeFalsy()
+  })
+
+  it('档位与说明走注册表那一条：点出粒度受条宽限制、框高不足时条高让位', () => {
+    const { field, input } = mountBarHeightPanel(makeElement('barcode', { barHeight: 20 }))
+    expect(input!.attributes('placeholder')).toContain('默认')
+    expect(input!.attributes('min')).toBe('1')
+    expect(input!.attributes('max')).toBe('100')
+    // 回显已填档位
+    expect(input!.element.value).toBe('20')
+    expect(field!.find('.pd-help').attributes('data-tip')).toContain('条宽')
+  })
+
+  it('填 20 写 options.barHeight，不误写二维码静区那类相邻字段', async () => {
+    const element = makeElement('barcode', {})
+    const { input } = mountBarHeightPanel(element)
+    await input!.setValue('20')
+    await input!.trigger('change')
+    expect(element.options.barHeight).toBe(20)
+    expect(element.options.qrQuietZone).toBeUndefined()
   })
 })

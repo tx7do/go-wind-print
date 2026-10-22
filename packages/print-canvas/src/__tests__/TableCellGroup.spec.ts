@@ -235,3 +235,36 @@ describe('单元格水平对齐第 4 档（两端）', () => {
     expect(checked.map(i => (i.element as HTMLInputElement).value)).toEqual(['justify'])
   })
 })
+
+describe('TableCellGroup 条形码单元格条高 (mm)', () => {
+  const heightField = (w: ReturnType<typeof mountGroup>) =>
+    w.findAll('.pd-field').find(f => f.find('.pd-label').text().startsWith('条高'))
+  const cellOf = (el: RuntimeElement) => (el.options.tableRows as any[])[0].cells[0] as TableCell
+
+  it('条形码单元格出「条高 (mm)」，二维码与文本单元格不出', () => {
+    expect(heightField(mountGroup(makeElement({ cellType: 'barcode' })))).toBeTruthy()
+    expect(heightField(mountGroup(makeElement({ cellType: 'qrcode' })))).toBeUndefined()
+    expect(heightField(mountGroup(makeElement({ formatter: '文本' })))).toBeUndefined()
+  })
+
+  it('填 20 写进单元格的 barHeight', async () => {
+    const element = makeElement({ cellType: 'barcode' })
+    const input = heightField(mountGroup(element))!.find('input[type="number"]')
+    await input.setValue('20')
+    await input.trigger('change')
+    expect(cellOf(element).barHeight).toBe(20)
+  })
+
+  it('已填档位原样回显，单元格类型从条形码切走时清除 barHeight', async () => {
+    const element = makeElement({ cellType: 'barcode', barHeight: 20 })
+    const w = mountGroup(element)
+    expect(heightField(w)!.find('input[type="number"]').element.value).toBe('20')
+    await w.find('input[type="radio"][value="text"]').setValue()
+    expect(cellOf(element).barHeight).toBeUndefined()
+  })
+
+  it('tip 点出条宽优先：兑现不满不是 bug，是条高给框高让位', () => {
+    const field = heightField(mountGroup(makeElement({ cellType: 'barcode' })))!
+    expect(field.find('.pd-help').attributes('data-tip'), '条高应有帮助说明').toContain('条宽')
+  })
+})

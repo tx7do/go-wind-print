@@ -44,6 +44,25 @@ describe('TextElement 对齐渲染（设计器与打印端一致）', () => {
   })
 })
 
+describe('TextElement 字体族名（与出图端同口径补兜底栈）', () => {
+  // CSSOM 会序列化内联样式：可作标识符的族名引号被去掉（SimHei），多词族名保留引号且空格被 styleOf 剥掉
+  it('设置族名时带上全局兜底栈，本机缺该字体不会退到 UA 默认字', () => {
+    const wrapper = mount(TextElement, {
+      props: { element: makeElement({ fontFamily: 'SimHei', formatter: '文本' }), designMode: true },
+    })
+    const style = styleOf(wrapper)
+    expect(style).toContain('font-family:SimHei,"MicrosoftYaHei","PingFangSC"')
+    expect(style).toContain('sans-serif')
+  })
+
+  it('清空族名时交还 CSS 继承（与出图端「不输出 font-family」等价）', () => {
+    const wrapper = mount(TextElement, {
+      props: { element: makeElement({ fontFamily: undefined, formatter: '文本' }), designMode: true },
+    })
+    expect(styleOf(wrapper)).toContain('font-family:inherit')
+  })
+})
+
 describe('TextElement 垂直对齐（verticalAlign 显式设置时启用）', () => {  it('verticalAlign=middle 且 textAlign=center：flex 垂直居中 + 水平居中', () => {
     const wrapper = mount(TextElement, {
       props: { element: makeElement({ textAlign: 'center', verticalAlign: 'middle', formatter: '文本' }), designMode: true },

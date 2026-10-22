@@ -444,3 +444,17 @@ describe('多级表头重复行数解析', () => {
     expect(repeatCountOf(rows)).toBe(1)
   })
 })
+
+describe('条形码单元格 barHeight 透传', () => {
+  it('barHeight 进入 _renderRows：漏进白名单就只在设计器生效、出纸静默按缺省', () => {
+    const t = makeTemplate({
+      tableMode: 'static',
+      tableRows: [{
+        id: 'r1', type: 'static', height: 8,
+        cells: [cell({ formatter: '12345678', cellType: 'barcode', barHeight: 20 })],
+      }],
+    })
+    const c = bindData(t, {}).elements[0]!.options._renderRows[0].cells[0]
+    expect(c.barHeight).toBe(20)
+  })
+})

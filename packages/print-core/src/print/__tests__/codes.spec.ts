@@ -77,3 +77,12 @@ describe('mergeCodeMaps', () => {
     expect(a.get('k')).toBe('a')
   })
 })
+
+describe('codeSpecKey 条高', () => {
+  it('条高不同 → 键不同（同一码值的两种条高不能复用同一份 SVG）', () => {
+    expect(codeSpecKey('123', 'barcode', { barHeightMm: 10 }))
+      .not.toBe(codeSpecKey('123', 'barcode', { barHeightMm: 20 }))
+    expect(codeSpecKey('123', 'barcode', {}))
+      .not.toBe(codeSpecKey('123', 'barcode', { barHeightMm: 10 }))
+  })
+})

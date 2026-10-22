@@ -188,6 +188,8 @@ function makeRenderRow(
       qrCodeLevel: cell.qrCodeLevel,
       qrQuietZone: cell.qrQuietZone,
       barQuietZone: cell.barQuietZone,
+      // 条高同样必须进白名单：漏一个，属性台填的 mm 就只在设计器生效、出纸静默按缺省 30 模块
+      barHeight: cell.barHeight,
       // 条宽与条码文本字号也必须在白名单里：漏一个，属性台填的倍率就只在设计器生效、出纸静默按缺省
       barWidth: cell.barWidth,
       barFontSize: cell.barFontSize,
