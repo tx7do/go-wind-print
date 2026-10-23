@@ -269,3 +269,32 @@ describe('单元格台与单元格出图', () => {
       .toBe(CROP_SAMPLE_IMAGE)
   })
 })
+
+describe('裁剪两行的「恢复默认值」', () => {
+  /** 出厂态：image 的 objectPosition / fitScale 都未预置 ⇒ 动作是删键；
+   *  提示里的 100 % 来自注册表引用的渲染常量 CROP_SCALE_MIN（未设时渲染端就按它走）。 */
+  it('元素台 cover 档两行都挂图标：锚点提示纯文案，放大比例提示报 100 %，点击删键', () => {
+    const { host, el } = paintElement('image', { src: 'a', fit: 'cover', objectPosition: '0% 0%', fitScale: 150 })
+    const anchor = rowOf(host, '裁剪锚点')!.querySelector<HTMLButtonElement>('.pd-reset-btn')!
+    expect(anchor.classList.contains('is-dirty')).toBe(true)
+    expect(anchor.getAttribute('data-tip')).toBe('恢复默认值')
+    anchor.click()
+    expect(el.options.objectPosition).toBeUndefined()
+
+    const scale = rowOf(host, '放大比例')!.querySelector<HTMLButtonElement>('.pd-reset-btn')!
+    expect(scale.getAttribute('data-tip')).toBe('恢复默认值（100 %）')
+    scale.click()
+    expect(el.options.fitScale).toBeUndefined()
+  })
+
+  it('单元格台同两行也挂图标，提示固定「跟随表格默认」，点击删自身值', () => {
+    const { host, cell } = cellHarness({ cellType: 'image', fit: 'cover', objectPosition: '50% 50%', fitScale: 200 })
+    for (const t of ['裁剪锚点', '放大比例']) {
+      const b = rowOf(host, t)!.querySelector<HTMLButtonElement>('.pd-reset-btn')!
+      expect(b.getAttribute('data-tip'), `提示不对：${t}`).toBe('恢复默认值（跟随表格默认）')
+      b.click()
+    }
+    expect(cell.objectPosition).toBeUndefined()
+    expect(cell.fitScale).toBeUndefined()
+  })
+})

@@ -1,7 +1,7 @@
 <!-- 裁剪锚点：位置档下拉 + 放大比例 + 水平／垂直两框常驻 + 原图可视窗示意。只有缩放模式为剪裁（cover）时才有被裁掉的边，宿主只在那一档出这一行。 -->
 <template>
   <div class="pd-field" :data-field="fieldKey"><span class="pd-label"><span class="pd-label-t">{{ label }}<button type="button" class="pd-help" :data-tip="tip" aria-label="字段说明" /></span>
-    <ResetButton v-if="options && base" :target="options" :base="base" prop-key="objectPosition" :tip-value="def(fieldKey)?.value" :tip-unit="def(fieldKey)?.unit" />
+    <ResetButton v-if="options && base" :target="options" :base="base" prop-key="objectPosition" :tip-value="def(fieldKey)?.value" :tip-unit="def(fieldKey)?.unit" :tip-override="tipOverride" :write="writeAnchor" />
   </span>
     <select class="pd-select" style="width: 100%" :value="selectValue" @change="onPresetChange">
       <option v-for="o in presetOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
@@ -11,7 +11,7 @@
 
   <div class="pd-field" data-field="ap-img-fit-scale">
     <span class="pd-label"><span class="pd-label-t">{{ CROP_SCALE_LABEL }}<button type="button" class="pd-help" :data-tip="scaleTip" aria-label="字段说明" /></span>
-    <ResetButton v-if="options && base" :target="options" :base="base" prop-key="fitScale" :tip-value="def('ap-img-fit-scale')?.value" :tip-unit="def('ap-img-fit-scale')?.unit" />
+    <ResetButton v-if="options && base" :target="options" :base="base" prop-key="fitScale" :tip-value="def('ap-img-fit-scale')?.value" :tip-unit="def('ap-img-fit-scale')?.unit" :tip-override="tipOverride" :write="writeScale" />
   </span>
     <StepperInput :model-value="scale"
       :min="CROP_SCALE_MIN"
@@ -70,6 +70,11 @@ const props = withDefaults(defineProps<{
    *  缺省不出图标——表格单元格走自己的整选区写回通道（Task 5），不能复用直改对象的形态。 */
   options?: Record<string, any>
   base?: Record<string, any>
+  /** 单元格台传的固定提示（「跟随表格默认」）：元素级不传，两行各自取注册表数值 */
+  tipOverride?: string
+  /** 单元格台要按整选区写回，不能直改展示那格：宿主传进来就走它，缺省直改 target */
+  writeAnchor?: (value: string | undefined) => void
+  writeScale?: (value: number | undefined) => void
   /** 已解析的图片地址（表达式由宿主求值后传入）；为空则回落内置示例图 */
   src?: string
   /** 模板里的存量值，原样是 CSS 两轴位置 */

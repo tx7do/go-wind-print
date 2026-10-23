@@ -105,6 +105,9 @@
       <div class="pd-cell-anchor" v-if="isImageCell && mainCell.fit === 'cover'">
         <CropAnchorField field-key="ap-img-object-position"
           label="裁剪锚点"
+          :options="mainCell" :base="CELL_FACTORY" :tip-override="CELL_TIP"
+          :write-anchor="(v) => write(c => { c.objectPosition = v })"
+          :write-scale="(v) => write(c => { c.fitScale = v })"
           :src="cellImageSrc"
           :fit="mainCell.fit"
           :width-mm="cellBoxMm.width"

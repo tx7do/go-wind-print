@@ -363,6 +363,8 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         scale: cell0.fitScale,
         value: cell0.objectPosition, onCommit: v => write(c => { c.objectPosition = v }),
         onScaleCommit: v => write(c => { c.fitScale = v }),
+        resetAnchor: cellReset('objectPosition'),
+        resetScale: cellReset('fitScale'),
       }) : '',
       (isBarcodeCell || isQrcodeCell || isImageCell)
         ? numField('最大宽度 (mm)', optNum(cell0.maxWidth), (c, v) => { c.maxWidth = v }, { min: 0, max: 200, placeholder: '默认' }, cellReset('maxWidth'))

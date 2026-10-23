@@ -109,4 +109,24 @@ describe('单元格「恢复默认值」', () => {
       for (const l of mountCells(cells).findAll('.pd-label')) expect(l.text()).not.toContain('默认')
     }
   })
+
+  /** 裁剪两行住在 CropAnchorField 里，单元格台此前没把 options/base 传进去 ⇒ 图标整段不出现 */
+  it('图片格（cover）：裁剪锚点与放大比例两行也挂图标，提示跟随表格默认', () => {
+    const el = makeElement([{ cellType: 'image', fit: 'cover', objectPosition: '0% 0%', fitScale: 150 }])
+    const w = mount(TableCellGroup, {
+      props: { element: el, selection: { elementId: 'el-table', r1: 0, c1: 0, r2: 0, c2: 0 }, fields: [] },
+      global: {
+        provide: {
+          [TABLE_EDIT_KEY as symbol]: { tableSelection: { value: null }, setTableSelection: () => {}, recordHistory: () => {} },
+        },
+      },
+    })
+    for (const t of ['裁剪锚点', '放大比例']) {
+      const b = rowOf(w, t).find('.pd-reset-btn')
+      expect(b.exists(), `缺图标：${t}`).toBe(true)
+      expect(b.attributes('data-tip'), `提示不对：${t}`).toBe('恢复默认值（跟随表格默认）')
+    }
+    rowOf(w, '裁剪锚点').find('.pd-reset-btn').trigger('click')
+    expect(((el.options.tableRows as never as any[])[0].cells[0]).objectPosition).toBeUndefined()
+  })
 })

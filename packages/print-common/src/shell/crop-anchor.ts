@@ -38,6 +38,10 @@ export interface CropAnchorOpts {
   fit?: string
   /** 剪裁放大比例（%）：只有 cover 消费，铺满后把画面再推大这么多 */
   scale?: number
+  /** 行尾「恢复默认值」图标：落点由宿主按所在层构造（元素级派生出厂值、单元格级删自身值），
+   *  本组件只负责把它摆进标签行右端，与 canvas 的 CropAnchorField 同一 DOM 结构 */
+  resetAnchor?: unknown
+  resetScale?: unknown
   value?: string
   onCommit: (value: string | undefined) => void
   onScaleCommit: (value: number | undefined) => void
@@ -93,12 +97,12 @@ export function cropAnchorField(ctx: ShellCtx, o: CropAnchorOpts) {
 
   const tip = propertyTip(o.fieldKey)
   const rows: unknown[] = [h('div', { class: 'pd-field', dataset: { field: o.fieldKey } }, [
-    h('span', { class: 'pd-label' }, [o.label, labelHelp(tip)]),
+    h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t' }, [o.label, labelHelp(tip)]), o.resetAnchor ?? ''].filter(Boolean)),
     select,
   ])]
   // 放大比例排在两框之前：先推大画面才有多出来的边，两框报的可挪量按推大后的尺寸结算
   rows.push(h('div', { class: 'pd-field', dataset: { field: 'ap-img-fit-scale' } }, [
-    h('span', { class: 'pd-label' }, [CROP_SCALE_LABEL, labelHelp(propertyTip('ap-img-fit-scale'))]),
+    h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t' }, [CROP_SCALE_LABEL, labelHelp(propertyTip('ap-img-fit-scale'))]), o.resetScale ?? ''].filter(Boolean)),
     stepper({
       value: o.scale, min: CROP_SCALE_MIN, max: CROP_SCALE_MAX, step: 5, placeholder: '默认 100',
       onCommit: v => o.onScaleCommit(v > CROP_SCALE_MIN ? v : undefined),

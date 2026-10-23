@@ -143,6 +143,8 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
         value: o.objectPosition === undefined ? undefined : String(o.objectPosition),
         onCommit: v => patch({ objectPosition: v }),
         onScaleCommit: v => patch({ fitScale: v }),
+        resetAnchor: reset('objectPosition', 'ap-img-object-position'),
+        resetScale: reset('fitScale', 'ap-img-fit-scale'),
       })) : '',
       !isTable && type !== 'image' ? h('p', { class: 'pd-empty', text: '当前元素不支持外观设置' }) : '',
     ].filter(Boolean)),
