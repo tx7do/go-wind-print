@@ -159,10 +159,10 @@ export function stepper(opts: {
   ])
 }
 
-/** 属性行：pd-field > pd-label + 控件 */
-export function field(label: string, control: unknown, hint?: string) {
+/** 属性行：pd-field > pd-label(.pd-label-t + 恢复默认值) + 控件 */
+export function field(label: string, control: unknown, hint?: string, reset?: unknown) {
   return h('div', { class: 'pd-field' }, [
-    h('span', { class: 'pd-label', text: label }),
+    h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: label }), reset ?? '']),
     control,
     hint ? h('p', { class: 'pd-hint', text: hint }) : '',
   ].filter(Boolean) as never)
@@ -174,11 +174,49 @@ export const labelHelp = (tip: string) => h('button', {
 })
 
 /** 带说明图标的属性行：与 field() 同结构，差别只在说明挂图标而非常驻 .pd-hint 段落 */
-export function fieldHelp(label: string, control: unknown, tip: string) {
+export function fieldHelp(label: string, control: unknown, tip: string, reset?: unknown) {
   return h('div', { class: 'pd-field' }, [
-    h('span', { class: 'pd-label' }, [label, labelHelp(tip)]),
+    h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t' }, [label, labelHelp(tip)]), reset ?? '']),
     control,
   ])
+}
+
+/**
+ * 「恢复默认值」按钮，与 canvas 的 property/ResetButton.vue 逐字同构。
+ * 落点派生自 base[propKey]：判据一律 === 比出厂值，base 里取到 undefined 即「未设」，
+ * 写回它天然等于删键。0 与 undefined 是两个状态，不得用 ?? / || 归并。
+ * 外壳是全量重绘模型，灰/亮在构造时求值即可，不需要响应式。
+ * 按钮不带任何文本子节点——属性搜索按 .pd-label 的 textContent 匹配，写字会污染命中。
+ */
+export function resetButton(o: {
+  target: Record<string, any>
+  base: Record<string, any>
+  propKey: string
+  /** 提示语数值：仅用于文案，不参与判定 */
+  tipValue?: number | string
+  tipUnit?: string
+  /** 覆盖整条提示（单元格级固定用「跟随表格默认」，回落目标是该表自己的默认） */
+  tipOverride?: string
+  /** 写回后的收尾（重绘 / 记历史）；不提供时只改对象 */
+  onReset?: () => void
+}) {
+  const factory = o.base?.[o.propKey]
+  const dirty = o.target?.[o.propKey] !== factory
+  const tip = o.tipOverride ?? (o.tipValue === undefined
+    ? '恢复默认值'
+    : `恢复默认值（${o.tipValue}${o.tipUnit ? ' ' + o.tipUnit : ''}）`)
+  return h('button', {
+    type: 'button',
+    class: `pd-reset-btn${dirty ? ' is-dirty' : ''}`,
+    'data-tip': tip,
+    'aria-label': tip,
+    html: iconSvg('RotateCcw', 13),
+    onClick: () => {
+      if (!dirty) return
+      o.target[o.propKey] = factory
+      o.onReset?.()
+    },
+  })
 }
 
 /** 分节标题（对应 canvas 的 h3.pd-divider） */
