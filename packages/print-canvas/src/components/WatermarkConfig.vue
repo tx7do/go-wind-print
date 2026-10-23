@@ -25,14 +25,20 @@
       />
 
       <!-- 公共设置 -->
-      <div class="pd-field"><span class="pd-label">旋转角度</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">旋转角度</span>
+        <ResetButton :target="localConfig" :base="WATERMARK_DEFAULTS" prop-key="rotate" @change="onChange()" />
+      </span>
         <input type="range" class="pd-range" v-model.number="localConfig.rotate" :min="-90" :max="90" :step="5" @change="onChange" />
         <span class="pd-hint">{{ localConfig.rotate }}°</span>
       </div>
-      <div class="pd-field"><span class="pd-label">颜色</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">颜色</span>
+        <ResetButton :target="localConfig" :base="WATERMARK_DEFAULTS" prop-key="color" @change="onChange()" />
+      </span>
         <PresetColorPicker :model-value="localConfig.color" @update:model-value="onColorChange" />
       </div>
-      <div class="pd-field"><span class="pd-label">透明度</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">透明度</span>
+        <ResetButton :target="localConfig" :base="WATERMARK_DEFAULTS" prop-key="opacity" @change="onChange()" />
+      </span>
         <input type="range" class="pd-range" v-model.number="localConfig.opacity" :min="0.05" :max="0.5" :step="0.05" @change="onChange" />
         <span class="pd-hint">{{ localConfig.opacity.toFixed(2) }}</span>
       </div>
@@ -43,10 +49,14 @@
         </select>
       </div>
       <template v-if="density === 'custom'">
-        <div class="pd-field"><span class="pd-label">瓦片宽</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">瓦片宽</span>
+          <ResetButton :target="localConfig" :base="WATERMARK_DEFAULTS" prop-key="tileWidth" @change="onChange()" />
+        </span>
           <input type="number" class="pd-input" v-model.number="localConfig.tileWidth" :min="minTileWidth" :step="10" @change="onChange" />
         </div>
-        <div class="pd-field"><span class="pd-label">瓦片高</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">瓦片高</span>
+          <ResetButton :target="localConfig" :base="WATERMARK_DEFAULTS" prop-key="tileHeight" @change="onChange()" />
+        </span>
           <input type="number" class="pd-input" v-model.number="localConfig.tileHeight" :min="minTileHeight" :step="10" @change="onChange" />
         </div>
       </template>
@@ -60,6 +70,7 @@ import type { WatermarkOptions, PrintBusinessField } from '@worm-vue3-print/core
 import { WATERMARK_DENSITY_PRESETS, WATERMARK_DEFAULTS } from '@worm-vue3-print/core'
 import PresetColorPicker from './PresetColorPicker.vue'
 import ExpressionEditor from './ExpressionEditor.vue'
+import ResetButton from './property/ResetButton.vue'
 
 const props = defineProps<{
   modelValue?: WatermarkOptions

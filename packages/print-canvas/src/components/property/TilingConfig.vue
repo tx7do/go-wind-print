@@ -18,7 +18,9 @@
 
     <template v-if="cfg.enabled && !labelContinuous">
       <div class="pd-field">
-        <span class="pd-label">目标纸张</span>
+        <span class="pd-label"><span class="pd-label-t">目标纸张</span>
+          <ResetButton :target="cfg" :base="TILE_DEFAULTS" prop-key="sheetPaperSize" :write="(v) => patch({ sheetPaperSize: v })" />
+        </span>
         <select
           class="pd-select"
           style="width: 100%"
@@ -50,7 +52,9 @@
       </div>
 
       <div v-else class="pd-field">
-        <span class="pd-label">目标纸方向</span>
+        <span class="pd-label"><span class="pd-label-t">目标纸方向</span>
+          <ResetButton :target="cfg" :base="TILE_DEFAULTS" prop-key="sheetOrientation" :write="(v) => patch({ sheetOrientation: v })" />
+        </span>
         <div class="pd-radio-group" role="radiogroup">
           <label class="pd-radio">
             <input
@@ -73,25 +77,33 @@
 
       <h3 class="pd-divider">拼版留白 (mm)</h3>
       <div class="margin-grid">
-        <div class="pd-field"><span class="pd-label">上</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">上</span>
+          <ResetButton :target="cfg.sheetMargin" :base="TILE_DEFAULTS.sheetMargin" prop-key="top" :write="(v) => patchMargin('top', v)" />
+        </span>
           <StepperInput
             :model-value="cfg.sheetMargin.top" :min="0" :max="100"
             @update:model-value="patchMargin('top', $event)"
           />
         </div>
-        <div class="pd-field"><span class="pd-label">下</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">下</span>
+          <ResetButton :target="cfg.sheetMargin" :base="TILE_DEFAULTS.sheetMargin" prop-key="bottom" :write="(v) => patchMargin('bottom', v)" />
+        </span>
           <StepperInput
             :model-value="cfg.sheetMargin.bottom" :min="0" :max="100"
             @update:model-value="patchMargin('bottom', $event)"
           />
         </div>
-        <div class="pd-field"><span class="pd-label">左</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">左</span>
+          <ResetButton :target="cfg.sheetMargin" :base="TILE_DEFAULTS.sheetMargin" prop-key="left" :write="(v) => patchMargin('left', v)" />
+        </span>
           <StepperInput
             :model-value="cfg.sheetMargin.left" :min="0" :max="100"
             @update:model-value="patchMargin('left', $event)"
           />
         </div>
-        <div class="pd-field"><span class="pd-label">右</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">右</span>
+          <ResetButton :target="cfg.sheetMargin" :base="TILE_DEFAULTS.sheetMargin" prop-key="right" :write="(v) => patchMargin('right', v)" />
+        </span>
           <StepperInput
             :model-value="cfg.sheetMargin.right" :min="0" :max="100"
             @update:model-value="patchMargin('right', $event)"
@@ -100,13 +112,17 @@
       </div>
 
       <h3 class="pd-divider">格间距与列数</h3>
-      <div class="pd-field"><span class="pd-label">横向间距</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">横向间距</span>
+        <ResetButton :target="cfg" :base="TILE_DEFAULTS" prop-key="gapX" :write="(v) => patch({ gapX: v })" />
+      </span>
         <StepperInput
           :model-value="cfg.gapX" :min="0" :max="50"
           @update:model-value="patch({ gapX: $event ?? 0 })"
         />
       </div>
-      <div class="pd-field"><span class="pd-label">纵向间距</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">纵向间距</span>
+        <ResetButton :target="cfg" :base="TILE_DEFAULTS" prop-key="gapY" :write="(v) => patch({ gapY: v })" />
+      </span>
         <StepperInput
           :model-value="cfg.gapY" :min="0" :max="50"
           @update:model-value="patch({ gapY: $event ?? 0 })"
@@ -142,6 +158,7 @@ import {
 } from '@worm-vue3-print/core'
 import type { TilingOptions } from '@worm-vue3-print/core'
 import StepperInput from './StepperInput.vue'
+import ResetButton from './ResetButton.vue'
 
 const props = defineProps<{
   modelValue?: TilingOptions

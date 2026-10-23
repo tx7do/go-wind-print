@@ -60,7 +60,7 @@ const factoryOptions = computed(() => createDefaultOptions(props.element.printEl
 
 /** 恢复默认值的写回通道：与手动改值同口径，记一次历史供撤销 */
 const resetTo = (key: string) => (value: any) => {
-  props.element.options[key] = value
+  ;(props.element.options as Record<string, any>)[key] = value
   tableEditCtx?.recordHistory()
 }
 
