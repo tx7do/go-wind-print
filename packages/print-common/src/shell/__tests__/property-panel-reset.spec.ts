@@ -82,3 +82,38 @@ describe('common 外观组「恢复默认值」', () => {
     }
   })
 })
+
+describe('common 条码组「恢复默认值」', () => {
+  it('静区提示取自注册表常量；设值后亮态，点击写回未设', () => {
+    const { el, host } = paint('barcode', { barQuietZone: 4 })
+    const b = btnOf(host, '静区')
+    expect(b.dataset.tip).toBe('恢复默认值（10 模块）')
+    expect(b.classList.contains('is-dirty')).toBe(true)
+    b.click()
+    expect(el.options.barQuietZone).toBeUndefined()
+  })
+
+  /** 显示陷阱：控件绑 o.barWidth ?? 2，出厂其实是未设——设成 2 也必须判为已偏离 */
+  it('条宽设成 2（等于渲染端回落值）仍判已偏离，点击删键', () => {
+    const { el, host } = paint('barcode', { barWidth: 2 })
+    const b = btnOf(host, '条宽')
+    expect(b.classList.contains('is-dirty')).toBe(true)
+    expect(b.dataset.tip).toBe('恢复默认值')
+    b.click()
+    expect(el.options.barWidth).toBeUndefined()
+  })
+
+  it('码制不挂图标（决定「这是什么码」，不是样式默认值）', () => {
+    const { host } = paint('barcode', { barcodeType: 'EAN13' })
+    expect(rowOf(host, '码制').querySelector('.pd-reset-btn')).toBeNull()
+  })
+
+  it('缩放模式仅二维码出行且挂图标；条码元素不出这一行', () => {
+    const q = paint('qrcode', { fit: 'cover' })
+    expect(btnOf(q.host, '缩放模式').classList.contains('is-dirty')).toBe(true)
+    const b = paint('barcode')
+    const has = [...b.host.querySelectorAll<HTMLElement>('.pd-field')]
+      .some(f => (f.querySelector('.pd-label')?.textContent ?? '').includes('缩放模式'))
+    expect(has).toBe(false)
+  })
+})
