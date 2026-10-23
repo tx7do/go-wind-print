@@ -103,6 +103,8 @@ export interface PropertyItem {
 
 `property/TableRowGroup.vue` **整组撤出本期**（原列为接入面，经核实不成立）：行属性挂在 `row` 对象而非 `options`，其"出厂值"依赖行在表中的位置与类型——`insertRow` 用 `height: ref.height` 让新行**继承相邻行**（`table-matrix.ts`），行高无统一默认；`repeatOnPage` 表头行出厂 `true`、数据行未设；`type` 出厂由位置决定。派生规则的前提是"该层存在单一出厂对象"，行层不满足，硬接会把作者插入的行错误重置成 8mm。
 
+`property/BorderBgGroup.vue` **同样顺延**（实施期发现，并推翻此前一处勘误）：该文件正被另一项在途功能整体重写（import 区与脚本段全改），且「线型 `bb-border-style`」这一行本身就是对方新增、HEAD 里并不存在——原先记为"漏接的既有行"是错的。为避免在冲突区里塞进与其余分组不同形态的写法，该组三行（边框宽度 / 边框颜色 / 背景色，这三行 HEAD 中确实存在）留待基线干净后按统一形态接入。
+
 `property/FontSelect.vue` **本身不改**——「字体」行的图标挂在外观组的 `.pd-label` 上，组件只负责选字体；它自带的下拉首行「默认」是**清行**语义，与行尾图标并存，本期不动它（避免一次改两处入口）。`property/BindingControl.vue` **不接入**：内容与表达式绑定属第七节排除清单。
 
 **页面页签按出厂值来源拆开处理**，不是一刀切：

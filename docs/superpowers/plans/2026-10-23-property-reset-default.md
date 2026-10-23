@@ -1193,6 +1193,11 @@ git commit -m "属性台恢复默认值：补出纸一致性回归与四宿主�
 
 - **E-2** `CodeGroup.vue` 的 `cd-fit` 行标签是「缩放模式」，绑定 `element.options.fit || 'contain'`，且带 `v-if="!isBarcode"`——**只在二维码元素上出现**，条码元素不出这一行。
 - **E-3** `BorderBgGroup.vue` 的 `bb-border-style` 行标签是「线型」，绑定 `element.options.borderStyle || 'solid'`。
+  **⚠️ 本条勘误在实施时被推翻**：`git diff` 证明「线型」这一行是**另一会话未提交的新增**，HEAD 里不存在。
+  因此它不是"我漏接的既有行"，而是他人 in-flight 功能的一部分，**不由本设计接入**。
+  该文件的 import 区也被对方整体重写，与我要插入的位置冲突，故 `BorderBgGroup` 的三行
+  （边框宽度 / 边框颜色 / 背景色，这三行 HEAD 里确实存在）一并**顺延到基线干净**，
+  不强行用 inline 写法绕开冲突区制造第二套形态。
 - **E-1** `CropAnchorField.vue` **不是一行而是四类行、共用两个键**，原勘误说"锚点行也挂图标"不够精确。逐行清单：
 
 | 该组件内的行 | 对应的键 | 是否挂图标 |
