@@ -1227,7 +1227,24 @@ git commit -m "属性台恢复默认值：补出纸一致性回归与四宿主�
 | `5adf0c3` | Task 8 Step 1 + Step 3：落纸一致性回归 15 条（每条正向配反面对照） |
 | `b080146` | **Task 7 Step 2**：common `controls.ts` 的 `resetButton()` 原语 + `field`/`fieldHelp` 改 `.pd-label-t` 嵌套，9 条用例 |
 
-Task 7 的 Step 2 已单独落地并验证向后兼容：`textContent` 逐字不变，common 全量 20 文件 227 用例（含并发的流式列表在途用例）全绿、`tsc` 无错。Step 1/3（canvas 构建 → 派生 → class-audit）与 Step 4（`property-panel.ts` / `table-props.ts` 逐行接入）仍等干净基线。
+Task 7 的 Step 2 已单独落地并验证向后兼容：`textContent` 逐字不变，common 全量 20 文件 227 用例（含并发的流式列表在途用例）全绿、`tsc` 无错。
+
+**后续续跑（同日晚，采用「同一脚本双跑 + 临时索引 commit-tree + CAS」处理混改文件）**：
+
+| 提交 | 覆盖 |
+|---|---|
+| `4615108` | Task 1 后半：注册表 `default`/`defaultUnit` + `propertyDefault()`，契约测试放新文件 |
+| `c129e22` | Task 3：外观组 14 行 + 裁剪锚点 2 处（`CropAnchorField` 新 props 做成可选，避免打断 `TableCellGroup`） |
+| `3155565` | Task 4：条码组 11 行 |
+| `ca2a9dc` | Task 6 尾：页面背景色换图标 + 删遗留 `.pd-reset` 样式 |
+| `6bcc72e` | Task 5：common 之外的单元格组 22 行（整选区 write、提示不带数字） |
+| `9a20d8a` | Task 7：common 单元格组 21 处 + 三个行构造器透传 reset |
+| `c576fed` | Task 7：common 表格级默认 4 行（写回字面值而非删键） |
+| `af1749a` | Task 7：common 元素台外观组 14 行 |
+
+**当前验证态**：core 1058、canvas 628、common 244 全绿；`vue-tsc` 与 `tsc` 无错；`npm run build` 退出码 0；render 真实 Chromium 30 用例通过。每笔混改文件提交后均复验 `git diff HEAD` 恰等于他方原有改动量（`property-search.ts` +32/0、`TableCellGroup` +2/1、`table-props` +2/0、`property-panel` +95/2），他方在途工作一行未损。
+
+**仍未完成**：common 条码组 11 行 / 边框与高级组 / 水印拼版页面级；canvas `BorderBgGroup` 三行（顺延）；Task 8 的四宿主浏览器实看与 CHANGELOG。
 
 **被阻塞的剩余工作**——全部要改下列 8 个文件，而它们当前载有另一项在途功能（流式列表）的**未提交**改动，直接提交会把别人的工作打进我的 commit message：
 
