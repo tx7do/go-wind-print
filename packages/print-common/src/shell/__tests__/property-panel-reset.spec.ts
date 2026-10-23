@@ -163,3 +163,36 @@ describe('高级组三行「恢复默认值」', () => {
     }
   })
 })
+
+describe('页面背景色一行（T1：文字按钮换成图标）', () => {
+  function paintPage(pageBackground?: string) {
+    const store = new DesignerStore()
+    if (pageBackground) store.updateTemplateData({ pageBackground } as never)
+    const state: ShellState = {
+      leftTab: 'elements', leftCollapsed: false, propTab: 'page', propCollapsed: false,
+      openDd: null, collapsedGroups: new Set(), renamingPage: null,
+    }
+    const ctx: ShellCtx = {
+      store, format: new FormatToolbar(store), state,
+      repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false, host: { fonts: [] },
+    }
+    const host = document.createElement('div')
+    render(renderPropertyPanel(ctx), host)
+    return { store, host }
+  }
+
+  it('设过即点亮，点击把 pageBackground 删回 undefined；页面上不再有文字「默认」按钮', () => {
+    const { store, host } = paintPage('#ffeedd')
+    const b = btnOf(host, '页面背景色')
+    expect(b.classList.contains('is-dirty')).toBe(true)
+    expect(b.getAttribute('data-tip')).toBe('恢复默认值')
+    b.click()
+    expect((store.templateData as any).pageBackground).toBeUndefined()
+    expect([...host.querySelectorAll('button')].some(x => x.textContent?.trim() === '默认')).toBe(false)
+  })
+
+  it('未设时是灰态', () => {
+    const { host } = paintPage()
+    expect(btnOf(host, '页面背景色').classList.contains('is-dirty')).toBe(false)
+  })
+})
