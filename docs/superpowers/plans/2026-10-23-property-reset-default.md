@@ -1220,6 +1220,9 @@ git commit -m "属性台恢复默认值：补出纸一致性回归与四宿主�
 | `56427b1` | Task 4 部分：高级组 + 表格设置组接入，7 条用例 |
 | `d09c155` | Task 6 前半：水印五项 + 拼版六项接入；修 `resetTo` 的 TS7053 |
 | `5adf0c3` | Task 8 Step 1 + Step 3：落纸一致性回归 15 条（每条正向配反面对照） |
+| `b080146` | **Task 7 Step 2**：common `controls.ts` 的 `resetButton()` 原语 + `field`/`fieldHelp` 改 `.pd-label-t` 嵌套，9 条用例 |
+
+Task 7 的 Step 2 已单独落地并验证向后兼容：`textContent` 逐字不变，common 全量 20 文件 227 用例（含并发的流式列表在途用例）全绿、`tsc` 无错。Step 1/3（canvas 构建 → 派生 → class-audit）与 Step 4（`property-panel.ts` / `table-props.ts` 逐行接入）仍等干净基线。
 
 **被阻塞的剩余工作**——全部要改下列 8 个文件，而它们当前载有另一项在途功能（流式列表）的**未提交**改动，直接提交会把别人的工作打进我的 commit message：
 
