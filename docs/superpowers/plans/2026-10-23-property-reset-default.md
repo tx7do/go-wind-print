@@ -1234,3 +1234,63 @@ Task 7 的 Step 2 已单独落地并验证向后兼容：`textContent` 逐字不
 2. **canvas 每次提交前必须跑 `npx vue-tsc -p tsconfig.build.json`**（在 `packages/print-canvas/` 下）。vitest 不做类型检查：`56427b1` 就是这样带着一个 TS7053 过了 597 条用例（`ElementOptions` 无索引签名），到 `d09c155` 才修掉。
 3. **落纸一致性测试的覆盖边界**：`generateHtml` 在无 `codeRenderer` 时对码类直接走 fallback，且无数据上下文时表格不出 `<td>`——所以 barcode / qrcode / table 三类的属性**在 HTML 层没有鉴别力**。首版 13 条正向断言里有 3 条是假绿，靠反面对照才暴露。这三类已改在 options 与结算函数层断言，其真实落纸一致性**必须**由 Task 8 Step 4（render 服务回归）与 Step 6（浏览器实看）覆盖，不能算已由单测证明。
 
+## 阻塞状态更新（第 7 轮实测）
+
+占用文件的会话「检查 GitHub Issue 5」经 `list_chat_sessions` 查得 `runtimeState: "cold"`、`pendingInteractionCount: 0`。**它不会自行提交，"等它提交"等于无限等待。** 且该功能尚未注册进 `PrintDesigner.vue` 与 common `print-designer.ts`，属半成品，不能替它提交。
+
+因此 A 方案需由用户主动去恢复那个会话；否则只能在 B（隔离 worktree）与 D（临时索引只提我的 hunk）之间选。AGENTS.md 规定隔离须由用户明确提出，故本计划不自行选择。
+
+## Task 1 后半待落补丁（基线一通即可套用，无需再设计）
+
+目标文件 `packages/print-core/src/designer/utils/property-search.ts`。该文件当前载有他方 `flow-list` 组的 32 行未提交新增，**与本补丁的三处改动位置不重叠**（他方插在 old-line 63 之后与 109 之后；本补丁动的是文件头接口、appearance/code 组内的六个条目、以及文件末尾新函数）。
+
+**① 文件头 import**（插在 `export interface PropertyItem` 之前）：
+
+```ts
+import { BARCODE_QUIET_ZONE_MODULES, BARCODE_BAR_HEIGHT_MODULES, BARCODE_TEXT_FONT_SIZE_MODULES, QR_DEFAULT_QUIET_MODULES } from '../../render/barcode-dot.js'
+import { DEFAULT_SHRINK_MIN_FONT_SIZE_PT } from '../../render/text-fit.js'
+import { CROP_SCALE_MIN } from '../../render/crop-style.js'
+```
+
+**② `PropertyItem` 接口尾部追加两个可选字段**（`tip?` 之后）：
+
+```ts
+  /** 「恢复默认值」提示语里的数值。**仅用于生成文案，重置行为不读它**——
+   *  落点一律派生自该元素类型的出厂值（createDefaultOptions / WATERMARK_DEFAULTS / TILE_DEFAULTS）。
+   *  必须引用渲染端既有常量，不得重抄字面量：漂移最多说错数字，不会做错动作。 */
+  default?: number | string
+  /** 提示语单位，如 `模块` / `mm` / `pt` */
+  defaultUnit?: string
+```
+
+**③ 六个条目补字段**（只追加，`key` / `keywords` / `tip` 原值不动）：
+
+| 条目 | 追加 |
+|---|---|
+| `ap-shrink-min` | `default: DEFAULT_SHRINK_MIN_FONT_SIZE_PT, defaultUnit: 'pt'` |
+| `ap-img-fit-scale` | `default: CROP_SCALE_MIN, defaultUnit: '%'` |
+| `cd-bar-quiet-zone` | `default: BARCODE_QUIET_ZONE_MODULES, defaultUnit: '模块'` |
+| `cd-bar-height` | `default: BARCODE_BAR_HEIGHT_MODULES, defaultUnit: '模块'` |
+| `cd-font-size` | `default: BARCODE_TEXT_FONT_SIZE_MODULES, defaultUnit: '模块'` |
+| `cd-quiet-zone` | `default: QR_DEFAULT_QUIET_MODULES, defaultUnit: '模块'` |
+
+**④ 文件末尾追加助手**（与既有 `propertyTip()` 同形态）：
+
+```ts
+/** 「恢复默认值」提示语取数：只读注册表的纯提示字段，重置行为不经过这里 */
+export function propertyDefault(key: string): { value: number | string; unit?: string } | undefined {
+  for (const group of PROPERTY_REGISTRY) {
+    for (const item of group.items) {
+      if (item.key === key && item.default !== undefined) {
+        return { value: item.default, unit: item.defaultUnit }
+      }
+    }
+  }
+  return undefined
+}
+```
+
+**测试放新文件**，不进他方占用的 `__tests__/property-search.spec.ts`：新建 `packages/print-core/src/designer/utils/__tests__/property-defaults.spec.ts`，内容即 Task 1 Step 1 那三段用例（常量引用一致性、`defaultUnit` 依附于 `default`、`propertyDefault` 三态）。`QR_DEFAULT_QUIET_MODULES` 的上收已完成（`b2aeb45`），此补丁直接可用。
+
+落完这一步，Task 3 / Task 4 条码组 / Task 5 / Task 7 Step 4 全部解除依赖。
+
