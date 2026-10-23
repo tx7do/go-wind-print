@@ -1,9 +1,19 @@
+import { BARCODE_BAR_HEIGHT_MODULES, BARCODE_QUIET_ZONE_MODULES, BARCODE_TEXT_FONT_SIZE_MODULES, QR_DEFAULT_QUIET_MODULES } from '../../render/barcode-dot.js'
+import { CROP_SCALE_MIN } from '../../render/crop-style.js'
+import { DEFAULT_SHRINK_MIN_FONT_SIZE_PT } from '../../render/text-fit.js'
+
 /** 属性面板搜索注册表：分组 → 表单项 → 关键词 */
 export interface PropertyItem {
   key: string
   keywords: string[]
   /** 字段说明文案：挂在标签后的帮助图标上（悬浮/点击显示），元素台与单元格台、canvas 与 common 共用同一份 */
   tip?: string
+  /** 「恢复默认值」提示语里的数值。**仅用于生成文案，重置行为不读它**——
+   *  落点一律派生自该元素类型的出厂值（createDefaultOptions / WATERMARK_DEFAULTS / TILE_DEFAULTS）。
+   *  必须引用渲染端既有常量，不得重抄字面量：漂移最多说错数字，不会做错动作。 */
+  default?: number | string
+  /** 提示语单位，如 模块 / mm / pt */
+  defaultUnit?: string
 }
 
 export interface PropertyGroupDef {
@@ -37,7 +47,7 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
       { key: 'ap-line-height', keywords: ['行高', 'lineheight'] },
       { key: 'ap-letter-spacing', keywords: ['字间距', 'letterspacing'] },
       { key: 'ap-text-fit', keywords: ['溢出', '溢出显示', '截断', '自动缩小', '自适应行高', 'textfit', 'overflow'] },
-      { key: 'ap-shrink-min', keywords: ['最小字号', '缩放下限', 'shrinkminfontsize'] },
+      { key: 'ap-shrink-min', keywords: ['最小字号', '缩放下限', 'shrinkminfontsize'], default: DEFAULT_SHRINK_MIN_FONT_SIZE_PT, defaultUnit: 'pt' },
       { key: 'ap-word-wrap', keywords: ['自动换行', '不换行', 'wordwrap'] },
       {
         key: 'ap-long-text-indent',
@@ -57,6 +67,7 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
       {
         key: 'ap-img-fit-scale',
         keywords: ['放大比例', '剪裁放大', '放大倍数', '取景', '裁切范围', 'fitscale', 'zoom'],
+        default: CROP_SCALE_MIN, defaultUnit: '%',
         tip: '剪裁放大：等比铺满之后把画面再推大这么多，两轴才真的各多出一条边可裁——图与框同比例时不放大就什么都裁不掉。100＝不放大（缺省），上限 400；超出框的部分由元素框裁掉。锚点选中的那一点既是取位的钉住点、也是放大的中心，两者共用同一个值。仅「剪裁」档生效，其余缩放模式不出本行',
       },
     ],
@@ -71,19 +82,22 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
       {
         key: 'cd-bar-quiet-zone',
         keywords: ['条码静区', '条码白边', '条形码留白', '条码空白边', 'barquietzone'],
+        default: BARCODE_QUIET_ZONE_MODULES, defaultUnit: '模块',
         tip: '条形码左右两端的空白格数（1 格 = 1 条宽）：缺省 10，正是一维码码制要求的下限；数值越小白边越窄、同样的框内条越粗（可放大）。填 0 即不留白边，但静区参与「条→空→条」跳变，紧邻文字或表格线时可能扫不出，需实打验证',
       },
       {
         key: 'cd-bar-height',
         keywords: ['条高', '条码高度', '条区高度', '条码多高', 'barheight'],
+        default: BARCODE_BAR_HEIGHT_MODULES, defaultUnit: '模块',
         tip: '黑白条本体的目标高度（mm，不含下方文字）：折算粒度就是每模块物理宽，所以只能精确到它的整数倍。条宽优先——可用框高装不下时期望条高让位，绝不把条宽挤窄（热敏出纸清晰度靠条宽）。与「最大高度」分工不同：那条限的是整图（含文字）的上限',
       },
       { key: 'cd-show-text', keywords: ['显示文本', '条码文本', '显示数字'] },
-      { key: 'cd-font-size', keywords: ['条码字号', '文本字号'] },
+      { key: 'cd-font-size', keywords: ['条码字号', '文本字号'], default: BARCODE_TEXT_FONT_SIZE_MODULES, defaultUnit: '模块' },
       { key: 'cd-ec-level', keywords: ['纠错级别', '容错', 'qrcodelevel'] },
       {
         key: 'cd-quiet-zone',
         keywords: ['静区', '静区宽度', '白边', '空白边', '留白', '铺满', 'quietzone'],
+        default: QR_DEFAULT_QUIET_MODULES, defaultUnit: '模块',
         tip: '二维码四周留出的空白格数：0 即不留白边、码面等比铺满元素框（此时靠框外的白纸充当静区）；数值越大白边越宽、码面在框内越小（缺省 0，需 ISO/IEC 18004 推荐静区时填 4）',
       },
       { key: 'cd-fit', keywords: ['缩放模式', '拉伸', '等比', 'fit', 'contain', 'cover'] },
@@ -173,4 +187,14 @@ export function searchProperties(search: string): { groups: string[]; itemKeys: 
     }
   }
   return { groups, itemKeys }
+}
+
+/** 「恢复默认值」提示语取数：只读注册表的纯提示字段，重置行为不经过这里 */
+export function propertyDefault(key: string): { value: number | string; unit?: string } | undefined {
+  for (const g of PROPERTY_REGISTRY) {
+    for (const item of g.items) {
+      if (item.key === key && item.default !== undefined) return { value: item.default, unit: item.defaultUnit }
+    }
+  }
+  return undefined
 }
