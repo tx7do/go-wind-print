@@ -1303,3 +1303,25 @@ export function propertyDefault(key: string): { value: number | string; unit?: s
 
 落完这一步，Task 3 / Task 4 条码组 / Task 5 / Task 7 Step 4 全部解除依赖。
 
+## Task 7 元素台（common `property-panel.ts`）：一次失败的尝试与正确做法
+
+**已尝试并回退**（工作区 `git diff` 恢复为他方原有的 95+/2−，common 238 用例复绿）。失败原因值得记下来，否则下次还会踩：
+
+1. **reset 必须挂在 `field()` / `fieldHelp()` 上，不是挂在里面的控件构造函数上。**
+   `field('对齐', radioGroup('ta', [...], cur, onChange))` 这一行里，`radioGroup` 只有
+   `(name, options, current, onChange, twoCol)` 五个形参——把 `reset` 追加到它的实参尾部
+   既超出它的签名、又改错了层级。正确做法是给外层 `field` 补第 4 参，即
+   `field('对齐', radioGroup(...), undefined, reset(...))`。
+   `selectField` / `switchField` / `numField` 内部已经是 `field(label, ctrl, undefined, reset)` 的透传，
+   所以这三类调用点可以直接加尾参；**唯独模板里直接写 `field(... radioGroup ...)` 的两行（对齐、垂直对齐）要改外层**。
+2. **靠"尾部若干个右括号"做锚点极易算错。** 本次 `})))),` 与 `}))))),` 的差别就是一个括号，
+   直接造成 8 个 spec 连带语法崩溃。改这类嵌套调用要**逐层数括号并写注释**，不要凭感觉补。
+3. **双跑法本身是对的，保留为标准做法**：同一套带 `split()===1` 断言的脚本，先跑在
+   `git show HEAD:<file>` 导出的纯净副本上得到 mine-only blob，再跑在工作区上。
+   这样不需要"减法"，也不依赖他方改动行数多少。
+4. **跑完必须 `tsc` 才算数**：本次 vitest 是整片崩（语法错）才发现的；但若只是参数错位，
+   vitest 可能照常绿而 `tsc` 报错。顺序固定为 `tsc` → `vitest` → 提交。
+
+**尚未接的 common 行**：元素台外观组 14 行、条码组 11 行、边框/高级组、水印/拼版/页面背景色。
+已完成的 common 部分：`controls.ts` 原语（含 `write` 通道）、单元格组 21 处、表格级默认 4 行。
+
