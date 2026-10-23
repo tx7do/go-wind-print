@@ -1395,8 +1395,27 @@ export function propertyDefault(key: string): { value: number | string; unit?: s
 水印的脏判定基准改用「已落值视图」而非裸 `wm`，因为 `commit()` 一次写满五个键，
 拿裸 `wm` 会出现「显示 −30 却不亮」与 canvas `localConfig` 不一致。
 
-**图标位总计约 130 处**：canvas 全部组（外观 14、条码 11、高级 3、表格设置 4、单元格 22、水印 5、拼版 6、页面背景 1）；
-common 全部组（原语 + 单元格 21 + 表格级默认 4 + 外观 14 + 高级 3 + 条码 11 + 水印 5 + 拼版 8 + 页面背景 1）。
+**图标位总计（实算修正，先前写「约 130 处」是错的）**：**两套外壳各 72 行**——
+外观 14、裁剪锚点与放大比例 2、码制 11、高级 3、表格设置 4、单元格 24、水印 5、拼版 8（含目标纸四边留白 4）、页面背景 1。
+canvas 静态 `<ResetButton>` 挂点 70（裁剪两行住在 `CropAnchorField.vue` 里，被元素台与单元格台各复用一次 ⇒ 渲染 72）；
+common 侧逐处对应（`reset()` 28 + 裁剪 2 + 页面背景 1 + 单元格 24 + 表格级 4 + 拼版 8 + 水印 5 = 72）。
+
+### 第 19 轮补记：两处真漏接已修（不是口径例外）
+
+对账「既有 vs 缺失」全集时按 HEAD 逐键比对，抓出两行**我确实漏接**的：
+
+1. `157f1d4`——common 单元格台「文字溢出」行没挂图标（canvas 同键已接）。先出题让它在 happy-dom 变红，再补 `cellReset('textFit')`。
+2. `58b184e`——裁剪两行两端都不齐：common **元素台**整段没接，**单元格台两端**都因为 `CropAnchorField` 没拿到 `options/base` 而整段不出现。
+   补法：canvas 组件加 `tipOverride` / `writeAnchor` / `writeScale` 三个可选口子（单元格必须走整选区写回），
+   common 的 `crop-anchor.ts` 加 `resetAnchor` / `resetScale` 并把标签行套进 `.pd-label-t`。
+   两端各出题先红后绿，并在真实浏览器里把四行都验到：元素台提示「恢复默认值」与「恢复默认值（100 %）」
+   （后者来自注册表引用的 `CROP_SCALE_MIN`），单元格台两行提示固定「恢复默认值（跟随表格默认）」，
+   `145 → 删键 → 输入框空 + 转灰` 的完整链路两侧都跑通。
+
+**当前质量门**：43 笔提交（`git rev-list --count 8787300..HEAD`）；core 1058 / canvas 629 / common 256 全绿；`vue-tsc` 与 `tsc` 零错；
+`npm run build` 退出码 0；render 服务 30 条真实 Chromium 绿；`class-audit.mjs` 退出码 0，
+`pd-reset-btn` / `pd-label-t` 不在 13 条历史差异里。他方在途量逐文件复验未变
+（`TableCellGroup.vue` +2/−1、`property-panel.ts` +95/−2、`table-props.ts` +2/−0、三个 docs 各 +17/1、+17/1、+29/2）。
 
 **当前质量门**：37 笔提交；core 1058 / canvas 628 / common 253 全绿；`vue-tsc` 与 `tsc` 零错；
 `npm run build` 退出码 0；render 服务 30 条在真实 Chromium 下绿。他方在途 222 行逐文件量级复验未变，仍未提交。
