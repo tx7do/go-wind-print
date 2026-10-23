@@ -804,7 +804,9 @@ const CELL_TIP = '恢复默认值（跟随表格默认）'
 | 显示文本 | `hideTitle`（反义：`!== true` 为显示） | `showBarcodeText`（正义） |
 | 条码文本字号 | `fontSize` | `barFontSize` |
 
-`showBarcodeText` 的极性要先核实：若它是"未设即显示"，删键正确；若组件按 `?? false` 读，删键会把文本关掉。实施时给这一行单独写一条"恢复后与出厂渲染一致"的断言，不要凭元素级的 `hideTitle` 经验推。
+`showBarcodeText` 的极性**已开源码核实**（原列为实施期待验证项，现关闭）：单元格侧按 `!== false` 读，**未设即"显示"**——`TableElement.vue` 传 `:show-text="cell.showBarcodeText !== false"`，`TableCellGroup.vue` 的复选框也是 `:checked="mainCell.showBarcodeText !== false"`，`CellBarcode.vue` 注释明确"缺省视为显示"。因此删键回到出厂态是安全的，不会把文本关掉。
+
+但**元素级与单元格级的键根本不同名也不同极性**：元素级走 `hideTitle`（反义，`!== true` 为显示），单元格级走 `showBarcodeText`（正义）。`html-generator.ts` 的 `showText: opts.hideTitle !== undefined ? !opts.hideTitle : opts.showBarcodeText` 一行同时读两者，是元素路径的合并口径。实施时两处的恢复动作必须分别落在自己的键上，**写串会让一格条码文本永久消失**——给这两行各留一条"恢复后复选框状态与出厂一致"的断言。
 
 - [ ] **Step 5: 边框背景组接入**
 
