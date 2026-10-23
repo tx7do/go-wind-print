@@ -99,7 +99,9 @@ export interface PropertyItem {
 
 **样式**：`.pd-reset-btn`（15×15、`color: var(--pd-text-faint)`、透明边框）+ `.pd-reset-btn.is-active`（`color: var(--pd-accent)`）+ `:hover`（蓝字 + `rgba(22,93,255,.09)` 底），写在 canvas scoped style 与 `native-controls.css`，由 `gen-styles.mjs` 派生给 common。
 
-**接入面**：`property/AppearanceGroup`、`property/CodeGroup`、`property/BorderBgGroup`、`property/AdvancedGroup`、`property/TableRowGroup`、`property/TableCellGroup`、`property/TableSettingsGroup`、`property/BindingControl`、`property/FontSelect`、`property/CropAnchorField`、`WatermarkConfig`、`property/TilingConfig`。
+**接入面**：`property/AppearanceGroup`、`property/CodeGroup`、`property/BorderBgGroup`、`property/AdvancedGroup`、`property/TableRowGroup`、`property/TableCellGroup`、`property/TableSettingsGroup`、`property/CropAnchorField`、`WatermarkConfig`、`property/TilingConfig`。
+
+`property/FontSelect.vue` **本身不改**——「字体」行的图标挂在外观组的 `.pd-label` 上，组件只负责选字体；它自带的下拉首行「默认」是**清行**语义，与行尾图标并存，本期不动它（避免一次改两处入口）。`property/BindingControl.vue` **不接入**：内容与表达式绑定属第七节排除清单。
 
 **页面页签按出厂值来源拆开处理**，不是一刀切：
 
