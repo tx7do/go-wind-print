@@ -7,16 +7,24 @@
           <option v-for="f in listFieldOptions" :key="f.value" :value="f.value">{{ f.label }}</option>
         </select>
       </div>
-      <div class="pd-field"><span class="pd-label">默认字体</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">默认字体</span>
+        <ResetButton :target="element.options" :base="factoryOptions" prop-key="tableDefaultFontFamily" :write="resetTo('tableDefaultFontFamily')" />
+      </span>
         <FontSelect v-model="element.options.tableDefaultFontFamily" />
       </div>
-      <div class="pd-field"><span class="pd-label">默认字号 (pt)</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">默认字号 (pt)</span>
+        <ResetButton :target="element.options" :base="factoryOptions" prop-key="tableDefaultFontSize" :write="resetTo('tableDefaultFontSize')" />
+      </span>
         <StepperInput v-model="element.options.tableDefaultFontSize" :min="5" :max="72" placeholder="默认" />
       </div>
-      <div class="pd-field"><span class="pd-label">默认文字颜色</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">默认文字颜色</span>
+        <ResetButton :target="element.options" :base="factoryOptions" prop-key="tableDefaultColor" :write="resetTo('tableDefaultColor')" />
+      </span>
         <PresetColorPicker v-model="element.options.tableDefaultColor" />
       </div>
-      <div class="pd-field"><span class="pd-label">默认内边距 (mm)</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">默认内边距 (mm)</span>
+        <ResetButton :target="element.options" :base="factoryOptions" prop-key="tableDefaultPadding" :write="resetTo('tableDefaultPadding')" />
+      </span>
         <StepperInput v-model="element.options.tableDefaultPadding" :min="0" :max="10" :step="0.5" placeholder="默认" />
       </div>
       <div class="pd-field"><span class="pd-label">列宽 (mm)</span>
@@ -34,10 +42,11 @@ import { computed, inject } from 'vue'
 import PresetColorPicker from '../PresetColorPicker.vue'
 import type { RuntimeElement, PrintBusinessField } from '@worm-vue3-print/core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
-import { syncTableElementSize } from '@worm-vue3-print/core/designer'
+import { syncTableElementSize, createDefaultOptions } from '@worm-vue3-print/core/designer'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
 import FontSelect from './FontSelect.vue'
+import ResetButton from './ResetButton.vue'
 
 const props = defineProps<{
   element: RuntimeElement
@@ -45,6 +54,15 @@ const props = defineProps<{
 }>()
 
 const tableEditCtx = inject(TABLE_EDIT_KEY, null)
+
+/** 该元素的出厂 options——表格级默认三项的落点即此处的字面值 */
+const factoryOptions = computed(() => createDefaultOptions(props.element.printElementType.type))
+
+/** 恢复默认值的写回通道：与手动改值同口径，记一次历史供撤销 */
+const resetTo = (key: string) => (value: any) => {
+  props.element.options[key] = value
+  tableEditCtx?.recordHistory()
+}
 
 /** 列表数据源选项：宿主以 fieldType='list' 声明明细列表字段 */
 const listFieldOptions = computed(() => {
