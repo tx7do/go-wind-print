@@ -1419,7 +1419,7 @@ common 侧逐处对应（`reset()` 28 + 裁剪 2 + 页面背景 1 + 单元格 24
    补验：`:9334`（jQuery 内核）与 `:9335`（React 内核）重启 dev server 载入新构建后各跑一次拖图 → 剪裁档，
    两行均出现图标、提示分别为「恢复默认值」与「恢复默认值（100 %）」、`flush=0`、15px——接入是包级的，不随宿主变。
 
-**当前质量门**：47 笔提交（`git rev-list --count 8787300..HEAD`）；core 1058 / canvas 632 / common 258 全绿；`vue-tsc` 与 `tsc` 零错；
+**当前质量门**：47 笔提交（`git rev-list --count 8787300..HEAD`）；core 1074 / canvas 632 / common 258 全绿；`vue-tsc` 与 `tsc` 零错；
 `npm run build` 退出码 0；render 服务 30 条真实 Chromium 绿；`class-audit.mjs` 退出码 0，
 `pd-reset-btn` / `pd-label-t` 不在 13 条历史差异里。他方在途量逐文件复验未变
 （`TableCellGroup.vue` +2/−1、`property-panel.ts` +95/−2、`table-props.ts` +2/−0、三个 docs 各 +17/1、+17/1、+29/2）。
@@ -1460,6 +1460,24 @@ common 侧逐处对应（`reset()` 28 + 裁剪 2 + 页面背景 1 + 单元格 24
 控制台报 `TypeError: _ctx.def is not a function`，**整个「边框与背景」分组从 DOM 里消失**，一度被误读成"分组没渲染/被门禁挡住"。
 硬刷新后立刻正常（三个图标齐全、`flush=0`）。判据：改完 `.vue` 先看 `list_console_messages` 有无 `_ctx.* is not a function`，
 再断言分组是否存在。
+
+## 第 20 轮：补上 spec 验收第 2 条（core 出厂值契约）并做全键对账
+
+spec 第八节验收第 2 条要求「对纳入清单的每个 key，断言出厂值就是重置落点」，这条此前一直空着。
+新增 `packages/print-core/src/designer/utils/__tests__/reset-default-factory.spec.ts`（16 条），把它钉成一张表：
+- **写回字面值**类：`text` 字号 12 / 对齐 left、`longText` 字号 12 / 行高 18、`image` fit contain、
+  `rect`/`oval` 边框 1 + `#333`、`hline`/`vline` 边框 0.75、`table` 表级默认 10 / `#333333` / 1；
+- **删键**类：文本的字体/粗细/行高/字间距/垂直对齐/颜色/背景/换行/溢出/缩小下限/缩进/边框三项，
+  图片的取位与放大比例，码类六项，表格的 `tableDefaultFontFamily`；
+- 两条**反面对照**：同一判定式在 `text` 与 `longText` 的行高上必须给出相反动作；表格级三项必须写回字面值而单元格出厂态不含它们。
+- **变异自证**：把 `createDefaultOptions` 里的 `fontSize: 12` 临时改成 13 ⇒ 该条立刻变红并报出
+  「text.fontSize 的出厂值变了: expected 13 to deeply equal 12」，还原后复绿；工作区的 `element-factory.ts` 仍只带他方 9/4 的在途改动。
+
+**全键对账结论（ElementOptions 71 字段 / TableCell 32 字段 vs 两端已接线集合）**：未接线的键里，
+`textDecoration` / `barAutoWidth` / `contentPadding*` / `transform` / `textType` / `axis` / `visible` / `draggable`
+在属性台**根本没有控件**（grep 无 `v-model`/`patch`/`:value` 绑定），不属于「属性行」；
+其余是第七节已列明排除的几何、内容、数组/对象与结构字段。**唯一在 UI 上可见却未接的是「线型」`borderStyle`**——
+它只存在于他方未提交的边框组重写里，HEAD 没有这一行，故仍按「等他方落地后补」处理。
 
 **未取到浏览器级证据的一层**：单元格台（`TableCellGroup` / common 单元格区段）。
 合成点击没能把该分组刷出来（面板始终停在表格级 + 高级 + 页面行），
