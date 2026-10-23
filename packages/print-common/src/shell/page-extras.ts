@@ -7,7 +7,8 @@ import {
 } from '@worm-vue3-print/core'
 import type { TilingOptions } from '@worm-vue3-print/core'
 import { h } from '../core/h'
-import { divider, field, radioGroup, stepper } from './controls'
+import type { El } from '../core/h'
+import { divider, field, radioGroup, resetButton, stepper } from './controls'
 import type { ShellCtx } from './controls'
 
 const SHEET_PRESET_KEYS = Object.keys(PAPER_PRESETS)
@@ -101,6 +102,16 @@ export function tilingSection(ctx: ShellCtx) {
   }
   const labelContinuous = isContinuousPaperSize(template.paperSize)
   const patch = (partial: Partial<TilingOptions>) => store.updateTemplateData({ tiling: { ...cfg, ...partial } })
+  /** 落点取 TILE_DEFAULTS。enabled 与 columns 不接：前者常量是 true 而组件把未配置读成 false，
+   *  后者开启时按纸面收敛，两处口径不一致就没有可信落点（设计说明第十一节）。 */
+  const tileReset = (key: string): El => resetButton({
+    target: cfg as Record<string, any>, base: TILE_DEFAULTS as Record<string, any>, propKey: key,
+    write: () => patch({ [key]: (TILE_DEFAULTS as Record<string, any>)[key] } as Partial<TilingOptions>),
+  })
+  const marginReset = (side: 'top' | 'bottom' | 'left' | 'right'): El => resetButton({
+    target: cfg.sheetMargin as Record<string, any>, base: TILE_DEFAULTS.sheetMargin as Record<string, any>, propKey: side,
+    write: () => patchMargin(side, (TILE_DEFAULTS.sheetMargin as Record<string, any>)[side]),
+  })
   const patchMargin = (side: 'top' | 'right' | 'bottom' | 'left', value: number) =>
     patch({ sheetMargin: { ...cfg.sheetMargin, [side]: value ?? 0 } })
   const withTiling = { ...template, tiling: cfg }
@@ -156,7 +167,7 @@ export function tilingSection(ctx: ShellCtx) {
           value: key, text: PAPER_PRESETS[key]?.label ?? key, selected: (cfg.sheetPaperSize ?? 'A4') === key,
         })),
         h('option', { value: 'CUSTOM', text: '自定义', selected: cfg.sheetPaperSize === 'CUSTOM' }),
-      ])),
+      ]), undefined, tileReset('sheetPaperSize')),
       cfg.sheetPaperSize === 'CUSTOM'
         ? field('目标纸宽高 (mm)', h('div', { class: 'custom-size-grid' }, [
           stepper({ value: Number(cfg.sheetCustomWidth ?? 0), min: 25, max: 2000, onCommit: v => patch({ sheetCustomWidth: v }) }),
@@ -165,17 +176,17 @@ export function tilingSection(ctx: ShellCtx) {
         ]))
         : field('目标纸方向', radioGroup('tiling-ori', [
           { value: 'portrait', label: '纵向' }, { value: 'landscape', label: '横向' },
-        ], cfg.sheetOrientation === 'landscape' ? 'landscape' : 'portrait', v => patch({ sheetOrientation: v as TilingOptions['sheetOrientation'] }))),
+        ], cfg.sheetOrientation === 'landscape' ? 'landscape' : 'portrait', v => patch({ sheetOrientation: v as TilingOptions['sheetOrientation'] })), undefined, tileReset('sheetOrientation')),
       divider('拼版留白 (mm)'),
       h('div', { class: 'margin-grid' }, [
-        field('上', stepper({ value: cfg.sheetMargin.top ?? 0, min: 0, max: 100, onCommit: v => patchMargin('top', v) })),
-        field('下', stepper({ value: cfg.sheetMargin.bottom ?? 0, min: 0, max: 100, onCommit: v => patchMargin('bottom', v) })),
-        field('左', stepper({ value: cfg.sheetMargin.left ?? 0, min: 0, max: 100, onCommit: v => patchMargin('left', v) })),
-        field('右', stepper({ value: cfg.sheetMargin.right ?? 0, min: 0, max: 100, onCommit: v => patchMargin('right', v) })),
+        field('上', stepper({ value: cfg.sheetMargin.top ?? 0, min: 0, max: 100, onCommit: v => patchMargin('top', v) }), undefined, marginReset('top')),
+        field('下', stepper({ value: cfg.sheetMargin.bottom ?? 0, min: 0, max: 100, onCommit: v => patchMargin('bottom', v) }), undefined, marginReset('bottom')),
+        field('左', stepper({ value: cfg.sheetMargin.left ?? 0, min: 0, max: 100, onCommit: v => patchMargin('left', v) }), undefined, marginReset('left')),
+        field('右', stepper({ value: cfg.sheetMargin.right ?? 0, min: 0, max: 100, onCommit: v => patchMargin('right', v) }), undefined, marginReset('right')),
       ]),
       divider('格间距与列数'),
-      field('横向间距', stepper({ value: cfg.gapX ?? 0, min: 0, max: 50, onCommit: v => patch({ gapX: v ?? 0 }) })),
-      field('纵向间距', stepper({ value: cfg.gapY ?? 0, min: 0, max: 50, onCommit: v => patch({ gapY: v ?? 0 }) })),
+      field('横向间距', stepper({ value: cfg.gapX ?? 0, min: 0, max: 50, onCommit: v => patch({ gapX: v ?? 0 }) }), undefined, tileReset('gapX')),
+      field('纵向间距', stepper({ value: cfg.gapY ?? 0, min: 0, max: 50, onCommit: v => patch({ gapY: v ?? 0 }) }), undefined, tileReset('gapY')),
       field('列数', stepper({ value: cfg.columns ?? 1, min: 1, max: columnMax, onCommit: v => patch({ columns: v || 1 }) })),
       ...issues.map(issue => h('p', { class: 'pd-hint tiling-error', text: issue.message })),
       !issues.length && summary ? h('p', { class: 'pd-hint tiling-summary', text: summary }) : '',
