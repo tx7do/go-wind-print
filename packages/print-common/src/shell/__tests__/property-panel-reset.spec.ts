@@ -141,3 +141,25 @@ describe('边框与背景三行「恢复默认值」', () => {
     expect(el.options.borderColor).toBeUndefined()
   })
 })
+
+describe('高级组三行「恢复默认值」', () => {
+  it('锁定 / 每页重复 / 层级 都挂图标；出厂未设 ⇒ 偏离态 + 点击删键', () => {
+    const { el, host } = paint('text', { locked: true, fixed: true, zIndex: 5 })
+    for (const t of ['锁定', '每页重复', '层级']) {
+      const b = btnOf(host, t)
+      expect(b.classList.contains('is-dirty'), `应为偏离态：${t}`).toBe(true)
+      expect(b.getAttribute('data-tip'), `提示不对：${t}`).toBe('恢复默认值')
+      b.click()
+    }
+    expect(el.options.locked).toBeUndefined()
+    expect(el.options.fixed).toBeUndefined()
+    expect(el.options.zIndex).toBeUndefined()
+  })
+
+  it('等于出厂（未设）时三行全灰', () => {
+    const { host } = paint('text')
+    for (const t of ['锁定', '每页重复', '层级']) {
+      expect(btnOf(host, t).classList.contains('is-dirty'), `不该点亮：${t}`).toBe(false)
+    }
+  })
+})
