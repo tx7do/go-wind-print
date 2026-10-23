@@ -15,7 +15,7 @@ import {
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import type { DesignerStore } from '../core/store'
-import { colorTrigger, divider, fieldHelp, radioGroup, stepper } from './controls'
+import { colorTrigger, divider, fieldHelp, radioGroup, resetButton, stepper } from './controls'
 import type { ShellCtx } from './controls'
 import { renderFontSelect } from './font-select'
 import { gateItem } from './property-search'
@@ -27,9 +27,9 @@ const optNum = (v: number | undefined): number => Number(v ?? 0)
 const orUndef = (v: number): number | undefined => (v ? v : undefined)
 
 /** canvas 的开关行是 input.pd-switch 本体（.pd-switch 样式作用在 input 上），不走 label 壳 */
-function switchRow(label: string, checked: boolean, onCommit: (v: boolean) => void, title?: string): El {
+function switchRow(label: string, checked: boolean, onCommit: (v: boolean) => void, title?: string, reset?: El): El {
   return h('div', { class: 'pd-field' }, [
-    h('span', { class: 'pd-label', ...(title ? { title } : {}), text: label }),
+    h('span', { class: 'pd-label', ...(title ? { title } : {}) }, [h('span', { class: 'pd-label-t', text: label }), reset ?? ''].filter(Boolean)),
     h('input', {
       class: 'pd-switch', type: 'checkbox', checked,
       onChange: (ev: Event) => onCommit((ev.target as HTMLInputElement).checked),
@@ -38,9 +38,9 @@ function switchRow(label: string, checked: boolean, onCommit: (v: boolean) => vo
 }
 
 function selectRow(label: string, value: string, options: { value: string; label: string }[],
-  onCommit: (v: string) => void, full = false): El {
+  onCommit: (v: string) => void, full = false, reset?: El): El {
   return h('div', { class: 'pd-field' }, [
-    h('span', { class: 'pd-label', text: label }),
+    h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: label }), reset ?? ''].filter(Boolean)),
     h('select', {
       class: 'pd-select', ...(full ? { style: { width: '100%' } } : {}),
       onChange: (ev: Event) => onCommit((ev.target as HTMLSelectElement).value),
@@ -269,10 +269,19 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
   }
 
   const numField = (label: string, value: number, writeValue: (c: TableCell, v: number | undefined) => void,
-    opts: { min?: number; max?: number; step?: number; placeholder?: string } = {}): El => h('div', { class: 'pd-field' }, [
-    h('span', { class: 'pd-label', text: label }),
+    opts: { min?: number; max?: number; step?: number; placeholder?: string } = {}, reset?: El): El => h('div', { class: 'pd-field' }, [
+    h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: label }), reset ?? ''].filter(Boolean)),
     stepper({ value, ...opts, onCommit: v => write(c => writeValue(c, orUndef(v))) }),
   ])
+
+  /** 单元格出厂态即「未设」：base 传空对象 ⇒ 落点恒为 undefined，删键后回落到该表自己的表级默认。
+   *  写回必须走整选区 write（resetButton 给了 write 就不再直改 target）；提示整组不带数字——
+   *  回落目标是作者可改的表级默认，写死数字就是假承诺。 */
+  const CELL_TIP = '恢复默认值（跟随表格默认）'
+  const cellReset = (key: string): El => resetButton({
+    target: cell0 as Record<string, any>, base: {}, propKey: key, tipOverride: CELL_TIP,
+    write: () => write(c => { (c as Record<string, any>)[key] = undefined }),
+  })
 
   /** 单元格内容盒近似：列宽合计 × 行高合计（与 canvas 同口径，只用于判哪一轴能挪） */
   // 剪裁盒尺寸取「可用内容框」：与出纸钉盒同一口径（扣内边距与塌陷边框），报原始行列和会让可挪量虚高
@@ -301,9 +310,9 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       isBarcodeCell ? selectRow('码制', cell0.barcodeType || 'CODE128', BARCODE_TYPE_OPTIONS,
         v => write(c => { c.barcodeType = v || undefined })) : '',
       isBarcodeCell ? switchRow('显示文本', cell0.showBarcodeText !== false,
-        v => write(c => { c.showBarcodeText = v })) : '',
+        v => write(c => { c.showBarcodeText = v }), undefined, cellReset('showBarcodeText')) : '',
       isBarcodeCell
-        ? numField('条宽（倍率）', cell0.barWidth ?? 2, (c, v) => { c.barWidth = v }, { min: 2, max: 8, step: 0.5 })
+        ? numField('条宽（倍率）', cell0.barWidth ?? 2, (c, v) => { c.barWidth = v }, { min: 2, max: 8, step: 0.5 }, cellReset('barWidth'))
         : '',
       isBarcodeCell ? hint((dotAligned
         ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），单元格放不下时整体等比缩小'
@@ -312,13 +321,13 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       isBarcodeCell ? fieldHelp('静区 (模块)', stepper({
         value: cell0.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',
         onCommit: v => write(c => { c.barQuietZone = v }),
-      }), propertyTip('cd-bar-quiet-zone')) : '',
+      }), propertyTip('cd-bar-quiet-zone'), cellReset('barQuietZone')) : '',
       isBarcodeCell ? fieldHelp('条高 (mm)', stepper({
         value: cell0.barHeight, min: 1, max: 100, placeholder: '默认 30 模块',
         onCommit: v => write(c => { c.barHeight = v ?? undefined }),
-      }), propertyTip('cd-bar-height')) : '',
+      }), propertyTip('cd-bar-height'), cellReset('barHeight')) : '',
       isBarcodeCell
-        ? numField('文本字号（相对条高，条高为 30）', cell0.barFontSize ?? 10, (c, v) => { c.barFontSize = v }, { min: 5, max: 24, placeholder: '默认 10' })
+        ? numField('文本字号（相对条高，条高为 30）', cell0.barFontSize ?? 10, (c, v) => { c.barFontSize = v }, { min: 5, max: 24, placeholder: '默认 10' }, cellReset('barFontSize'))
         : '',
       isBarcodeCell ? selectRow('打印机分辨率', cell0.printerDpi ? String(cell0.printerDpi) : '', [
         { value: '', label: '不指定（按条宽渲染）' }, { value: '203', label: '203 dpi（8 点/mm）' },
@@ -326,19 +335,19 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       ], (v) => {
         const dpi = Number(v)
         write(c => { c.printerDpi = dpi > 0 ? dpi : undefined })
-      }) : '',
+      }, undefined, cellReset('printerDpi')) : '',
       isBarcodeCell ? hint('填写后条宽吸附到整数打印点（消除出纸「条宽忽宽忽窄」）：条码先按条宽渲染，可用宽度够就原样落纸，不够才整体等比缩小') : '',
       isQrcodeCell ? selectRow('纠错级别', cell0.qrCodeLevel || 'M', QR_LEVEL_OPTIONS,
-        v => write(c => { c.qrCodeLevel = v || undefined })) : '',
+        v => write(c => { c.qrCodeLevel = v || undefined }), false, cellReset('qrCodeLevel')) : '',
       // 与元素台同构造直接用 stepper：numField 经 orUndef 会把显式填的 0 归并成未设置（出图虽一致，存的值应与用户填的一致），且它也不带说明图标
       isQrcodeCell ? fieldHelp('静区 (模块)', stepper({
         value: cell0.qrQuietZone ?? 0, min: 0, max: 8, placeholder: '默认 0',
         onCommit: v => write(c => { c.qrQuietZone = v }),
-      }), propertyTip('cd-quiet-zone')) : '',
+      }), propertyTip('cd-quiet-zone'), cellReset('qrQuietZone')) : '',
 
       isBarcodeCell ? hint('单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限。要放大条码：先加条宽倍率，再收窄静区（左右白边会换成条宽），必要时关掉显示文本以让出文本区高度') : '',
       (isQrcodeCell || isImageCell) ? selectRow('缩放模式', cell0.fit || 'contain', IMAGE_FIT_OPTIONS,
-        v => write(c => { c.fit = v as NonNullable<TableCell['fit']> })) : '',
+        v => write(c => { c.fit = v as NonNullable<TableCell['fit']> }), false, cellReset('fit')) : '',
       isImageCell && cell0.fit === 'cover' ? cropAnchorField(ctx, {
         fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(cell0.formatter), fit: cell0.fit,
         containerClass: 'pd-cell-anchor',
@@ -348,10 +357,10 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         onScaleCommit: v => write(c => { c.fitScale = v }),
       }) : '',
       (isBarcodeCell || isQrcodeCell || isImageCell)
-        ? numField('最大宽度 (mm)', optNum(cell0.maxWidth), (c, v) => { c.maxWidth = v }, { min: 0, max: 200, placeholder: '默认' })
+        ? numField('最大宽度 (mm)', optNum(cell0.maxWidth), (c, v) => { c.maxWidth = v }, { min: 0, max: 200, placeholder: '默认' }, cellReset('maxWidth'))
         : '',
       (isBarcodeCell || isQrcodeCell || isImageCell)
-        ? numField('最大高度 (mm)', optNum(cell0.maxHeight), (c, v) => { c.maxHeight = v }, { min: 0, max: 200, placeholder: '默认' })
+        ? numField('最大高度 (mm)', optNum(cell0.maxHeight), (c, v) => { c.maxHeight = v }, { min: 0, max: 200, placeholder: '默认' }, cellReset('maxHeight'))
         : '',
 
       h('div', { class: 'pd-field' }, [
@@ -366,20 +375,20 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       ]),
 
       h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '水平对齐' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '水平对齐' }), cellReset('align')]),
         radioGroup('cell-align', [
           { value: 'left', label: '左' }, { value: 'center', label: '中' }, { value: 'right', label: '右' }, { value: 'justify', label: '两端' },
         ], cell0.align || 'left', v => write(c => { c.align = v as TextAlign })),
       ]),
       h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '垂直对齐' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '垂直对齐' }), cellReset('valign')]),
         radioGroup('cell-valign', [
           { value: 'top', label: '上' }, { value: 'middle', label: '中' }, { value: 'bottom', label: '下' },
         ], cell0.valign || 'top', v => write(c => { c.valign = v as TableCell['valign'] })),
       ]),
       h('div', { class: 'cell-style-grid' }, [
         h('div', { class: 'pd-field cell-font-field' }, [
-          h('span', { class: 'pd-label', text: '字体' }),
+          h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '字体' }), cellReset('fontFamily')]),
           renderFontSelect({
             id: 'cell-font',
             state: ctx.state,
@@ -389,9 +398,9 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
             onChange: v => write(c => { c.fontFamily = v }),
           }),
         ]),
-        numField('字号 (pt)', optNum(cell0.fontSize), (c, v) => { c.fontSize = v }, { min: 0, max: 72, placeholder: '默认' }),
+        numField('字号 (pt)', optNum(cell0.fontSize), (c, v) => { c.fontSize = v }, { min: 0, max: 72, placeholder: '默认' }, cellReset('fontSize')),
         h('div', { class: 'pd-field' }, [
-          h('span', { class: 'pd-label', text: '加粗' }),
+          h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '加粗' }), cellReset('fontWeight')]),
           h('input', {
             class: 'pd-switch', type: 'checkbox', checked: cell0.fontWeight === 'bold',
             onChange: (ev: Event) => write(c => {
@@ -400,11 +409,11 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
           }),
         ]),
         h('div', { class: 'pd-field' }, [
-          h('span', { class: 'pd-label', text: '文字颜色' }),
+          h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '文字颜色' }), cellReset('color')]),
           colorTrigger(cell0.color, v => write(c => { c.color = v }), '文字颜色'),
         ]),
         h('div', { class: 'pd-field' }, [
-          h('span', { class: 'pd-label', text: '背景色' }),
+          h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '背景色' }), cellReset('backgroundColor')]),
           colorTrigger(cell0.backgroundColor, v => write(c => { c.backgroundColor = v }), '背景颜色'),
         ]),
       ]),
@@ -454,12 +463,12 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         h('span', { text: edge.label }),
       ]))),
 
-      numField('内边距 (mm)', optNum(cell0.padding), (c, v) => { c.padding = v }, { min: 0, max: 10, step: 0.5, placeholder: '默认' }),
-      switchRow('自动换行', cell0.wordWrap ?? true, v => write(c => { c.wordWrap = v })),
+      numField('内边距 (mm)', optNum(cell0.padding), (c, v) => { c.padding = v }, { min: 0, max: 10, step: 0.5, placeholder: '默认' }, cellReset('padding')),
+      switchRow('自动换行', cell0.wordWrap ?? true, v => write(c => { c.wordWrap = v }), undefined, cellReset('wordWrap')),
       isTextCell ? selectRow('文字溢出', cellTextFit, TEXT_FIT_OPTIONS,
         v => write(c => { c.textFit = v as TextFit }), true) : '',
       (isTextCell && cellTextFit === 'shrink')
-        ? numField('最小字号 (pt)', optNum(cell0.shrinkMinFontSize), (c, v) => { c.shrinkMinFontSize = v }, { min: 0, max: 72, step: 0.5, placeholder: '默认 6' })
+        ? numField('最小字号 (pt)', optNum(cell0.shrinkMinFontSize), (c, v) => { c.shrinkMinFontSize = v }, { min: 0, max: 72, step: 0.5, placeholder: '默认 6' }, cellReset('shrinkMinFontSize'))
         : '',
 
       h('div', { class: 'merge-btns' }, [
