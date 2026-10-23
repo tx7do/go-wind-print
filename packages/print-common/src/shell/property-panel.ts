@@ -303,11 +303,10 @@ function pagePane(ctx: ShellCtx) {
       '整页内容旋转对应角度出纸；90°/270° 时纸张长宽互换以贴合内容，内容不变形不裁切；0° 为不旋转（默认）') : '',
     field('页面背景色', h('div', { class: 'page-bg-row' }, [
       colorTrigger(t.pageBackground, v => patch({ pageBackground: v }), '页面背景色', 'page-bg-picker'),
-      h('button', {
-        type: 'button', class: 'pd-reset', title: '恢复为默认白色', text: '默认',
-        onClick: () => patch({ pageBackground: undefined }),
-      }),
-    ])),
+    ]), undefined, resetButton({
+      target: t as Record<string, any>, base: { pageBackground: undefined } as Record<string, any>,
+      propKey: 'pageBackground', write: () => patch({ pageBackground: undefined }),
+    })),
     designBackgroundSection(ctx),
     s.pages.length > 1 ? '' : tilingSection(ctx),
     divider('页边距 (mm)'),
