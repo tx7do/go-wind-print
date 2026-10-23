@@ -1523,6 +1523,14 @@ canvas 元素台 41 个可见标签、common 元素台 33 个，逐行量 `scrol
 且 `propertyDefault` 在导出清单内；`print-canvas/dist/index.js` 引用了 `RotateCcw`（lucide 为 external，属预期）
 并含 `pd-reset-btn`。**样式、类型、图标引用三者都在发布物里，不是只存在于源码。**
 
+**「图标与顶部工具栏同源」的完整链路核查**（用户原始要求之一）：
+- 工具栏：`DesignerToolbar.vue:20` 起一律 `<Undo2 :size="15" />` 这类写法，直连 `lucide-vue-next`，未改描边（默认 2）。
+- 重置按钮：`property/ResetButton.vue:10` 为 `<RotateCcw :size="13" />`，**同一个包、同一套默认渲染参数**；13px 是视觉伴侣定档的按钮内尺寸（外框 15px）。
+- common 侧不装 lucide：`packages/print-common/scripts/gen-icons.mjs` 扫描 canvas 源码里的
+  `import { … } from 'lucide-vue-next'`（第 38 行正则）、再从 lucide 的 ESM 产物里抽 SVG（第 52/76 行），
+  生成 `src/core/icons.ts`——派生物里 `stroke-width="2"`，与两端渲染一致。
+  ⇒ 三端（canvas 元素台 / canvas 单元格台 / common）拿到的都是同一条 lucide 图形，没有第二份手抄路径。
+
 **未取到浏览器级证据的一层**：单元格台（`TableCellGroup` / common 单元格区段）。
 合成点击没能把该分组刷出来（面板始终停在表格级 + 高级 + 页面行），
 其证据仍只有 happy-dom 单测（canvas 9 条 / common 9 条）与类名审计。要补实看需要用户在真实浏览器里点一次单元格。
