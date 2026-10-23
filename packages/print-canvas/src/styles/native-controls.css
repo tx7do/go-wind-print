@@ -21,6 +21,40 @@
   display: inline-flex;
   align-items: center;
   position: relative;
+  /* 标签行右端留给「恢复默认值」图标：文字与说明包在 .pd-label-t 里靠左，图标靠右 */
+  justify-content: space-between;
+  gap: 6px;
+}
+/* 标签文字与说明图标的容器：不加这层，space-between 会把单个字符也当成 flex 项目散开 */
+.pd-label-t {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+/* 「恢复默认值」：常驻，等于该层出厂值时置灰（灰＝没什么可恢复） */
+.pd-reset-btn {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--pd-text-faint, #b4b9c4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color .14s ease, border-color .14s ease, background .14s ease;
+}
+.pd-reset-btn.is-dirty {
+  color: var(--pd-text, #2a2e37);
+}
+.pd-reset-btn:hover {
+  color: var(--pd-accent, #165DFF);
+  border-color: var(--pd-accent, #165DFF);
+  background: var(--pd-accent-soft, rgba(22, 93, 255, .09));
 }
 /* 字段下方的说明文字（各属性分组共用） */
 .pd-hint {
