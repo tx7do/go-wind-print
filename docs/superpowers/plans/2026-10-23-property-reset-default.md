@@ -1517,6 +1517,12 @@ canvas 元素台 41 个可见标签、common 元素台 33 个，逐行量 `scrol
 另：那次探针的撤销按钮当时是 `disabled`（这个标签页的历史栈早被我之前的探针点空了），
 点它是空操作，所以「撤销无效」是探针假象；判据改为先读 `button[data-tip=撤销].disabled`。
 
+**发布产物层核查（下游从 npm 装到的那一层）**：`packages/print-canvas/dist/canvas.css` 含
+`.pd-reset-btn` / `.is-dirty` / `:hover` 三条规则；`print-common/dist/common.css` 命中 4 处；
+`print-core/dist/designer/index.d.ts` 里 `PropertyItem` 带 `default?: number | string` 与 `defaultUnit?: string`，
+且 `propertyDefault` 在导出清单内；`print-canvas/dist/index.js` 引用了 `RotateCcw`（lucide 为 external，属预期）
+并含 `pd-reset-btn`。**样式、类型、图标引用三者都在发布物里，不是只存在于源码。**
+
 **未取到浏览器级证据的一层**：单元格台（`TableCellGroup` / common 单元格区段）。
 合成点击没能把该分组刷出来（面板始终停在表格级 + 高级 + 页面行），
 其证据仍只有 happy-dom 单测（canvas 9 条 / common 9 条）与类名审计。要补实看需要用户在真实浏览器里点一次单元格。
