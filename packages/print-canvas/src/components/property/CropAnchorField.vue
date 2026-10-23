@@ -1,6 +1,8 @@
 <!-- 裁剪锚点：位置档下拉 + 放大比例 + 水平／垂直两框常驻 + 原图可视窗示意。只有缩放模式为剪裁（cover）时才有被裁掉的边，宿主只在那一档出这一行。 -->
 <template>
-  <div class="pd-field" :data-field="fieldKey"><span class="pd-label">{{ label }}<button type="button" class="pd-help" :data-tip="tip" aria-label="字段说明" /></span>
+  <div class="pd-field" :data-field="fieldKey"><span class="pd-label"><span class="pd-label-t">{{ label }}<button type="button" class="pd-help" :data-tip="tip" aria-label="字段说明" /></span>
+    <ResetButton v-if="options && base" :target="options" :base="base" prop-key="objectPosition" :tip-value="def(fieldKey)?.value" :tip-unit="def(fieldKey)?.unit" />
+  </span>
     <select class="pd-select" style="width: 100%" :value="selectValue" @change="onPresetChange">
       <option v-for="o in presetOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
       <option v-if="isCustom" value="custom">自定义（保留原值）</option>
@@ -8,7 +10,9 @@
   </div>
 
   <div class="pd-field" data-field="ap-img-fit-scale">
-    <span class="pd-label">{{ CROP_SCALE_LABEL }}<button type="button" class="pd-help" :data-tip="scaleTip" aria-label="字段说明" /></span>
+    <span class="pd-label"><span class="pd-label-t">{{ CROP_SCALE_LABEL }}<button type="button" class="pd-help" :data-tip="scaleTip" aria-label="字段说明" /></span>
+    <ResetButton v-if="options && base" :target="options" :base="base" prop-key="fitScale" :tip-value="def('ap-img-fit-scale')?.value" :tip-unit="def('ap-img-fit-scale')?.unit" />
+  </span>
     <StepperInput :model-value="scale"
       :min="CROP_SCALE_MIN"
       :max="CROP_SCALE_MAX"
@@ -52,11 +56,20 @@ import {
   resolveCropTravel,
 } from '@worm-vue3-print/core/designer'
 import StepperInput from './StepperInput.vue'
+import ResetButton from './ResetButton.vue'
+import { propertyDefault } from '@worm-vue3-print/core/designer'
+
+/** 注册表纯提示字段：只喂文案 */
+const def = (key: string) => propertyDefault(key)
 
 const props = withDefaults(defineProps<{
   /** 注册表 key，用于取字段说明 */
   fieldKey: string
   label: string
+  /** 承载对象与出厂值：由宿主传入，本组件不反向依赖 element-factory。
+   *  缺省不出图标——表格单元格走自己的整选区写回通道（Task 5），不能复用直改对象的形态。 */
+  options?: Record<string, any>
+  base?: Record<string, any>
   /** 已解析的图片地址（表达式由宿主求值后传入）；为空则回落内置示例图 */
   src?: string
   /** 模板里的存量值，原样是 CSS 两轴位置 */
