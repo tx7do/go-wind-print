@@ -13,7 +13,9 @@
             <option value="ITF14">ITF14</option>
           </select>
         </div>
-        <div class="pd-field" v-show="showItem('cd-dpi')"><span class="pd-label">打印机分辨率</span>
+        <div class="pd-field" v-show="showItem('cd-dpi')"><span class="pd-label"><span class="pd-label-t">打印机分辨率</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="printerDpi" :tip-value="def('cd-dpi')?.value" :tip-unit="def('cd-dpi')?.unit" @change="emitChange()" />
+        </span>
           <select class="pd-select" :value="dpiValue" @change="onDpiChange">
             <option value="">不指定（按条宽渲染）</option>
             <option value="203">203 dpi（8 点/mm）</option>
@@ -22,7 +24,9 @@
           </select>
         </div>
         <p class="pd-hint" v-show="showItem('cd-dpi')">填写后条宽吸附到整数打印点（消除出纸「条宽忽宽忽窄」）：条码先按条宽渲染，可用宽度够就原样落纸，不够才整体等比缩小</p>
-        <div class="pd-field" v-show="showItem('cd-bar-width')"><span class="pd-label">条宽（倍率）</span>
+        <div class="pd-field" v-show="showItem('cd-bar-width')"><span class="pd-label"><span class="pd-label-t">条宽（倍率）</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="barWidth" :tip-value="def('cd-bar-width')?.value" :tip-unit="def('cd-bar-width')?.unit" @change="emitChange()" />
+        </span>
           <StepperInput :model-value="element.options.barWidth ?? 2"
             :min="2"
             :max="8"
@@ -30,25 +34,33 @@
             @update:model-value="element.options.barWidth = $event; emitChange()" />
         </div>
         <p class="pd-hint" v-show="showItem('cd-bar-width')">{{ barWidthHint }}</p>
-        <div class="pd-field" v-show="showItem('cd-bar-quiet-zone')"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="barQuietTip" aria-label="字段说明" /></span>
+        <div class="pd-field" v-show="showItem('cd-bar-quiet-zone')"><span class="pd-label"><span class="pd-label-t">静区 (模块)<button type="button" class="pd-help" :data-tip="barQuietTip" aria-label="字段说明" /></span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="barQuietZone" :tip-value="def('cd-bar-quiet-zone')?.value" :tip-unit="def('cd-bar-quiet-zone')?.unit" @change="emitChange()" />
+        </span>
           <StepperInput :model-value="element.options.barQuietZone"
             :min="0"
             :max="20"
             placeholder="默认 10"
             @update:model-value="element.options.barQuietZone = $event ?? undefined; emitChange()" />
         </div>
-        <div class="pd-field" v-show="showItem('cd-bar-height')"><span class="pd-label">条高 (mm)<button type="button" class="pd-help" :data-tip="barHeightTip" aria-label="字段说明" /></span>
+        <div class="pd-field" v-show="showItem('cd-bar-height')"><span class="pd-label"><span class="pd-label-t">条高 (mm)<button type="button" class="pd-help" :data-tip="barHeightTip" aria-label="字段说明" /></span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="barHeight" :tip-value="def('cd-bar-height')?.value" :tip-unit="def('cd-bar-height')?.unit" @change="emitChange()" />
+        </span>
           <StepperInput :model-value="element.options.barHeight"
             :min="1"
             :max="100"
             placeholder="默认 30 模块"
             @update:model-value="element.options.barHeight = $event ?? undefined; emitChange()" />
         </div>
-        <div class="pd-field" v-show="showItem('cd-show-text')"><span class="pd-label">显示文本</span>
+        <div class="pd-field" v-show="showItem('cd-show-text')"><span class="pd-label"><span class="pd-label-t">显示文本</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="hideTitle" :tip-value="def('cd-show-text')?.value" :tip-unit="def('cd-show-text')?.unit" @change="emitChange()" />
+        </span>
           <input :checked="element.options.hideTitle !== true" type="checkbox" class="pd-switch"
             @input="element.options.hideTitle = ($event.target as HTMLInputElement).checked ? undefined : true; emitChange()" />
         </div>
-        <div class="pd-field" v-show="showItem('cd-font-size')"><span class="pd-label">文本字号（相对条高，条高为 30）</span>
+        <div class="pd-field" v-show="showItem('cd-font-size')"><span class="pd-label"><span class="pd-label-t">文本字号（相对条高，条高为 30）</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="fontSize" :tip-value="def('cd-font-size')?.value" :tip-unit="def('cd-font-size')?.unit" @change="emitChange()" />
+        </span>
           <StepperInput :model-value="element.options.fontSize"
             :min="5"
             :max="24"
@@ -58,7 +70,9 @@
       </template>
 
       <template v-else-if="isQrcode">
-        <div class="pd-field" v-show="showItem('cd-ec-level')"><span class="pd-label">纠错级别</span>
+        <div class="pd-field" v-show="showItem('cd-ec-level')"><span class="pd-label"><span class="pd-label-t">纠错级别</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="qrCodeLevel" :tip-value="def('cd-ec-level')?.value" :tip-unit="def('cd-ec-level')?.unit" @change="emitChange()" />
+        </span>
           <select class="pd-select" :value="String(element.options.qrCodeLevel ?? 'M')"
             @change="element.options.qrCodeLevel = ($event.target as HTMLSelectElement).value; emitChange()">
             <option value="L">L（最低，容量大）</option>
@@ -67,7 +81,9 @@
             <option value="H">H（最高）</option>
           </select>
         </div>
-        <div class="pd-field" v-show="showItem('cd-quiet-zone')"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="quietTip" aria-label="字段说明" /></span>
+        <div class="pd-field" v-show="showItem('cd-quiet-zone')"><span class="pd-label"><span class="pd-label-t">静区 (模块)<button type="button" class="pd-help" :data-tip="quietTip" aria-label="字段说明" /></span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="qrQuietZone" :tip-value="def('cd-quiet-zone')?.value" :tip-unit="def('cd-quiet-zone')?.unit" @change="emitChange()" />
+        </span>
           <StepperInput :model-value="element.options.qrQuietZone"
             :min="0"
             :max="8"
@@ -78,19 +94,25 @@
 
       <h3 class="pd-divider">自定义设置</h3>
       <p class="pd-hint" v-if="isBarcode">条码尺寸由「条宽」与「打印机分辨率」结算：宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限。要放大条码：先加条宽倍率，再收窄静区（左右白边会换成条宽），必要时关掉显示文本以让出文本区高度</p>
-      <div class="pd-field" v-if="!isBarcode" v-show="showItem('cd-fit')"><span class="pd-label">缩放模式</span>
+      <div class="pd-field" v-if="!isBarcode" v-show="showItem('cd-fit')"><span class="pd-label"><span class="pd-label-t">缩放模式</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="fit" :tip-value="def('cd-fit')?.value" :tip-unit="def('cd-fit')?.unit" @change="emitChange()" />
+        </span>
         <select class="pd-select" :value="element.options.fit || 'contain'" @change="onFitChange">
           <option v-for="o in IMAGE_FIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
       </div>
-      <div class="pd-field" v-show="showItem('cd-max-width')"><span class="pd-label">最大宽度 (mm)</span>
+      <div class="pd-field" v-show="showItem('cd-max-width')"><span class="pd-label"><span class="pd-label-t">最大宽度 (mm)</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="maxWidth" :tip-value="def('cd-max-width')?.value" :tip-unit="def('cd-max-width')?.unit" @change="emitChange()" />
+        </span>
         <StepperInput :model-value="element.options.maxWidth"
           :min="1"
           :max="200"
           placeholder="默认"
           @update:model-value="element.options.maxWidth = $event ?? undefined; emitChange()" />
       </div>
-      <div class="pd-field" v-show="showItem('cd-max-height')"><span class="pd-label">最大高度 (mm)</span>
+      <div class="pd-field" v-show="showItem('cd-max-height')"><span class="pd-label"><span class="pd-label-t">最大高度 (mm)</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="maxHeight" :tip-value="def('cd-max-height')?.value" :tip-unit="def('cd-max-height')?.unit" @change="emitChange()" />
+        </span>
         <StepperInput :model-value="element.options.maxHeight"
           :min="1"
           :max="200"
@@ -105,8 +127,10 @@
 import { computed } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { propertyTip, IMAGE_FIT_OPTIONS, barcodeBarWidthRecommendText } from '@worm-vue3-print/core/designer'
+import { createDefaultOptions, propertyDefault } from '@worm-vue3-print/core/designer'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
+import ResetButton from './ResetButton.vue'
 
 /** 静区说明：文案单一来源在 core 的属性注册表，与单元格台、common 宿主共用同一条 */
 const quietTip = propertyTip('cd-quiet-zone')
@@ -120,6 +144,11 @@ const props = defineProps<{
   matchedKeys?: Set<string>
   searching?: boolean
 }>()
+
+/** 该元素类型的出厂 options——「恢复默认值」的落点全部由它派生 */
+const factoryOptions = computed(() => createDefaultOptions(props.element.printElementType.type))
+/** 注册表纯提示字段：只喂文案，不参与判定 */
+const def = (key: string) => propertyDefault(key)
 
 const emit = defineEmits<{ change: [] }>()
 
