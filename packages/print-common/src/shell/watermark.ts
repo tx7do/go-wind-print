@@ -7,7 +7,8 @@
 import { WATERMARK_DEFAULTS, WATERMARK_DENSITY_PRESETS } from '@worm-vue3-print/core'
 import type { WatermarkOptions } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
-import { colorTrigger, divider, field } from './controls'
+import type { El } from '../core/h'
+import { colorTrigger, divider, field, resetButton } from './controls'
 import type { ShellCtx } from './controls'
 
 const PRESETS = WATERMARK_DENSITY_PRESETS
@@ -61,6 +62,21 @@ export function watermarkSection(ctx: ShellCtx) {
     value: text,
   })
 
+  /** 判定基准必须是「已落值视图」而非原始 wm：commit() 会把五个键全部落值，且控件在 wm 缺省时
+   *  显示的就是 WATERMARK_DEFAULTS 的值。若拿 wm 当 target，未配置的水印会显示 -30 却判为已偏离——
+   *  与 canvas 的 localConfig 同口径才不会两端不一致。 */
+  const view: Record<string, any> = {
+    rotate: wm?.rotate ?? WATERMARK_DEFAULTS.rotate,
+    color: wm?.color || WATERMARK_DEFAULTS.color,
+    opacity: wm?.opacity ?? WATERMARK_DEFAULTS.opacity,
+    tileWidth: wm?.tileWidth ?? WATERMARK_DEFAULTS.tileWidth,
+    tileHeight: wm?.tileHeight ?? WATERMARK_DEFAULTS.tileHeight,
+  }
+  const wmReset = (key: string): El => resetButton({
+    target: view, base: WATERMARK_DEFAULTS as Record<string, any>, propKey: key,
+    write: () => commit({ [key]: (WATERMARK_DEFAULTS as Record<string, any>)[key] } as Partial<WatermarkOptions>),
+  })
+
   return h('div', { class: 'watermark-config' }, [
     divider('水印'),
     h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, [
@@ -88,7 +104,7 @@ export function watermarkSection(ctx: ShellCtx) {
         onChange: (ev: Event) => commit({ testData: (ev.target as HTMLInputElement).value }),
       })) : '',
       h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '旋转角度' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '旋转角度' }), wmReset('rotate')]),
         h('input', {
           type: 'range', class: 'pd-range',
           min: -90, max: 90, step: 5, value: String(wm?.rotate ?? WATERMARK_DEFAULTS.rotate),
@@ -96,9 +112,9 @@ export function watermarkSection(ctx: ShellCtx) {
         }),
         h('span', { class: 'pd-hint', text: `${wm?.rotate ?? WATERMARK_DEFAULTS.rotate}°` }),
       ]),
-      field('颜色', colorTrigger(wm?.color || WATERMARK_DEFAULTS.color, v => commit({ color: v }), '水印颜色')),
+      field('颜色', colorTrigger(wm?.color || WATERMARK_DEFAULTS.color, v => commit({ color: v }), '水印颜色'), undefined, wmReset('color')),
       h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '透明度' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '透明度' }), wmReset('opacity')]),
         h('input', {
           type: 'range', class: 'pd-range',
           min: 0.05, max: 0.5, step: 0.05, value: String(wm?.opacity ?? WATERMARK_DEFAULTS.opacity),
@@ -126,7 +142,7 @@ export function watermarkSection(ctx: ShellCtx) {
         ]),
       ]),
       density === 'custom' ? h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '瓦片宽' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '瓦片宽' }), wmReset('tileWidth')]),
         h('input', {
           type: 'number', class: 'pd-input', min: WATERMARK_DEFAULTS.minTileWidth, step: 10,
           value: String(wm?.tileWidth ?? WATERMARK_DEFAULTS.tileWidth),
@@ -134,7 +150,7 @@ export function watermarkSection(ctx: ShellCtx) {
         }),
       ]) : '',
       density === 'custom' ? h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '瓦片高' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '瓦片高' }), wmReset('tileHeight')]),
         h('input', {
           type: 'number', class: 'pd-input', min: WATERMARK_DEFAULTS.minTileHeight, step: 10,
           value: String(wm?.tileHeight ?? WATERMARK_DEFAULTS.tileHeight),
