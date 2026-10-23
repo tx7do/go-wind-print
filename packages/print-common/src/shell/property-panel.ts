@@ -7,7 +7,9 @@
 import { PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
-import { colorTrigger, divider, field, fieldHelp, radioGroup, stepper } from './controls'
+import type { El } from '../core/h'
+import { colorTrigger, divider, field, fieldHelp, radioGroup, resetButton, stepper } from './controls'
+import { createDefaultOptions, propertyDefault } from '@worm-vue3-print/core/designer'
 import { designBackgroundSection, tilingSection } from './page-extras'
 import { bindingGroup } from './binding'
 import { renderFontSelect } from './font-select'
@@ -20,13 +22,13 @@ import type { ShellCtx } from './controls'
 
 /** 数字属性行：label + 步进框（undefined 透传给 stepper → 留空显示占位，与 canvas 的 v-model 未设置态一致） */
 function numField(_ctx: ShellCtx, label: string, value: number | undefined, onCommit: (v: number) => void,
-  opts: { min?: number; max?: number; step?: number } = {}) {
-  return field(label, stepper({ value, ...opts, onCommit }))
+  opts: { min?: number; max?: number; step?: number } = {}, reset?: El) {
+  return field(label, stepper({ value, ...opts, onCommit }), undefined, reset)
 }
 
 /** 下拉属性行 */
 /** 下拉属性行（导出仅供单测断言未设置态，包公开入口不导出） */
-export function selectField(_ctx: ShellCtx, label: string, value: string, options: { value: string; label: string }[], onCommit: (v: string) => void, tip?: string) {
+export function selectField(_ctx: ShellCtx, label: string, value: string, options: { value: string; label: string }[], onCommit: (v: string) => void, tip?: string, reset?: El) {
   // canvas 的字体粗细用 v-model：值匹配不到选项时 selectedIndex 变 -1，下拉框显示空白。
   // 这里必须建真节点才能复现该语义（h() 只是描述，选中态要按赋值顺序生效）。
   const select = document.createElement('select')
@@ -41,16 +43,16 @@ export function selectField(_ctx: ShellCtx, label: string, value: string, option
   select.value = value
   // 与 Vue 的 v-model 同动作：匹配不到选项时显式置 -1，不依赖各引擎对 `value=` 赋空的处理
   if (!options.some(o => o.value === value)) select.selectedIndex = -1
-  return tip ? fieldHelp(label, select, tip) : field(label, select)
+  return tip ? fieldHelp(label, select, tip, reset) : field(label, select, undefined, reset)
 }
 
-function switchField(_ctx: ShellCtx, label: string, checked: boolean, onCommit: (v: boolean) => void) {
+function switchField(_ctx: ShellCtx, label: string, checked: boolean, onCommit: (v: boolean) => void, reset?: El) {
   // 派生样式把 .pd-switch 定义在 input 本体上（appearance:none + ::after 滑块），
   // 用 label 包一层会让开关样式失效，故与 canvas 一致直接给 input 挂类
   return field(label, h('input', {
     type: 'checkbox', class: 'pd-switch', checked,
     onChange: (ev: Event) => onCommit((ev.target as HTMLInputElement).checked),
-  }))
+  }), undefined, reset)
 }
 
 function elementPane(ctx: ShellCtx, el: RuntimeElement) {
@@ -79,6 +81,19 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
   }
 
   // canvas 的 AppearanceGroup 恒渲染：非文本元素出空态提示，表格元素只留空 form（分组标题仍在）
+  /** 落点派生自该元素类型的出厂值：未预置的键 ⇒ undefined ⇒ 写回即删键；预置了字面值的键
+   *  （text 的 fontSize、longText 的 lineHeight、image 的 fit）⇒ 写回字面值。一条规则覆盖两种
+   *  相反的正确行为。reset 一律挂在外层 field/fieldHelp 上，不挂进 radioGroup 等控件构造参数。 */
+  const FACTORY = createDefaultOptions(type) as Record<string, any>
+  const reset = (key: string, rk: string): El => {
+    const d = propertyDefault(rk)
+    return resetButton({
+      target: o as Record<string, any>, base: FACTORY, propKey: key,
+      tipValue: d?.value, tipUnit: d?.unit,
+      write: () => patch({ [key]: FACTORY[key] } as never),
+    })
+  }
+
   rows.push(group(ctx, 'appearance', '外观', 'Brush', [
     h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, isText ? [
       gateItem(ctx, 'ap-font-family', field('字体', renderFontSelect({
@@ -88,38 +103,38 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
         value: typeof o.fontFamily === 'string' ? o.fontFamily : undefined,
         placeholder: '默认',
         onChange: v => patch({ fontFamily: v }),
-      }))),
-      gateItem(ctx, 'ap-font-size', numField(ctx, '字体大小', o.fontSize, v => patch({ fontSize: v }), { min: 8, max: 72 })),
+      }), undefined, reset('fontFamily', 'ap-font-family'))),
+      gateItem(ctx, 'ap-font-size', numField(ctx, '字体大小', o.fontSize, v => patch({ fontSize: v }), { min: 8, max: 72 }, reset('fontSize', 'ap-font-size'))),
       gateItem(ctx, 'ap-font-weight', selectField(ctx, '字体粗细', String(o.fontWeight ?? ''), [
         { value: 'normal', label: '正常' }, { value: 'bold', label: '粗体' },
         { value: 'bolder', label: '更粗' }, { value: 'lighter', label: '细体' },
-      ], v => patch({ fontWeight: v }))),
+      ], v => patch({ fontWeight: v }), undefined, reset('fontWeight', 'ap-font-weight'))),
       gateItem(ctx, 'ap-align', field('对齐', radioGroup('ta', [
         { value: 'left', label: '左' }, { value: 'center', label: '中' }, { value: 'right', label: '右' }, { value: 'justify', label: '两端' },
-      ], o.textAlign || 'left', v => patch({ textAlign: v })))),
+      ], o.textAlign || 'left', v => patch({ textAlign: v })), undefined, reset('textAlign', 'ap-align'))),
       gateItem(ctx, 'ap-vertical-align', field('垂直对齐', radioGroup('va', [
         { value: 'top', label: '顶' }, { value: 'middle', label: '中' }, { value: 'bottom', label: '底' },
-      ], o.verticalAlign || 'top', v => patch({ verticalAlign: v })))),
+      ], o.verticalAlign || 'top', v => patch({ verticalAlign: v })), undefined, reset('verticalAlign', 'ap-vertical-align'))),
       h('div', { class: 'color-row' }, [
-        gateItem(ctx, 'ap-color', field('颜色', colorTrigger(o.color, v => patch({ color: v }), '字体颜色'))),
-        gateItem(ctx, 'ap-bg-color', field('背景色', colorTrigger(o.backgroundColor, v => patch({ backgroundColor: v }), '背景颜色'))),
+        gateItem(ctx, 'ap-color', field('颜色', colorTrigger(o.color, v => patch({ color: v }), '字体颜色'), undefined, reset('color', 'ap-color'))),
+        gateItem(ctx, 'ap-bg-color', field('背景色', colorTrigger(o.backgroundColor, v => patch({ backgroundColor: v }), '背景颜色'), undefined, reset('backgroundColor', 'ap-bg-color'))),
       ]),
-      gateItem(ctx, 'ap-line-height', numField(ctx, '行高', o.lineHeight, v => patch({ lineHeight: v || undefined }), { min: 0, max: 100 })),
-      gateItem(ctx, 'ap-letter-spacing', numField(ctx, '字间距', o.letterSpacing, v => patch({ letterSpacing: v || undefined }), { min: 0, max: 20, step: 0.5 })),
+      gateItem(ctx, 'ap-line-height', numField(ctx, '行高', o.lineHeight, v => patch({ lineHeight: v || undefined }), { min: 0, max: 100 }, reset('lineHeight', 'ap-line-height'))),
+      gateItem(ctx, 'ap-letter-spacing', numField(ctx, '字间距', o.letterSpacing, v => patch({ letterSpacing: v || undefined }), { min: 0, max: 20, step: 0.5 }, reset('letterSpacing', 'ap-letter-spacing'))),
       gateItem(ctx, 'ap-text-fit', selectField(ctx, '文字溢出', resolveElementTextFit(type, o), [
         { value: 'clip', label: '截断' }, { value: 'shrink', label: '自动缩小' },
         { value: 'autoHeight', label: '自适应行高' },
-      ], v => patch({ textFit: v }))),
+      ], v => patch({ textFit: v }), undefined, reset('textFit', 'ap-text-fit'))),
       o.textFit === 'shrink' ? gateItem(ctx, 'ap-shrink-min', field('最小字号 (pt)', stepper({
         value: o.shrinkMinFontSize, min: 1, max: 72, step: 0.5, placeholder: '默认 6',
         onCommit: v => patch({ shrinkMinFontSize: v || undefined }),
-      }))) : '',
-      type === 'longText' ? gateItem(ctx, 'ap-long-text-indent', fieldHelp('首行缩进 (字符)', stepper({ value: o.longTextIndent, min: 0, max: 10, placeholder: '默认 0', onCommit: v => patch({ longTextIndent: v || undefined }) }), propertyTip('ap-long-text-indent'))) : '',
-      gateItem(ctx, 'ap-word-wrap', switchField(ctx, '自动换行', o.wordWrap !== false, v => patch({ wordWrap: v ? undefined : false }))),
+      }), undefined, reset('shrinkMinFontSize', 'ap-shrink-min'))) : '',
+      type === 'longText' ? gateItem(ctx, 'ap-long-text-indent', fieldHelp('首行缩进 (字符)', stepper({ value: o.longTextIndent, min: 0, max: 10, placeholder: '默认 0', onCommit: v => patch({ longTextIndent: v || undefined }) }), propertyTip('ap-long-text-indent'), reset('longTextIndent', 'ap-long-text-indent'))) : '',
+      gateItem(ctx, 'ap-word-wrap', switchField(ctx, '自动换行', o.wordWrap !== false, v => patch({ wordWrap: v ? undefined : false }), reset('wordWrap', 'ap-word-wrap'))),
     ] : [
       // 平铺条件项：不能在这里套数组，common 的 h() 不摊平嵌套子节点（会让 paint 递归抛 TypeError）
       type === 'image' ? gateItem(ctx, 'ap-img-fit', selectField(ctx, '缩放模式', String(o.fit ?? 'contain'), IMAGE_FIT_OPTIONS,
-        v => patch({ fit: v }), propertyTip('ap-img-fit'))) : '',
+        v => patch({ fit: v }), propertyTip('ap-img-fit'), reset('fit', 'ap-img-fit'))) : '',
       // 只有剪裁档有「被裁掉的那条边」可挪，其余档不出这一行（与 canvas AppearanceGroup、两端单元格台同一门禁）
       type === 'image' && o.fit === 'cover' ? gateItem(ctx, 'ap-img-object-position', cropAnchorField(ctx, {
         fieldKey: 'ap-img-object-position', label: '裁剪锚点', src: resolveDesignImageSrc(o.src as string),

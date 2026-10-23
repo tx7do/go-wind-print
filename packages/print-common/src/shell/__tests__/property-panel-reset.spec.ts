@@ -1,0 +1,84 @@
+// @vitest-environment happy-dom
+// common 元素台外观组「恢复默认值」验收：证明图标真的渲染出来、落点随元素类型派生、
+// 且提示语按注册表常量带数字。
+import { describe, it, expect } from 'vitest'
+import { DesignerStore } from '../../core/store'
+import { FormatToolbar } from '../../core/format'
+import { render } from '../../core/h'
+import type { ShellCtx, ShellState } from '../controls'
+import { renderPropertyPanel } from '../property-panel'
+import type { ElementType } from '@worm-vue3-print/core/designer'
+
+function paint(type: ElementType, options: Record<string, any> = {}) {
+  const store = new DesignerStore()
+  store.addElement(type, options)
+  const el = store.elements[0]!
+  store.selectOne(el.id)
+  const state: ShellState = {
+    leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
+    openDd: null, collapsedGroups: new Set(), renamingPage: null,
+  }
+  const ctx: ShellCtx = {
+    store, format: new FormatToolbar(store), state,
+    repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false, host: { fonts: [] },
+  }
+  const host = document.createElement('div')
+  render(renderPropertyPanel(ctx), host)
+  return { store, el, host }
+}
+
+function rowOf(host: HTMLElement, text: string) {
+  const row = [...host.querySelectorAll<HTMLElement>('.pd-field')]
+    .find(f => (f.querySelector('.pd-label')?.textContent ?? '').includes(text))
+  if (!row) throw new Error(`未找到属性行：${text}`)
+  return row
+}
+
+const btnOf = (host: HTMLElement, text: string) => rowOf(host, text).querySelector<HTMLButtonElement>('.pd-reset-btn')!
+
+describe('common 外观组「恢复默认值」', () => {
+  it('外观组各行都渲染出图标，且图标不带文字', () => {
+    const { host } = paint('text', { fontSize: 18 })
+    for (const t of ['字体', '字体大小', '字体粗细', '对齐', '垂直对齐', '颜色', '背景色', '行高', '字间距', '文字溢出', '自动换行']) {
+      const b = btnOf(host, t)
+      expect(b, `缺图标：${t}`).toBeTruthy()
+      expect(b.textContent).toBe('')
+    }
+  })
+
+  it('字体大小出厂即被写上 12 ⇒ 新建元素为灰态；改成 18 才亮', () => {
+    expect(btnOf(paint('text').host, '字体大小').classList.contains('is-dirty')).toBe(false)
+    expect(btnOf(paint('text', { fontSize: 18 }).host, '字体大小').classList.contains('is-dirty')).toBe(true)
+  })
+
+  it('点击写回出厂字面值 12，而不是删键', () => {
+    const { el, host } = paint('text', { fontSize: 18 })
+    btnOf(host, '字体大小').click()
+    expect(el.options.fontSize).toBe(12)
+  })
+
+  /** 同一键在不同元素类型上落点不同——这是派生规则相对"逐键标注模式"的核心优势 */
+  it('行高：text 出厂未设 ⇒ 点击删键；longText 出厂 18 ⇒ 点击写回 18', () => {
+    const t = paint('text', { lineHeight: 2 })
+    btnOf(t.host, '行高').click()
+    expect(t.el.options.lineHeight).toBeUndefined()
+
+    const l = paint('longText', { lineHeight: 30 })
+    expect(btnOf(l.host, '行高').classList.contains('is-dirty')).toBe(true)
+    btnOf(l.host, '行高').click()
+    expect(l.el.options.lineHeight).toBe(18)
+  })
+
+  it('最小字号提示取自注册表常量「恢复默认值（6 pt）」，字体大小无具名常量则不带数字', () => {
+    const { host } = paint('text', { textFit: 'shrink', shrinkMinFontSize: 9 })
+    expect(btnOf(host, '最小字号').dataset.tip).toBe('恢复默认值（6 pt）')
+    expect(btnOf(host, '字体大小').dataset.tip).toBe('恢复默认值')
+  })
+
+  it('全部标签 textContent 不含"默认"二字（图标不得写字，否则属性搜索失配）', () => {
+    const { host } = paint('text', { fontSize: 18 })
+    for (const l of host.querySelectorAll<HTMLElement>('.pd-label')) {
+      expect(l.textContent).not.toContain('默认')
+    }
+  })
+})
