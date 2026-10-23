@@ -1143,3 +1143,27 @@ git commit -m "属性台恢复默认值：补出纸一致性回归与四宿主�
 | 第八节验收 1–8 | Task 1(1)、Task 8 Step 3(2)、Task 2(3)、Task 3–5(4)、Task 7 Step 5(5)、Task 8 Step 1(6)、Task 8 Step 6(7)、Task 8 Step 5(8) |
 | 第十一节延后项 | Task 6 Step 4（拼版两项）、Task 8 Step 6 清单第 8 条（页级行无图标） |
 
+---
+
+## 执行进度（2026-10-23 就地执行，master 分支）
+
+**已完成并验证**（core 1052 用例、canvas 605 用例全绿，`vue-tsc` 无错）：
+
+| 提交 | 覆盖 |
+|---|---|
+| `21b96bf` | **Task 2 全量**：`ResetButton.vue`（含 `write` 通道）、`.pd-label-t` / `.pd-reset-btn` 样式、8 条组件单测 |
+| `b2aeb45` | Task 1 前半：`QR_DEFAULT_QUIET_MODULES` 上收至同构 `render/barcode-dot.ts` |
+| `56427b1` | Task 4 部分：高级组 + 表格设置组接入，7 条用例 |
+| `d09c155` | Task 6 前半：水印五项 + 拼版六项接入；修 `resetTo` 的 TS7053 |
+| `5adf0c3` | Task 8 Step 1 + Step 3：落纸一致性回归 15 条（每条正向配反面对照） |
+
+**被阻塞的剩余工作**——全部要改下列 8 个文件，而它们当前载有另一项在途功能（流式列表）的**未提交**改动，直接提交会把别人的工作打进我的 commit message：
+
+`property-search.ts`（Task 1 后半 + Task 3/4 的提示数值来源）、其 spec、`element-factory.ts` 及其 spec、`PropertyPanel.vue`（Task 6 页面背景色）、`TableCellGroup.vue` + `BorderBgGroup.vue` + `TableCellGroup.spec.ts`（Task 5）、common 的 `property-panel.ts` + `table-props.ts`（Task 7）。
+
+## 执行期新增的三条硬约束（续跑时必须遵守）
+
+1. **`npm run styles -w @worm-vue3-print/common` 只能在干净基线上跑**。该脚本从 `print-canvas/dist/canvas.css` 派生 `designer.css`，工作区若载有他人未提交的 scoped 样式，会被一起烘进派生产物。Task 7 Step 1–3 因此整体顺延到基线干净之后。
+2. **canvas 每次提交前必须跑 `npx vue-tsc -p tsconfig.build.json`**（在 `packages/print-canvas/` 下）。vitest 不做类型检查：`56427b1` 就是这样带着一个 TS7053 过了 597 条用例（`ElementOptions` 无索引签名），到 `d09c155` 才修掉。
+3. **落纸一致性测试的覆盖边界**：`generateHtml` 在无 `codeRenderer` 时对码类直接走 fallback，且无数据上下文时表格不出 `<td>`——所以 barcode / qrcode / table 三类的属性**在 HTML 层没有鉴别力**。首版 13 条正向断言里有 3 条是假绿，靠反面对照才暴露。这三类已改在 options 与结算函数层断言，其真实落纸一致性**必须**由 Task 8 Step 4（render 服务回归）与 Step 6（浏览器实看）覆盖，不能算已由单测证明。
+
