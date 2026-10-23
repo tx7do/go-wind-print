@@ -1510,6 +1510,13 @@ canvas 元素台 41 个可见标签、common 元素台 33 个，逐行量 `scrol
   判据先比对「线上 vendor md5 == `packages/print-common/dist/common.js` md5」，不相等就别急着怀疑实现。
   刷新后三行图标齐全（`flush=0`、15px、提示纯「恢复默认值」，该元素视图共 14 个图标）。
 
+**历史栈行为核查（澄清一次误读）**：浏览器里试过「改值 → 重置 → 撤销」，值没回退，一度怀疑重置不入历史。
+查代码后定性：`PropertyPanel.vue` 只有 **`CodeGroup` 与 `BorderBgGroup`** 绑了 `@change="recordHistory?.()"`，
+外观/表格设置/高级三组的编辑本来就不产生历史条目（它们走 `v-model` 直改 options）；单元格组走整选区 `write` 并显式 `recordHistory()`。
+→ **重置与同组其它控件的历史行为完全一致**，不是本特性引入的差异。
+另：那次探针的撤销按钮当时是 `disabled`（这个标签页的历史栈早被我之前的探针点空了），
+点它是空操作，所以「撤销无效」是探针假象；判据改为先读 `button[data-tip=撤销].disabled`。
+
 **未取到浏览器级证据的一层**：单元格台（`TableCellGroup` / common 单元格区段）。
 合成点击没能把该分组刷出来（面板始终停在表格级 + 高级 + 页面行），
 其证据仍只有 happy-dom 单测（canvas 9 条 / common 9 条）与类名审计。要补实看需要用户在真实浏览器里点一次单元格。
