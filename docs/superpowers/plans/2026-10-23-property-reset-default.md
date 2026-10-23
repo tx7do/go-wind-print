@@ -1265,6 +1265,30 @@ Task 7 的 Step 2 已单独落地并验证向后兼容：`textContent` 逐字不
 
 **混改文件的标准操作顺序（本轮起固化）**：`git show HEAD:<file> > /tmp/x` → 脚本先跑 `/tmp/x` → 通过后再跑工作区 → `tsc` → `vitest` → `commit-tree` + CAS `update-ref` → `git reset -q HEAD -- <file>` → 复验 `git diff HEAD` 等于他方原有量。顺序反了会在断言失败时已经写过工作区一次。
 
+## 停摆状态（第 17 轮，预算将尽）
+
+**已提交 32 笔，工作树处于可续跑的干净态**：我名下的新建/独改文件全部已入库；未提交的只剩他方在途内容，且量级与其原始改动逐文件一致——
+`property-search.ts` +32/0、`property-panel.ts` +95/−2、`table-props.ts` +2/0、`PropertyPanel.vue` +9/−1、
+`AppearanceGroup.vue` 与 `CodeGroup.vue` 为 0（说明那两文件的混改已全数提走，未夹带他人内容）。
+无残留临时脚本。三包测试 core 1058 / canvas 628 / common 248 全绿，`tsc`+`vue-tsc` 无错，`npm run build` 退出码 0。
+
+**已落地图标位（约 100 处）**：canvas 侧全部（外观 14、条码 11、高级 3、表格设置 4、单元格 22、水印 5、拼版 6、页面背景色 1）；
+common 侧原语 + 单元格 21 + 表格级默认 4 + 外观 14 + 高级 3 + 条码 11。
+
+**明确未完成（三项，均需外部条件或剩余预算）**：
+
+1. **common 的水印 / 拼版 / 页面级行**——纯工作量，无阻塞。做法与已完成的 common 组完全相同：
+   `base` 传 `WATERMARK_DEFAULTS` / `TILE_DEFAULTS`，走「双跑 + 临时索引」流程。
+2. **`BorderBgGroup`（canvas）与 `bb-border-*`（common）**——**已确认不是本设计缺口**：该组整段
+   （线型行、`borderFields()` / `applyBorderPresetTo()` / `toggleBorderEdge()`）是另一会话未提交的新增，
+   HEAD 里不存在。须等流式列表/边框那笔工作落地后，按其最终形态统一接入。
+3. **四宿主浏览器实看 + CHANGELOG 与指南**——浏览器实测需用户授权读图（AGENTS.md）；
+   三个 docs 文件当前也载有他方未提交改动，须走同一套混改流程。
+
+**恢复执行的前置判断（任一为真即可解锁第 2、3 项）**：
+`list_chat_sessions` 查「检查 GitHub Issue 5」会话——若它已提交，则基线转干净，剩余工作全部退化为普通开发；
+若它仍在写，则第 2 项继续等待，第 1、3 项仍可推进。
+
 **被阻塞的剩余工作**——全部要改下列 8 个文件，而它们当前载有另一项在途功能（流式列表）的**未提交**改动，直接提交会把别人的工作打进我的 commit message：
 
 `property-search.ts`（Task 1 后半 + Task 3/4 的提示数值来源）、其 spec、`element-factory.ts` 及其 spec、`PropertyPanel.vue`（Task 6 页面背景色）、`TableCellGroup.vue` + `BorderBgGroup.vue` + `TableCellGroup.spec.ts`（Task 5）、common 的 `property-panel.ts` + `table-props.ts`（Task 7）。
