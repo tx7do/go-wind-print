@@ -174,6 +174,8 @@ export interface PropertyItem {
 6. 存量模板里"作者手工设成恰好等于出厂值"的键会显示灰态点不动，语义正确但可能被认为坏了；CHANGELOG 与提示语要写清"灰色＝已是默认值"。
 7. canvas 与 common 两份接入必须同批完成，否则 PARITY 出现半边功能。
 8. 批量改写属性行时禁用宽跨度正则，逐处 `Edit`；同文件多 `Edit` 串行（历史事故：并行吞掉按钮属性与分区标签）。
+9. **`字体` 与 `默认字体` 两行的落点存在基线依赖**（实施期发现）：HEAD 上 `createDefaultOptions` 的 base 带 `fontFamily: DEFAULT_PRINT_FONT_FAMILY`、table 带 `tableDefaultFontFamily`；工作区另有一份**未提交**改动正在删除它们。派生规则对两种基线都成立（写回黑体 vs 删键交还 CSS 继承，自动跟随），但同一模板在两种基线下"恢复默认值"的结果不同。故第八节的落点钉桩测试**刻意不硬编码 `fontFamily`**，改由运行时 `createDefaultOptions(type)` 求值；该改动若落地，`字体` 行灰态含义从"出厂即黑体"变为"出厂即未设"，属预期。
+10. **实施基线必须是已提交状态**：当前工作区同时载有另一项在途功能（流式列表）的未提交改动，其中 `property-search.ts`、`element-factory.ts`、`PropertyPanel.vue`、`TableCellGroup.vue`、`BorderBgGroup.vue`、common 的 `property-panel.ts` / `table-props.ts` 与本设计接入面**直接重叠**。在这些文件上继续开发会把别人的在途工作混进本设计的提交——须先让其在途改动落地，或改用隔离工作区。
 
 ## 十、伴侣屏留存
 
