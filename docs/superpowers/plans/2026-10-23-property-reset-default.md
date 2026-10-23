@@ -1419,7 +1419,7 @@ common 侧逐处对应（`reset()` 28 + 裁剪 2 + 页面背景 1 + 单元格 24
    补验：`:9334`（jQuery 内核）与 `:9335`（React 内核）重启 dev server 载入新构建后各跑一次拖图 → 剪裁档，
    两行均出现图标、提示分别为「恢复默认值」与「恢复默认值（100 %）」、`flush=0`、15px——接入是包级的，不随宿主变。
 
-**当前质量门**：core 1082 / canvas 632 / common 258 / client 110，四包全绿；`vue-tsc` 与 `tsc` 零错；
+**当前质量门**：core 1082 / canvas 632 / common 266 / client 110，四包全绿；`vue-tsc` 与 `tsc` 零错；
 `npm run build` 退出码 0；render 服务 30 条真实 Chromium 绿；`class-audit.mjs` 退出码 0，
 `pd-reset-btn` / `pd-label-t` 不在 13 条历史差异里。他方在途量逐文件复验未变
 （`TableCellGroup.vue` +2/−1、`property-panel.ts` +95/−2、`table-props.ts` +2/−0、三个 docs 各 +17/1、+17/1、+29/2）。
@@ -1492,6 +1492,15 @@ canvas 元素台 41 个可见标签、common 元素台 33 个，逐行量 `scrol
 **两端均 0 处溢出、0 处换行**（`.pd-label` 实测 215px，最长文案「默认内边距 (mm)」只占 86px，图标 15px 还有富余）。
 至此 spec 第八节五条验收全部有对应证据：① 注册表符号来源（本轮新增）② 出厂值即落点（本轮新增）
 ③ ResetButton 四断言 ④ 各分组用例 ⑤ common DOM 签名 + `class-audit`。
+
+**补 common 侧三处测试空白（此前只有 canvas 有对应用例）**：
+- `page-extras-reset.spec.ts`（4 条）——拼版八行：提示纯文案、偏离点亮、点击写回 `TILE_DEFAULTS`
+  （目标纸张/方向/四边留白/横纵间距逐项）；全等于出厂值时八行全灰；**口径例外三处不挂图标**
+  （启用拼版是 `.tiling-switch` 开关行不是 `.pd-label` 行，故按容器断言）。
+  顺带记下实现细节：目标纸宽高只在 `sheetPaperSize === 'CUSTOM'` 时出现，且此时「目标纸方向」行让位 ⇒ 该态下图标数为 **7** 而非 8。
+- `property-panel-reset.spec.ts` 追加：高级组三行（锁定/每页重复/层级）偏离点亮 + 点击删键 + 出厂全灰；
+  页面背景色一行（T1 收口）设过即亮、点击把 `pageBackground` 删回 `undefined`、
+  且**界面上不再存在文字「默认」按钮**。
 
 **未取到浏览器级证据的一层**：单元格台（`TableCellGroup` / common 单元格区段）。
 合成点击没能把该分组刷出来（面板始终停在表格级 + 高级 + 页面行），
