@@ -1419,7 +1419,7 @@ common 侧逐处对应（`reset()` 28 + 裁剪 2 + 页面背景 1 + 单元格 24
    补验：`:9334`（jQuery 内核）与 `:9335`（React 内核）重启 dev server 载入新构建后各跑一次拖图 → 剪裁档，
    两行均出现图标、提示分别为「恢复默认值」与「恢复默认值（100 %）」、`flush=0`、15px——接入是包级的，不随宿主变。
 
-**当前质量门**：47 笔提交（`git rev-list --count 8787300..HEAD`）；core 1074 / canvas 632 / common 258 全绿；`vue-tsc` 与 `tsc` 零错；
+**当前质量门**：core 1082 / canvas 632 / common 258 / client 110，四包全绿；`vue-tsc` 与 `tsc` 零错；
 `npm run build` 退出码 0；render 服务 30 条真实 Chromium 绿；`class-audit.mjs` 退出码 0，
 `pd-reset-btn` / `pd-label-t` 不在 13 条历史差异里。他方在途量逐文件复验未变
 （`TableCellGroup.vue` +2/−1、`property-panel.ts` +95/−2、`table-props.ts` +2/−0、三个 docs 各 +17/1、+17/1、+29/2）。
@@ -1478,6 +1478,14 @@ spec 第八节验收第 2 条要求「对纳入清单的每个 key，断言出�
 在属性台**根本没有控件**（grep 无 `v-model`/`patch`/`:value` 绑定），不属于「属性行」；
 其余是第七节已列明排除的几何、内容、数组/对象与结构字段。**唯一在 UI 上可见却未接的是「线型」`borderStyle`**——
 它只存在于他方未提交的边框组重写里，HEAD 没有这一行，故仍按「等他方落地后补」处理。
+
+补上 spec 验收第 1 条的**符号来源**断言：新增 `reset-default-registry.spec.ts`（8 条）读注册表源码，
+逐条断言六个 `default` 写的是常量名（`DEFAULT_SHRINK_MIN_FONT_SIZE_PT` / `CROP_SCALE_MIN` /
+四个 `BARCODE_*`、`QR_DEFAULT_QUIET_MODULES`），并反面对照禁止出现 `default: <数字>` 这种抄字面值的写法；
+再做一次运行时对账（`propertyDefault()` 取到的值必须等于常量本身），以及「无单一常量源的行不声明 default」。
+**变异自证**：把 `default: CROP_SCALE_MIN` 改成 `default: 100` ⇒ 立刻变红并命中「疑似抄了字面值」，还原后复绿。
+（首版断言曾把常量从 `@worm-vue3-print/core` 根入口导入，取到的是 `undefined`——注册表实际用的是
+`../../render/barcode-dot.js` 这类包内相对导出，测试已改成同一路径。）
 
 **未取到浏览器级证据的一层**：单元格台（`TableCellGroup` / common 单元格区段）。
 合成点击没能把该分组刷出来（面板始终停在表格级 + 高级 + 页面行），
