@@ -147,7 +147,8 @@ export interface PropertyItem {
 |---|---|
 | `ps-left` / `ps-top` / `ps-width` / `ps-height` | 重置会让元素在画布上跳位，破坏作者排版 |
 | `cd-type`（码制）、`ct-table-mode`、`ct-table-source`、`fields` | 决定"这个元素是什么"，不是样式默认值 |
-| `ct-formatter` / `bd-content` / `bd-formatter` / `testData` | 内容与码值是作者数据，重置＝清数据，危险 |
+| `ct-formatter` / `bd-content` / `bd-formatter` / `testData` / **`ct-title`** | 内容与码值是作者数据，重置等于清文本，危险。`ct-title` 尤其点名：barcode/qrcode 的 factory 预置了 `title:'条形码'`，删键会把用户可见的标题清空 |
+| **`flow-list` 整组 5 键** | 该元素类型是本设计成文之后由另一项在途改动新增，其落点口径（尤其 `fl-auto-span` 出厂写死 `false` 属字面值型）需另立评估，本期不顺手接入 |
 | `tableColWidths` / `tableRows` / `borders` / `tablePagination` | 数组/对象型，见第三节边界 2 |
 | 分页开关 `pg-*` | 改的是行为不是数值，且 `?.enabled` 会把删键读成"关闭" |
 | 单元格边框草稿态 | 非模板属性 |

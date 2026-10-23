@@ -1143,6 +1143,29 @@ git commit -m "属性台恢复默认值：补出纸一致性回归与四宿主�
 | 第八节验收 1–8 | Task 1(1)、Task 8 Step 3(2)、Task 2(3)、Task 3–5(4)、Task 7 Step 5(5)、Task 8 Step 1(6)、Task 8 Step 6(7)、Task 8 Step 5(8) |
 | 第十一节延后项 | Task 6 Step 4（拼版两项）、Task 8 Step 6 清单第 8 条（页级行无图标） |
 
+**执行期新增的三条硬约束（续跑时必须遵守）**见下方「执行进度」；下列勘误来自把注册表 **56 个键**逐一对到计划表格的对账，**优先级高于原任务表中的对应行**。
+
+---
+
+## 计划勘误（56 键逐一对账后）
+
+注册表实际有 9 组 56 键（`position-size` 4、`appearance` 16、`flow-list` 5、`code` 12、`content` 6、`border-bg` 4、`binding` 2、`pagination` 3、`advanced` 4）。对账后原计划漏了三行、少了一条显式排除、且完全没提 flow-list：
+
+| # | 键 | 原计划 | 更正 | 依据 |
+|---|---|---|---|---|
+| E-1 | `ap-img-object-position` | Task 3 只接了 CropAnchorField 里的**倍率**行，漏了**锚点**本身 | **补接**：Task 3 Step 4 同一文件内的锚点行也挂图标，`prop-key` 为 `objectPosition`，提示**不带数字**（其缺省是"正中间"这一语义，不是某个百分比） | 注册表 tip 原文：「缺省取正中间（保住证件照头顶就选顶部）」 |
+| E-2 | `cd-fit` | Task 4 条码表**未列** | **补接**：`prop-key` 为 `fit`，factory 未预置 ⇒ 落点是删键 | 该键 keywords 为「缩放模式/拉伸/等比/fit/contain/cover」，是条码自定义设置的缩放模式 |
+| E-3 | `bb-border-style` | Task 5 只写了宽度/颜色/背景色 | **补接**：`prop-key` 为 `borderStyle`，factory 未预置 ⇒ 删键。注意与"无边框/单边**预设按钮**"区分——按钮行仍不挂 | 该键是线型下拉（实线/虚线/点线/双线），属模板属性 |
+| E-4 | `ct-title` | 排除清单只写了「内容/表达式绑定」，未点名 | **显式排除**：`ct-title` 就是内容键（keywords「内容/文本/title」），且 barcode/qrcode 的 factory 预置了 `title:'条形码'`——删掉它会清空用户文本，属危险操作 | `element-factory.ts` 的 barcode/qrcode 分支 |
+| E-5 | `flow-list` 整组 5 键 | 计划成文时不存在（他方在途新增） | **本期不做，也不得顺手接**：流式列表元素尚未落地到本设计的基线，其 `fl-columns` / `fl-row-height` / `fl-gap-x` / `fl-auto-span` / `fl-max-span` 的落点需另立口径（`fl-auto-span` 的"默认关"在 factory 里是写死的 `false`，属字面值型）。待其提交后单独评估 | `property-search.ts` 的 flow-list 组 + factory 的 `flowList` 分支 |
+
+两处键↔行映射说明，避免实施时按 1:1 硬套：
+
+- `ct-table-font` 一个键覆盖「默认字号 / 默认颜色 / 默认内边距」**三行**（该键 keywords 即这三项）。Task 4 Step 4 的三行共用同一个 `showItem('ct-table-font')` 门控，但各自挂**独立**图标。
+- `cd-font-size` 在条码语境里是「文本字号」，与 `ap-font-size`（文本元素的字体大小）是**两个不同键、两个不同 options 字段**（前者在未设时由 `BARCODE_TEXT_FONT_SIZE_MODULES` 兜底）。不要合并处理。
+
+修正后的纳入总数：**Task 3 外观组 16 行**（含锚点与倍率）、**Task 4 条码 11 + 高级 3 + 表格设置 4**、**Task 5 边框背景 4 + 单元格 9**、**Task 6 水印 5 + 拼版 6 + 页面背景色 1**。
+
 ---
 
 ## 执行进度（2026-10-23 就地执行，master 分支）
