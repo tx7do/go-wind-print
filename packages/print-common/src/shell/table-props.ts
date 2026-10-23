@@ -474,7 +474,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       numField('内边距 (mm)', optNum(cell0.padding), (c, v) => { c.padding = v }, { min: 0, max: 10, step: 0.5, placeholder: '默认' }, cellReset('padding')),
       switchRow('自动换行', cell0.wordWrap ?? true, v => write(c => { c.wordWrap = v }), undefined, cellReset('wordWrap')),
       isTextCell ? selectRow('文字溢出', cellTextFit, TEXT_FIT_OPTIONS,
-        v => write(c => { c.textFit = v as TextFit }), true) : '',
+        v => write(c => { c.textFit = v as TextFit }), true, cellReset('textFit')) : '',
       (isTextCell && cellTextFit === 'shrink')
         ? numField('最小字号 (pt)', optNum(cell0.shrinkMinFontSize), (c, v) => { c.shrinkMinFontSize = v }, { min: 0, max: 72, step: 0.5, placeholder: '默认 6' }, cellReset('shrinkMinFontSize'))
         : '',

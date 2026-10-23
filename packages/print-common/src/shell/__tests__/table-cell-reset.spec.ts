@@ -49,6 +49,18 @@ function rowOf(host: HTMLElement, text: string) {
 }
 
 describe('common 单元格组「恢复默认值」', () => {
+  it('文字溢出行同样挂图标：点击清掉自身值 ⇒ 回落到表格默认（canvas 侧同键已接，此处曾漏一行）', () => {
+    const { store, ctx, el } = makeCtx([{ textFit: 'shrink' }])
+    const host = paint(tableCellGroup(ctx, el))
+    const b = rowOf(host, '文字溢出').querySelector<HTMLButtonElement>('.pd-reset-btn')!
+    expect(b).toBeTruthy()
+    expect(b.dataset.tip).toBe('恢复默认值（跟随表格默认）')
+    expect(b.classList.contains('is-dirty')).toBe(true)
+    b.click()
+    const cells = (store.elements[0]!.options.tableRows as any)[0].cells
+    expect(cells.map((c: any) => c.textFit)).toEqual([undefined])
+  })
+
   it('字号行渲染出图标，提示固定「跟随表格默认」且不带数字', () => {
     const { ctx, el } = makeCtx([{ fontSize: 14 }])
     const host = paint(tableCellGroup(ctx, el))
