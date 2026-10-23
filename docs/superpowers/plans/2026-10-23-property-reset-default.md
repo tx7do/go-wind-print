@@ -1235,7 +1235,11 @@ Task 7 的 Step 2 已单独落地并验证向后兼容：`textContent` 逐字不
 
 ## 执行期新增的三条硬约束（续跑时必须遵守）
 
-1. **`npm run styles -w @worm-vue3-print/common` 只能在干净基线上跑**。该脚本从 `print-canvas/dist/canvas.css` 派生 `designer.css`，工作区若载有他人未提交的 scoped 样式，会被一起烘进派生产物。Task 7 Step 1–3 因此整体顺延到基线干净之后。
+1. **~~`npm run styles` 只能在干净基线上跑~~（此约束已被推翻）**。实施期查证 `.gitignore` 第 24/25 行：
+   `packages/print-common/src/core/icons.ts` 与 `src/styles/designer.css` **都是被忽略的构建产物，不入仓库**。
+   因此跑派生永远不会把他人样式"烘进提交"——它只影响本地所见。派生可随时跑、CI 每次 build 也会跑。
+   仍然成立的只有它的**反面**：这两个文件不能手写，改了也会被下次派生覆盖。
+   本约束原先是错的，导致 Task 7 的派生步骤被无谓顺延了一轮。
 2. **canvas 每次提交前必须跑 `npx vue-tsc -p tsconfig.build.json`**（在 `packages/print-canvas/` 下）。vitest 不做类型检查：`56427b1` 就是这样带着一个 TS7053 过了 597 条用例（`ElementOptions` 无索引签名），到 `d09c155` 才修掉。
 3. **落纸一致性测试的覆盖边界**：`generateHtml` 在无 `codeRenderer` 时对码类直接走 fallback，且无数据上下文时表格不出 `<td>`——所以 barcode / qrcode / table 三类的属性**在 HTML 层没有鉴别力**。首版 13 条正向断言里有 3 条是假绿，靠反面对照才暴露。这三类已改在 options 与结算函数层断言，其真实落纸一致性**必须**由 Task 8 Step 4（render 服务回归）与 Step 6（浏览器实看）覆盖，不能算已由单测证明。
 
