@@ -42,6 +42,12 @@ export const BARCODE_BAR_HEIGHT_MODULES = 30
 export const BARCODE_TEXT_FONT_SIZE_MODULES = 10
 /** 文本区与条码图形之间的间距（模块） */
 export const BARCODE_MARGIN_BOTTOM_MODULES = 2
+/**
+ * 二维码静区缺省档（模块）：`qrQuietZone` 未设置时使用，0 = 码面等比铺满元素框。
+ * 从 browser 侧上收到同构层，供 designer 的属性注册表引用——designer 不得反向依赖
+ * `browser/`（那里 import 了 jsbarcode / qrcode 等 DOM 侧依赖）。
+ */
+export const QR_DEFAULT_QUIET_MODULES = 0
 /** 基础模块宽度（mm）：barWidth=2（每模块用户单位数 1）时每个模块的物理宽度 */
 export const BARCODE_MODULE_WIDTH_MM = 0.25
 /**

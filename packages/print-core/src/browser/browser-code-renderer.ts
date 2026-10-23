@@ -14,6 +14,7 @@ import QRCode from 'qrcode'
 import {
   BARCODE_MARGIN_BOTTOM_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
+  QR_DEFAULT_QUIET_MODULES,
   barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   layoutBarcodeSize,
@@ -79,9 +80,6 @@ function renderBarcodeSvg(value: string, opts: CodeRenderOptions): string {
   svg.setAttribute('shape-rendering', 'crispEdges')
   return svg.outerHTML
 }
-
-/** 二维码静区缺省档（模块）：元素/单元格选项 qrQuietZone 未设置时使用，0 = 码面等比铺满元素框 */
-const QR_DEFAULT_QUIET_MODULES = 0
 
 /** 静区取非负整数模块数；未填或非法值回退缺省档，0 是合法档（码面即整张图） */
 function qrQuietModules(value?: number): number {
