@@ -245,10 +245,10 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
   rows.push(group(ctx, 'advanced', '高级设置', 'Setting', [
     h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, [
       h('div', { class: 'advanced-row' }, [
-        gateItem(ctx, 'ad-locked', switchField(ctx, '锁定', !!o.locked, v => patch({ locked: v }))),
-        gateItem(ctx, 'ad-fixed', switchField(ctx, '每页重复', !!o.fixed, v => patch({ fixed: v }))),
+        gateItem(ctx, 'ad-locked', switchField(ctx, '锁定', !!o.locked, v => patch({ locked: v }), reset('locked', 'ad-locked'))),
+        gateItem(ctx, 'ad-fixed', switchField(ctx, '每页重复', !!o.fixed, v => patch({ fixed: v }), reset('fixed', 'ad-fixed'))),
       ]),
-      gateItem(ctx, 'ad-z-index', numField(ctx, '层级', o.zIndex, v => patch({ zIndex: v }), { min: 0, max: 999 })),
+      gateItem(ctx, 'ad-z-index', numField(ctx, '层级', o.zIndex, v => patch({ zIndex: v }), { min: 0, max: 999 }, reset('zIndex', 'ad-z-index'))),
       gateItem(ctx, 'ad-delete', h('div', { class: 'pd-field' }, [
         h('button', {
           type: 'button', class: 'pd-button danger', text: '删除元素',
