@@ -791,8 +791,20 @@ const CELL_TIP = '恢复默认值（跟随表格默认）'
 </div>
 ```
 
-需接入的单元格键（`prop-key` 用 `options` 上的真实字段名）：`fontSize`、`padding`、`barQuietZone`、`barHeight`、`barFontSize`、`qrQuietZone`、`maxWidth`、`maxHeight`、`shrinkMinFontSize`。
-**不接入**：`borders` 草稿态三件套（边框样式/宽度/颜色）、`colspan`/`rowspan`、单元格类型 `cellType`、单元格内容表达式。
+需接入的单元格键共 **24 项**（`prop-key` 用 cell 上的真实字段名；原计划写"九项"是严重低估，已按源码 `c.*` 全量对账更正）：
+
+`align`、`valign`、`fontFamily`、`fontSize`、`fontWeight`、`color`、`backgroundColor`、`textFit`、`shrinkMinFontSize`、`wordWrap`、`padding`、`fit`、`objectPosition`、`fitScale`、`maxWidth`、`maxHeight`、`printerDpi`、`barWidth`、`barQuietZone`、`barHeight`、`barFontSize`、`showBarcodeText`、`qrCodeLevel`、`qrQuietZone`。
+
+**不接入 4 项**：`cellType`（单元格类型，决定"这格是什么"）、`barcodeType`（码制）、`formatter`（内容表达式）、`borders`（边框结构与草稿态）。
+
+两处必须注意的字段名差异，元素级与单元格级**不同名**，不要照抄：
+
+| 语义 | 元素级 `options` | 单元格级 `cell` |
+|---|---|---|
+| 显示文本 | `hideTitle`（反义：`!== true` 为显示） | `showBarcodeText`（正义） |
+| 条码文本字号 | `fontSize` | `barFontSize` |
+
+`showBarcodeText` 的极性要先核实：若它是"未设即显示"，删键正确；若组件按 `?? false` 读，删键会把文本关掉。实施时给这一行单独写一条"恢复后与出厂渲染一致"的断言，不要凭元素级的 `hideTitle` 经验推。
 
 - [ ] **Step 5: 边框背景组接入**
 
@@ -1171,7 +1183,7 @@ git commit -m "属性台恢复默认值：补出纸一致性回归与四宿主�
 - `ct-table-font` 一个键覆盖「默认字号 / 默认颜色 / 默认内边距」**三行**（该键 keywords 即这三项）。Task 4 Step 4 的三行共用同一个 `showItem('ct-table-font')` 门控，但各自挂**独立**图标。
 - `cd-font-size` 在条码语境里是「文本字号」，与 `ap-font-size`（文本元素的字体大小）是**两个不同键、两个不同 options 字段**（前者在未设时由 `BARCODE_TEXT_FONT_SIZE_MODULES` 兜底）。不要合并处理。
 
-修正后的纳入总数：**Task 3 外观组 16 行**（含锚点与倍率）、**Task 4 条码 11 + 高级 3 + 表格设置 4**、**Task 5 边框背景 4 + 单元格 9**、**Task 6 水印 5 + 拼版 6 + 页面背景色 1**。
+修正后的纳入总数：**Task 3 外观组 16 行**（含锚点与倍率）、**Task 4 条码 11 + 高级 3 + 表格设置 4**、**Task 5 边框背景 4 + 单元格 24**、**Task 6 水印 5 + 拼版 6 + 页面背景色 1**。合计 **74 个图标位**（TableRowGroup 三项已撤出，见下）。
 
 ## 勘误的落地核实（已开源码确认，E-1 需再加细）
 
