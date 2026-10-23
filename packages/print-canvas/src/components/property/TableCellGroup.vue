@@ -21,10 +21,14 @@
           <option value="ITF14">ITF14</option>
         </select>
       </div>
-      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">显示文本</span>
+      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">显示文本</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="showBarcodeText" :tip-override="CELL_TIP" :write="(v) => write(c => { c.showBarcodeText = v })" />
+        </span>
         <input :checked="mainCell.showBarcodeText !== false" type="checkbox" class="pd-switch" @input="write(c => { c.showBarcodeText = !!($event.target as HTMLInputElement).checked })" />
       </div>
-      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">条宽（倍率）</span>
+      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">条宽（倍率）</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="barWidth" :tip-override="CELL_TIP" :write="(v) => write(c => { c.barWidth = v })" />
+        </span>
         <StepperInput :model-value="mainCell.barWidth ?? 2"
           :min="2"
           :max="8"
@@ -32,28 +36,36 @@
           @update:model-value="write(c => { c.barWidth = $event })" />
       </div>
       <p class="pd-hint" v-if="isBarcodeCell">{{ barWidthHint }}</p>
-      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="barQuietTip" aria-label="字段说明" /></span>
+      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">静区 (模块)<button type="button" class="pd-help" :data-tip="barQuietTip" aria-label="字段说明" /></span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="barQuietZone" :tip-override="CELL_TIP" :write="(v) => write(c => { c.barQuietZone = v })" />
+        </span>
         <StepperInput :model-value="mainCell.barQuietZone"
           :min="0"
           :max="20"
           placeholder="默认 10"
           @update:model-value="write(c => { c.barQuietZone = $event ?? undefined })" />
       </div>
-      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">条高 (mm)<button type="button" class="pd-help" :data-tip="barHeightTip" aria-label="字段说明" /></span>
+      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">条高 (mm)<button type="button" class="pd-help" :data-tip="barHeightTip" aria-label="字段说明" /></span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="barHeight" :tip-override="CELL_TIP" :write="(v) => write(c => { c.barHeight = v })" />
+        </span>
         <StepperInput :model-value="mainCell.barHeight"
           :min="1"
           :max="100"
           placeholder="默认 30 模块"
           @update:model-value="write(c => { c.barHeight = $event ?? undefined })" />
       </div>
-      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">文本字号（相对条高，条高为 30）</span>
+      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">文本字号（相对条高，条高为 30）</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="barFontSize" :tip-override="CELL_TIP" :write="(v) => write(c => { c.barFontSize = v })" />
+        </span>
         <StepperInput :model-value="mainCell.barFontSize ?? 10"
           :min="5"
           :max="24"
           placeholder="默认 10"
           @update:model-value="write(c => { c.barFontSize = $event ?? undefined })" />
       </div>
-      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">打印机分辨率</span>
+      <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">打印机分辨率</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="printerDpi" :tip-override="CELL_TIP" :write="(v) => write(c => { c.printerDpi = v })" />
+        </span>
         <select :value="mainCell.printerDpi ? String(mainCell.printerDpi) : ''" class="pd-select" @change="onPrinterDpiChange(($event.target as HTMLSelectElement).value)">
           <option value="">不指定（按条宽渲染）</option>
           <option value="203">203 dpi（8 点/mm）</option>
@@ -62,7 +74,9 @@
         </select>
       </div>
       <p class="pd-hint" v-if="isBarcodeCell">填写后条宽吸附到整数打印点（消除出纸「条宽忽宽忽窄」）：条码先按条宽渲染，可用宽度够就原样落纸，不够才整体等比缩小</p>
-      <div class="pd-field" v-if="isQrcodeCell"><span class="pd-label">纠错级别</span>
+      <div class="pd-field" v-if="isQrcodeCell"><span class="pd-label"><span class="pd-label-t">纠错级别</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="qrCodeLevel" :tip-override="CELL_TIP" :write="(v) => write(c => { c.qrCodeLevel = v })" />
+        </span>
         <select :value="mainCell.qrCodeLevel || 'M'" class="pd-select" @change="write(c => { c.qrCodeLevel = ($event.target as HTMLSelectElement).value || undefined })">
           <option value="L">L（最低，容量大）</option>
           <option value="M">M（推荐）</option>
@@ -71,7 +85,9 @@
         </select>
       </div>
 
-      <div class="pd-field" v-if="isQrcodeCell"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="quietTip" aria-label="字段说明" /></span>
+      <div class="pd-field" v-if="isQrcodeCell"><span class="pd-label"><span class="pd-label-t">静区 (模块)<button type="button" class="pd-help" :data-tip="quietTip" aria-label="字段说明" /></span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="qrQuietZone" :tip-override="CELL_TIP" :write="(v) => write(c => { c.qrQuietZone = v })" />
+        </span>
         <StepperInput :model-value="mainCell.qrQuietZone"
           :min="0"
           :max="8"
@@ -79,7 +95,9 @@
       </div>
 
       <p class="pd-hint" v-if="isBarcodeCell">单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限。要放大条码：先加条宽倍率，再收窄静区（左右白边会换成条宽），必要时关掉显示文本以让出文本区高度</p>
-      <div class="pd-field" v-if="isQrcodeCell || isImageCell"><span class="pd-label">缩放模式</span>
+      <div class="pd-field" v-if="isQrcodeCell || isImageCell"><span class="pd-label"><span class="pd-label-t">缩放模式</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="fit" :tip-override="CELL_TIP" :write="(v) => write(c => { c.fit = v })" />
+        </span>
         <select :value="mainCell.fit || 'contain'" class="pd-select" @change="write(c => { c.fit = ($event.target as HTMLSelectElement).value as any })">
           <option v-for="o in IMAGE_FIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
@@ -96,13 +114,17 @@
           @update:model-value="write(c => { c.objectPosition = $event })"
           @update:scale="write(c => { c.fitScale = $event })" />
       </div>
-      <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label">最大宽度 (mm)</span>
+      <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label"><span class="pd-label-t">最大宽度 (mm)</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="maxWidth" :tip-override="CELL_TIP" :write="(v) => write(c => { c.maxWidth = v })" />
+        </span>
         <StepperInput :model-value="mainCell.maxWidth"
           :min="1"
           :max="200"
           placeholder="默认" @update:model-value="write(c => { c.maxWidth = $event ?? undefined })" />
       </div>
-      <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label">最大高度 (mm)</span>
+      <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label"><span class="pd-label-t">最大高度 (mm)</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="maxHeight" :tip-override="CELL_TIP" :write="(v) => write(c => { c.maxHeight = v })" />
+        </span>
         <StepperInput :model-value="mainCell.maxHeight"
           :min="1"
           :max="200"
@@ -116,7 +138,9 @@
           @dblclick="openFormatterEditor" />
       </div>
 
-      <div class="pd-field"><span class="pd-label">水平对齐</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">水平对齐</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="align" :tip-override="CELL_TIP" :write="(v) => write(c => { c.align = v })" />
+        </span>
         <div class="pd-radio-group" role="radiogroup">
           <label class="pd-radio"><input type="radio" value="left" :checked="mainCell.align === 'left'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>左</span></label>
           <label class="pd-radio"><input type="radio" value="center" :checked="mainCell.align === 'center'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>中</span></label>
@@ -124,7 +148,9 @@
           <label class="pd-radio"><input type="radio" value="justify" :checked="mainCell.align === 'justify'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>两端</span></label>
         </div>
       </div>
-      <div class="pd-field"><span class="pd-label">垂直对齐</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">垂直对齐</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="valign" :tip-override="CELL_TIP" :write="(v) => write(c => { c.valign = v })" />
+        </span>
         <div class="pd-radio-group" role="radiogroup">
           <label class="pd-radio"><input type="radio" value="top" :checked="mainCell.valign === 'top'" @change="onValignChange(($event.target as HTMLInputElement).value)"><span>上</span></label>
           <label class="pd-radio"><input type="radio" value="middle" :checked="mainCell.valign === 'middle'" @change="onValignChange(($event.target as HTMLInputElement).value)"><span>中</span></label>
@@ -132,26 +158,36 @@
         </div>
       </div>
       <div class="cell-style-grid">
-        <div class="pd-field cell-font-field"><span class="pd-label">字体</span>
+        <div class="pd-field cell-font-field"><span class="pd-label"><span class="pd-label-t">字体</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="fontFamily" :tip-override="CELL_TIP" :write="(v) => write(c => { c.fontFamily = v })" />
+        </span>
           <FontSelect
             :model-value="mainCell.fontFamily"
             placeholder="继承默认"
             @update:model-value="write(c => { c.fontFamily = $event })"
           />
         </div>
-        <div class="pd-field"><span class="pd-label">字号 (pt)</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">字号 (pt)</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="fontSize" :tip-override="CELL_TIP" :write="(v) => write(c => { c.fontSize = v })" />
+        </span>
           <StepperInput :model-value="mainCell.fontSize"
             :min="5"
             :max="72"
             placeholder="默认" @update:model-value="write(c => { c.fontSize = $event ?? undefined })" />
         </div>
-        <div class="pd-field"><span class="pd-label">加粗</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">加粗</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="fontWeight" :tip-override="CELL_TIP" :write="(v) => write(c => { c.fontWeight = v })" />
+        </span>
           <input :checked="mainCell.fontWeight === 'bold'" type="checkbox" class="pd-switch" @input="write(c => { c.fontWeight = ($event.target as HTMLInputElement).checked ? 'bold' : undefined })" />
         </div>
-        <div class="pd-field"><span class="pd-label">文字颜色</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">文字颜色</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="color" :tip-override="CELL_TIP" :write="(v) => write(c => { c.color = v })" />
+        </span>
           <PresetColorPicker :model-value="mainCell.color" @update:model-value="write(c => { c.color = $event })" />
         </div>
-        <div class="pd-field"><span class="pd-label">背景色</span>
+        <div class="pd-field"><span class="pd-label"><span class="pd-label-t">背景色</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="backgroundColor" :tip-override="CELL_TIP" :write="(v) => write(c => { c.backgroundColor = v })" />
+        </span>
           <PresetColorPicker :model-value="mainCell.backgroundColor" @update:model-value="write(c => { c.backgroundColor = $event })" />
         </div>
       </div>
@@ -183,24 +219,32 @@
         <label class="pd-checkbox"><input type="checkbox" v-model="edgeChecks" value="left" @change="onEdgesChange($event)"><span>左</span></label>
       </div>
 
-      <div class="pd-field"><span class="pd-label">内边距 (mm)</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">内边距 (mm)</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="padding" :tip-override="CELL_TIP" :write="(v) => write(c => { c.padding = v })" />
+        </span>
         <StepperInput :model-value="mainCell.padding"
           :min="0"
           :max="10"
           :step="0.5"
           placeholder="默认" @update:model-value="write(c => { c.padding = $event ?? undefined })" />
       </div>
-      <div class="pd-field"><span class="pd-label">自动换行</span>
+      <div class="pd-field"><span class="pd-label"><span class="pd-label-t">自动换行</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="wordWrap" :tip-override="CELL_TIP" :write="(v) => write(c => { c.wordWrap = v })" />
+        </span>
         <input :checked="mainCell.wordWrap ?? true" type="checkbox" class="pd-switch" @input="write(c => { c.wordWrap = !!($event.target as HTMLInputElement).checked })" />
       </div>
-      <div class="pd-field" v-if="isTextCell"><span class="pd-label">文字溢出</span>
+      <div class="pd-field" v-if="isTextCell"><span class="pd-label"><span class="pd-label-t">文字溢出</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="textFit" :tip-override="CELL_TIP" :write="(v) => write(c => { c.textFit = v })" />
+        </span>
         <select class="pd-select" :value="cellTextFit" style="width: 100%" @change="onTextFitChange">
           <option value="clip">截断</option>
           <option value="shrink">自动缩小</option>
           <option value="autoHeight">自适应行高</option>
         </select>
       </div>
-      <div class="pd-field" v-if="isTextCell && cellTextFit === 'shrink'"><span class="pd-label">最小字号 (pt)</span>
+      <div class="pd-field" v-if="isTextCell && cellTextFit === 'shrink'"><span class="pd-label"><span class="pd-label-t">最小字号 (pt)</span>
+          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="shrinkMinFontSize" :tip-override="CELL_TIP" :write="(v) => write(c => { c.shrinkMinFontSize = v })" />
+        </span>
         <StepperInput :model-value="mainCell.shrinkMinFontSize"
           :min="1"
           :max="72"
@@ -239,6 +283,7 @@ import {
 } from '@worm-vue3-print/core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import PropertyGroup from './PropertyGroup.vue'
+import ResetButton from './ResetButton.vue'
 import StepperInput from './StepperInput.vue'
 import ExpressionEditor from '../ExpressionEditor.vue'
 import PresetColorPicker from '../PresetColorPicker.vue'
@@ -349,6 +394,11 @@ function openFormatterEditor() {
 function onFormatterEditorConfirm(val: string) {
   write(c => { c.formatter = val || undefined })
 }
+
+/** 单元格的出厂态就是"未设"：落点恒为 undefined，删键后回落到该表格自己的表格级默认 */
+const CELL_FACTORY: Record<string, any> = {}
+/** 回落目标是作者可改的表级默认，写死数字就是假承诺，故整组固定这一句 */
+const CELL_TIP = '恢复默认值（跟随表格默认）'
 
 function write(fn: (c: TableCell) => void) {
   const s = props.selection
