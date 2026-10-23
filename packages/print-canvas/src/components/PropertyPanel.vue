@@ -114,10 +114,12 @@
             </div>
             <p class="pd-hint">整页内容旋转对应角度出纸；90°/270° 时纸张长宽互换以贴合内容，内容不变形不裁切；0° 为不旋转（默认）</p>
           </div>
-          <div class="pd-field"><span class="pd-label">页面背景色</span>
+          <div class="pd-field"><span class="pd-label"><span class="pd-label-t">页面背景色</span>
+            <ResetButton :target="{ pageBackground: pageBackgroundModel }" :base="{ pageBackground: undefined }"
+              prop-key="pageBackground" :write="() => onPageBackgroundReset()" />
+          </span>
             <div class="page-bg-row">
               <div class="page-bg-picker"><PresetColorPicker v-model="pageBackgroundModel" /></div>
-              <button type="button" class="pd-reset" title="恢复为默认白色" @click="onPageBackgroundReset">默认</button>
             </div>
           </div>
 
@@ -172,6 +174,7 @@ import type { RuntimeElement, PrintBusinessField, TemplateData, TableSelection }
 import { PAPER_PRESETS, isContinuousPaperSize, isLabelPaperSize, labelPaperDefaults } from '@worm-vue3-print/core/designer'
 import { searchProperties } from '@worm-vue3-print/core/designer'
 import PropertySearch from './property/PropertySearch.vue'
+import ResetButton from './property/ResetButton.vue'
 import PositionSizeGroup from './property/PositionSizeGroup.vue'
 import AppearanceGroup from './property/AppearanceGroup.vue'
 import CodeGroup from './property/CodeGroup.vue'
@@ -609,21 +612,5 @@ function expandTab(tab: 'element' | 'page') {
 .page-bg-picker {
   flex: 1;
   min-width: 0;
-}
-.pd-reset {
-  height: 26px;
-  padding: 0 8px;
-  border: 1px solid var(--pd-border, #d9dde6);
-  border-radius: 5px;
-  background: var(--pd-field-bg, #f4f6fa);
-  color: var(--pd-text-muted, #8b909c);
-  font-size: 12px;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all .14s ease;
-}
-.pd-reset:hover {
-  color: var(--pd-accent, #165DFF);
-  border-color: var(--pd-accent, #165DFF);
 }
 </style>
