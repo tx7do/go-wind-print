@@ -65,6 +65,22 @@ describe('resetButton 派生规则', () => {
       .toBe('恢复默认值（跟随表格默认）')
   })
 
+  it('给了 write 时走 write 而不是直接改 target（单元格整选区用）', async () => {
+    const seen: any[] = []
+    const target: Record<string, any> = { k: 5 }
+    const host = mount(resetButton({ target, base: { k: 7 }, propKey: 'k', write: v => seen.push(v) }))
+    btn(host).click()
+    expect(seen).toEqual([7])
+    expect(target.k).toBe(5)
+  })
+
+  it('灰态时即便给了 write 也不触发', () => {
+    let called = 0
+    const host = mount(resetButton({ target: {}, base: {}, propKey: 'k', write: () => { called++ } }))
+    btn(host).click()
+    expect(called).toBe(0)
+  })
+
   it('按钮不得有任何文本子节点（属性搜索按 textContent 匹配标签）', () => {
     expect(btn(mount(resetButton({ target: { k: 1 }, base: {}, propKey: 'k' }))).textContent).toBe('')
   })

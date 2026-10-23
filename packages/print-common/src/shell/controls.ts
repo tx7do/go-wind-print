@@ -197,6 +197,8 @@ export function resetButton(o: {
   tipUnit?: string
   /** 覆盖整条提示（单元格级固定用「跟随表格默认」，回落目标是该表自己的默认） */
   tipOverride?: string
+  /** 覆盖写回通道：单元格组必须整选区恢复，不能让按钮只改当前展示的那一个 cell 对象 */
+  write?: (value: any) => void
   /** 写回后的收尾（重绘 / 记历史）；不提供时只改对象 */
   onReset?: () => void
 }) {
@@ -213,7 +215,8 @@ export function resetButton(o: {
     html: iconSvg('RotateCcw', 13),
     onClick: () => {
       if (!dirty) return
-      o.target[o.propKey] = factory
+      if (o.write) o.write(factory)
+      else o.target[o.propKey] = factory
       o.onReset?.()
     },
   })
