@@ -99,7 +99,9 @@ export interface PropertyItem {
 
 **样式**：`.pd-reset-btn`（15×15、`color: var(--pd-text-faint)`、透明边框）+ `.pd-reset-btn.is-active`（`color: var(--pd-accent)`）+ `:hover`（蓝字 + `rgba(22,93,255,.09)` 底），写在 canvas scoped style 与 `native-controls.css`，由 `gen-styles.mjs` 派生给 common。
 
-**接入面**：`property/AppearanceGroup`、`property/CodeGroup`、`property/BorderBgGroup`、`property/AdvancedGroup`、`property/TableRowGroup`、`property/TableCellGroup`、`property/TableSettingsGroup`、`property/CropAnchorField`、`WatermarkConfig`、`property/TilingConfig`。
+**接入面**：`property/AppearanceGroup`、`property/CodeGroup`、`property/BorderBgGroup`、`property/AdvancedGroup`、`property/TableCellGroup`、`property/TableSettingsGroup`、`property/CropAnchorField`、`WatermarkConfig`、`property/TilingConfig`。
+
+`property/TableRowGroup.vue` **整组撤出本期**（原列为接入面，经核实不成立）：行属性挂在 `row` 对象而非 `options`，其"出厂值"依赖行在表中的位置与类型——`insertRow` 用 `height: ref.height` 让新行**继承相邻行**（`table-matrix.ts`），行高无统一默认；`repeatOnPage` 表头行出厂 `true`、数据行未设；`type` 出厂由位置决定。派生规则的前提是"该层存在单一出厂对象"，行层不满足，硬接会把作者插入的行错误重置成 8mm。
 
 `property/FontSelect.vue` **本身不改**——「字体」行的图标挂在外观组的 `.pd-label` 上，组件只负责选字体；它自带的下拉首行「默认」是**清行**语义，与行尾图标并存，本期不动它（避免一次改两处入口）。`property/BindingControl.vue` **不接入**：内容与表达式绑定属第七节排除清单。
 
@@ -149,6 +151,7 @@ export interface PropertyItem {
 | `cd-type`（码制）、`ct-table-mode`、`ct-table-source`、`fields` | 决定"这个元素是什么"，不是样式默认值 |
 | `ct-formatter` / `bd-content` / `bd-formatter` / `testData` / **`ct-title`** | 内容与码值是作者数据，重置等于清文本，危险。`ct-title` 尤其点名：barcode/qrcode 的 factory 预置了 `title:'条形码'`，删键会把用户可见的标题清空 |
 | **`flow-list` 整组 5 键** | 该元素类型是本设计成文之后由另一项在途改动新增，其落点口径（尤其 `fl-auto-span` 出厂写死 `false` 属字面值型）需另立评估，本期不顺手接入 |
+| **行属性组 `TableRowGroup` 全部三行**（行类型 / 行高 / 表头每页重复） | 挂在 `row` 对象而非 `options`，且 `insertRow` 让新行继承相邻行高（`height: ref.height`）——该层不存在单一出厂对象，派生规则前提不成立 |
 | `tableColWidths` / `tableRows` / `borders` / `tablePagination` | 数组/对象型，见第三节边界 2 |
 | 分页开关 `pg-*` | 改的是行为不是数值，且 `?.enabled` 会把删键读成"关闭" |
 | 单元格边框草稿态 | 非模板属性 |

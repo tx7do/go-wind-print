@@ -690,13 +690,14 @@ git commit -m "条码/高级/表格设置三组接入「恢复默认值」，码
 
 ---
 
-### Task 5: canvas — 边框背景组、表格行组、单元格组接入（整选区写回）
+### Task 5: canvas — 边框背景组、单元格组接入（整选区写回）
 
 **Files:**
 - Modify: `packages/print-canvas/src/components/property/BorderBgGroup.vue`
-- Modify: `packages/print-canvas/src/components/property/TableRowGroup.vue`
 - Modify: `packages/print-canvas/src/components/property/TableCellGroup.vue`
 - Test: `packages/print-canvas/src/__tests__/TableCellGroup.spec.ts`、`BorderBgGroup.spec.ts`
+
+> **`TableRowGroup.vue` 已撤出本任务**，理由见本任务 Step 5 末段。
 
 **Interfaces:**
 - Consumes：Task 2 组件的 `write` prop、`tipOverride`
@@ -793,11 +794,17 @@ const CELL_TIP = '恢复默认值（跟随表格默认）'
 需接入的单元格键（`prop-key` 用 `options` 上的真实字段名）：`fontSize`、`padding`、`barQuietZone`、`barHeight`、`barFontSize`、`qrQuietZone`、`maxWidth`、`maxHeight`、`shrinkMinFontSize`。
 **不接入**：`borders` 草稿态三件套（边框样式/宽度/颜色）、`colspan`/`rowspan`、单元格类型 `cellType`、单元格内容表达式。
 
-- [ ] **Step 5: 边框背景组与行组接入**
+- [ ] **Step 5: 边框背景组接入**
 
-`BorderBgGroup.vue`：边框宽度 `borderWidth`、边框颜色 `borderColor`、背景色 `backgroundColor` 等**模板属性行**接入，`base` 用 `createDefaultOptions(element.printElementType.type)`（矩形/椭圆的 `borderWidth`、`borderColor` 出厂即 `1` / `#333`，会自动走写回）；「无边框 / 单边」这类**预设按钮行不挂**。
+`BorderBgGroup.vue`：线型 `borderStyle`（勘误 E-3）、边框宽度 `borderWidth`、边框颜色 `borderColor`、背景色 `backgroundColor` 四行接入，`base` 用 `createDefaultOptions(element.printElementType.type)`（矩形/椭圆的 `borderWidth`、`borderColor` 出厂即 `1` / `#333`，会自动走写回；`borderStyle` 出厂未设 ⇒ 删键）；「无边框 / 单边」这类**预设按钮行不挂**。注意该文件 `.pd-field` 有嵌套，测试辅助要先判直接命中。
 
-`TableRowGroup.vue`：行高 `height` 接入（`base` 取 `createDefaultTable()` 对应默认，行高出厂 `8`）；「行类型」「表头重复」按排除清单**不挂**（改的是行为语义）。
+**`TableRowGroup.vue` 整组撤出本期**（原计划写"行高接入，base 取 createDefaultTable() 行高 8"，经核实是错的）：
+
+- `insertRow` 用 `height: ref.height` 让新行**继承相邻行**（`table-matrix.ts`），行高没有统一出厂值——按索引回查 factory 会把作者插入的行错误重置成 8mm。
+- `repeatOnPage` 表头行出厂 `true`、数据行未设；`type` 出厂由行位置决定。
+- 派生规则的前提是"该层存在单一出厂对象"，行层不满足。
+
+撤出后 Task 5 只剩 `BorderBgGroup` 与 `TableCellGroup` 两个文件，本任务的测试步骤里删去行组相关用例。
 
 - [ ] **Step 6: 跑测试确认通过**
 
