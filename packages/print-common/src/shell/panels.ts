@@ -13,6 +13,7 @@ export const ELEMENT_TYPES: { type: ElementType; label: string; icon: string }[]
   { type: 'qrcode', label: '二维码', icon: '▦' },
   { type: 'image', label: '图片', icon: '▧' },
   { type: 'table', label: '表格', icon: '⊞' },
+  { type: 'flowList', label: '流式列表', icon: '⊟' },
   { type: 'longText', label: '长文', icon: '¶' },
   { type: 'hline', label: '横线', icon: '―' },
   { type: 'vline', label: '竖线', icon: '│' },
@@ -22,7 +23,7 @@ export const ELEMENT_TYPES: { type: ElementType; label: string; icon: string }[]
 ]
 
 const LAYER_ICON: Record<string, string> = {
-  text: 'T', longText: '¶', table: '⊞', image: '🖼', barcode: '≡', qrcode: '▣',
+  text: 'T', longText: '¶', table: '⊞', flowList: '⊟', image: '🖼', barcode: '≡', qrcode: '▣',
   hline: '—', vline: '|', rect: '□', oval: '○', html: '<>',
 }
 

@@ -2,22 +2,11 @@
 // 字体候选列表验收：对照 canvas 的 property/FontSelect.vue
 // （类名 / aria / 行构成 / 键盘上下选择 + 回车确认 + Esc 关闭 / 展开态跨重绘保持 / 浮层放置档）。
 import { describe, it, expect, vi } from 'vitest'
-import { SYSTEM_FONT_OPTIONS } from '@worm-vue3-print/core'
 import { h, render } from '../../core/h'
 import type { ShellState } from '../controls'
 import { renderFontSelect } from '../font-select'
 
 const FONTS = ['SimSun', 'SimHei', 'Microsoft YaHei', 'KaiTi']
-
-/**
- * 宿主清单之后的系统候选行文案（下拉拼成「label（family）」）。
- * 与宿主重名的档位已被去重，所以这里按宿主清单过滤。
- */
-function systemRows(host: readonly string[]): string[] {
-  return SYSTEM_FONT_OPTIONS
-    .filter(font => !host.some(name => name.toLowerCase() === font.family.toLowerCase()))
-    .map(font => `${font.label}（${font.family}）`)
-}
 
 function makeState(): ShellState {
   return {
@@ -82,10 +71,10 @@ describe('font-select 结构与 aria（对照 FontSelect.vue）', () => {
     expect(m.input.getAttribute('aria-controls')).toBe(m.list()!.id)
   })
 
-  it('空值行文案 = placeholder；宿主清单在前、系统候选在后', () => {
+  it('空值行文案 = placeholder；候选只有宿主清单，没有内置字体档', () => {
     const m = mount({ state: makeState(), placeholder: '继承默认' })
     m.focus()
-    expect(m.labels()).toEqual(['继承默认', ...FONTS, ...systemRows(FONTS)])
+    expect(m.labels()).toEqual(['继承默认', ...FONTS])
     expect(m.list()).toBeTruthy()
     expect(m.input.getAttribute('aria-expanded')).toBe('true')
     expect(m.rows().every(li => li.getAttribute('role') === 'option')).toBe(true)
@@ -94,7 +83,7 @@ describe('font-select 结构与 aria（对照 FontSelect.vue）', () => {
   it('当前值不在清单内时补一行「xxx（未知）」且置灰（canvas 的 unknown 行）', () => {
     const m = mount({ state: makeState(), value: 'Zapfino' })
     m.focus()
-    expect(m.labels()).toEqual(['默认', 'Zapfino（未知）', ...FONTS, ...systemRows(FONTS)])
+    expect(m.labels()).toEqual(['默认', 'Zapfino（未知）', ...FONTS])
     expect(m.rows()[1]!.classList.contains('is-muted')).toBe(true)
     expect(m.input.value).toBe('Zapfino')
   })
@@ -107,7 +96,6 @@ describe('font-select 结构与 aria（对照 FontSelect.vue）', () => {
     m.focus()
     expect(m.labels()).toEqual([
       '默认', '微软雅黑（Microsoft YaHei）', 'SimHei',
-      ...systemRows(['Microsoft YaHei', 'SimHei']),
     ])
     m.clickRow(1)
     expect(m.picked).toEqual(['Microsoft YaHei'])
@@ -145,13 +133,9 @@ describe('font-select 键盘与选择口径', () => {
 
   it('输入过滤：命中项按模糊档位排序；一条都没命中时给「使用「xxx」」', () => {
     const m = mount({ state: makeState() })
-    // 'hei' 命中系统档 Heiti SC（族名 heitisc 前缀=1 档）先于宿主 SimHei（子串=2 档）与 Microsoft YaHei
+    // 'hei' 子串命中宿主 SimHei 与 Microsoft YaHei，同档保持清单原序
     m.type('hei')
-    expect(m.labels()).toEqual([
-      systemRows(['Microsoft YaHei', 'SimHei', 'SimSun', 'KaiTi'])[0]!,
-      'SimHei',
-      'Microsoft YaHei',
-    ])
+    expect(m.labels()).toEqual(['SimHei', 'Microsoft YaHei'])
     m.type('Zap')
     expect(m.labels()).toEqual(['使用「Zap」'])
     expect(m.rows()[0]!.classList.contains('is-muted')).toBe(true)
@@ -159,13 +143,15 @@ describe('font-select 键盘与选择口径', () => {
     expect(m.picked).toEqual(['Zap'])
   })
 
-  it('未声明的系统候选可直接选中并提交族名（免字体文件档）', () => {
+  it('宿主未声明字体时只剩「默认」行，字体名靠手工录入提交', () => {
     const m = mount({ state: makeState(), fonts: [] })
     m.focus()
-    expect(m.labels()).toEqual(['默认', ...systemRows([])])
-    m.clickRow(1)
-    expect(m.picked).toEqual([SYSTEM_FONT_OPTIONS[0]!.family])
-    expect(m.input.value).toBe(SYSTEM_FONT_OPTIONS[0]!.label)
+    expect(m.labels()).toEqual(['默认'])
+    m.type('BrandScript')
+    expect(m.labels()).toEqual(['使用「BrandScript」'])
+    m.key('Enter')
+    expect(m.picked).toEqual(['BrandScript'])
+    expect(m.input.value).toBe('BrandScript')
   })
 
   it('Esc 关闭且不提交，输入框回到当前生效值（canvas 的 onCancel）', () => {

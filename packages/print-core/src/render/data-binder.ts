@@ -3,6 +3,7 @@
 
 import type { TemplateData, TemplateElement, RenderRow, RenderCell } from './types.js'
 import { evaluateTemplate } from './expression-eval.js'
+import { detectFlowListKey } from './flow-list.js'
 
 /**
  * 将模板中元素的 formatter 表达式求值为实际值。
@@ -59,8 +60,11 @@ function bindElement(
   baseUrl?: string,
 ): TemplateElement {
   const cloned = { ...el, options: { ...el.options } }
+  // 流式列表的 formatter 是「每行一项」的模板，不能按整份数据求值：
+  // 表达式里的列表路径（{drugs.name}）对整份数据求值会得到空串，模板就被抹平了
+  const isFlowList = cloned.type === 'flowList' || cloned.printElementType?.type === 'flowList'
   // 对元素 formatter 求值
-  if (typeof cloned.options.formatter === 'string') {
+  if (!isFlowList && typeof cloned.options.formatter === 'string') {
     const raw = cloned.options.formatter
     if (referencesPageNumbers(raw)) {
       // 引用了页码的表达式（{pageIndex}、{ADD(pageIndex,1)}）：pageIndex/totalPages 要等分页后才有值，
@@ -86,7 +90,34 @@ function bindElement(
   if (cloned.type === 'table' || cloned.printElementType?.type === 'table') {
     bindTableData(cloned, data)
   }
+  // 流式列表数据绑定：单元模板对数组逐项求值
+  if (cloned.type === 'flowList' || cloned.printElementType?.type === 'flowList') {
+    bindFlowListData(cloned, data)
+  }
   return cloned
+}
+
+/**
+ * 流式列表：与表格共用「列表源解析」（dataSource → fields → 顶层第一个数组兜底），
+ * 但只产出一维的单元文本——单元模板（options.formatter）对每个数据项求值一次，
+ * 排布与跨列留给 html-generator。
+ */
+function bindFlowListData(el: TemplateElement, data: Record<string, any>): void {
+  const template = typeof el.options.formatter === 'string' ? el.options.formatter : ''
+  // 列表源从表达式里检出（如 {drugs.name}），没有显式声明就不要求作者再填一遍
+  const source = { ...el.options, dataSource: el.options.dataSource ?? detectFlowListKey(template, data) }
+  const { list, key } = resolveListSource(source, data)
+  const itemCtx = (item: Record<string, any>): Record<string, any> =>
+    key ? { ...data, ...item, [key]: item } : { ...data, ...item }
+  // 设计器里没绑定表达式时按测试数据兜底，保证画布与预览都有可见内容
+  const items = list.map(item => {
+    if (!template) return String(item ?? '')
+    return referencesPageNumbers(template)
+      ? template
+      : evaluateTemplate(template, itemCtx(item))
+  })
+  el.options._flowItems = items
+  el.options._flowRawFormatter = referencesPageNumbers(template) ? template : undefined
 }
 
 function resolveListSource(opts: any, data: Record<string, any>): { list: Record<string, any>[]; key: string | undefined } {

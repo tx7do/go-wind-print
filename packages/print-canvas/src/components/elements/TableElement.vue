@@ -289,7 +289,7 @@ function cellStyle(_row: TableRow, cell: TableCell): Record<string, string> {
     borderBottom: resolveCellBorderCss(cell.borders?.bottom, borderOpts),
     borderLeft: resolveCellBorderCss(cell.borders?.left, borderOpts),
     padding: (cell.padding ?? o.tableDefaultPadding ?? 1) + 'mm',
-    whiteSpace: (cell.wordWrap ?? true) ? 'normal' : 'nowrap',
+    whiteSpace: (cell.wordWrap ?? true) ? 'pre-wrap' : 'nowrap',
     overflow: (cell.wordWrap ?? true) ? 'visible' : 'hidden',
   }
 }
@@ -560,7 +560,8 @@ onUnmounted(() => {
 }
 .print-table td {
   box-sizing: border-box;
-  word-break: break-all;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 .cell-selected {
   outline: 2px solid #165DFF;

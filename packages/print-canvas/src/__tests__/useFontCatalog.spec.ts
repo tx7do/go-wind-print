@@ -1,7 +1,7 @@
 // packages/print-canvas/src/__tests__/useFontCatalog.spec.ts
 import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
-import { SYSTEM_FONT_OPTIONS, type PrintFontDeclaration } from '@worm-vue3-print/core'
+import type { PrintFontDeclaration } from '@worm-vue3-print/core'
 import { filterFontOptions, useFontCatalog, type FontOption } from '../composables/useFontCatalog'
 
 const decl = (family: string, label?: string): PrintFontDeclaration => ({
@@ -10,45 +10,35 @@ const decl = (family: string, label?: string): PrintFontDeclaration => ({
   files: [{ url: `/fonts/${family}.woff2` }],
 })
 
-/** 目录尾部应当恰好是「系统候选减去与宿主重名的那几条」，顺序保持系统清单原序 */
-const systemTail = (host: readonly string[]): FontOption[] =>
-  SYSTEM_FONT_OPTIONS
-    .filter(f => !host.some(h => h.toLowerCase() === f.family.toLowerCase()))
-    .map(f => ({ ...f }))
-
 describe('useFontCatalog', () => {
-  it('未声明字体时目录即系统字体候选（免字体文件，本机可用）', () => {
+  it('未声明字体时目录为空：设计器不陈列任何字体名', () => {
     const { catalog } = useFontCatalog(ref(undefined))
-    expect(catalog.value).toEqual(SYSTEM_FONT_OPTIONS.map(f => ({ ...f })))
+    expect(catalog.value).toEqual([])
   })
 
-  it('宿主声明在前、系统候选在后，顺序与展示名按声明保留', () => {
-    const { catalog } = useFontCatalog(ref([decl('Ma Shan Zheng', '马善政毛笔楷书'), decl('FangSong')]))
-    expect(catalog.value.slice(0, 2)).toEqual([
+  it('目录只含宿主声明，顺序与展示名按声明保留', () => {
+    const { catalog } = useFontCatalog(ref([decl('Ma Shan Zheng', '马善政毛笔楷书'), decl('Brand Sans')]))
+    expect(catalog.value).toEqual([
       { family: 'Ma Shan Zheng', label: '马善政毛笔楷书' },
-      { family: 'FangSong' },
+      { family: 'Brand Sans' },
     ])
-    expect(catalog.value.slice(2)).toEqual(systemTail(['Ma Shan Zheng', 'FangSong']))
   })
 
-  it('去空白、丢空族名、族名大小写不敏感去重（同族名以宿主声明为准）', () => {
+  it('去空白、丢空族名、族名大小写不敏感去重并保留首现 label', () => {
     const { catalog } = useFontCatalog(ref([
-      decl('  SimSun  ', '报馆宋体'),
+      decl('  Brand Sans  ', '品牌体'),
       decl(''),
-      decl('simsun'),
+      decl('brand sans'),
       decl('  ', '空族名'),
     ]))
-    expect(catalog.value[0]).toEqual({ family: 'SimSun', label: '报馆宋体' })
-    expect(catalog.value.filter(f => f.family.toLowerCase() === 'simsun')).toHaveLength(1)
-    expect(catalog.value.slice(1)).toEqual(systemTail(['SimSun']))
+    expect(catalog.value).toEqual([{ family: 'Brand Sans', label: '品牌体' }])
   })
 
   it('声明响应式变化后目录同步更新', () => {
-    const declarations = ref<readonly PrintFontDeclaration[]>([decl('SimSun')])
+    const declarations = ref<readonly PrintFontDeclaration[]>([decl('Brand Sans')])
     const { catalog } = useFontCatalog(declarations)
-    declarations.value = [decl('KaiTi', '楷体')]
-    expect(catalog.value[0]).toEqual({ family: 'KaiTi', label: '楷体' })
-    expect(catalog.value.slice(1)).toEqual(systemTail(['KaiTi']))
+    declarations.value = [decl('Brand Serif', '品牌衬线体')]
+    expect(catalog.value).toEqual([{ family: 'Brand Serif', label: '品牌衬线体' }])
   })
 })
 

@@ -92,7 +92,7 @@ export type TemplateElement = PrintElementData
 
 /** 元素类型 */
 export type ElementType =
-  | 'text' | 'image' | 'longText' | 'table'
+  | 'text' | 'image' | 'longText' | 'table' | 'flowList'
   | 'hline' | 'vline' | 'rect' | 'oval'
   | 'barcode' | 'qrcode' | 'html'
   | 'pageNumber'
@@ -368,6 +368,23 @@ export interface ElementOptions {
   rowStyler?: string
   // 长文本特有：首行缩进，单位 em（随字号，textFit='shrink' 缩小后缩进同步变窄）
   longTextIndent?: number
+  // ─── 流式列表（flowList）特有 ───
+  /**
+   * 每行列数：必须由模板作者指定，不随内容自动算（见 specs 第八节第 1 项）。
+   * 列数 × 单元宽放不进元素框时属性台只提示、不改用户填的数（第 3 项口径）。
+   */
+  flowColumns?: number
+  /** 行高（mm，最小高语义：内容高于行高时该行撑高，与表格行高同口径） */
+  flowRowHeight?: number
+  /** 单元横向间距（mm）；纵向不留缝，行距由行高承担 */
+  flowGapX?: number
+  /** 内容过长时自动跨列（占位式：吃掉 N 个列位，当前行剩不够就整个挪到下一行行首）；缺省关 */
+  flowAutoSpan?: boolean
+  /**
+   * 最多跨几列：仅在 flowAutoSpan 为真时生效。上限钳到「每行列数」——这是本元素唯一
+   * 会改用户填值的行为，与 flowColumns 冲突时按列数顶回（specs 第八节第 9 项）。
+   */
+  flowMaxSpan?: number
 }
 
 /** 元素类型元数据 */

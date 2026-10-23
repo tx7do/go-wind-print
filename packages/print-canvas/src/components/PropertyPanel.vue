@@ -49,7 +49,14 @@
               :element="element!"
               :fields="fields"
             />
-            <BorderBgGroup v-if="filteredGroups.includes('border-bg')" :element="element" :matched-keys="matchedKeys" :searching="searching" />
+            <!-- 流式列表设置（每行列数、行高、跨列）：与表格分组互斥，同为「内容」类 -->
+            <FlowListGroup
+              v-if="element!.printElementType.type === 'flowList' && filteredGroups.includes('flow-list')"
+              :element="element!"
+              :matched-keys="matchedKeys"
+              :searching="searching"
+            />
+            <BorderBgGroup v-if="filteredGroups.includes('border-bg')" :element="element" :matched-keys="matchedKeys" :searching="searching" @change="recordHistory?.()" />
             <!-- 分页配置（表格元素） -->
             <PaginationGroup
               v-if="filteredGroups.includes('pagination') && isTableType"
@@ -182,6 +189,7 @@ import PropertyGroup from './property/PropertyGroup.vue'
 import StepperInput from './property/StepperInput.vue'
 import BindingControl from './property/BindingControl.vue'
 import TableSettingsGroup from './property/TableSettingsGroup.vue'
+import FlowListGroup from './property/FlowListGroup.vue'
 import BorderBgGroup from './property/BorderBgGroup.vue'
 import AdvancedGroup from './property/AdvancedGroup.vue'
 import PaginationGroup from './property/PaginationGroup.vue'

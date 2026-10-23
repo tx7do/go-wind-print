@@ -98,7 +98,8 @@ function elementBlock(): string {
 .print-table td {
   border: 1px solid #ccc;
   padding: 2mm 3mm;
-  word-break: break-all;
+  word-break: normal;
+  overflow-wrap: break-word;
   overflow: hidden;
 }
 .print-table thead th {

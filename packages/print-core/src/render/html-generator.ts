@@ -26,6 +26,15 @@ import {
 } from './text-fit.js'
 import { buildFontFaceCss } from '../print/fonts.js'
 import { ELEMENT_BORDER_SIDES, resolveElementBorder } from './element-border.js'
+import {
+  flowGridStyle,
+  layoutFlowList,
+  resolveFlowColumns,
+  resolveFlowGapX,
+  resolveFlowMaxSpan,
+  resolveFlowRowHeight,
+  type FlowRenderConfig,
+} from './flow-list.js'
 import { cropStyleDeclarations } from './crop-style.js'
 import { injectSystemVariables } from './data-binder.js'
 import { evaluateTemplate } from './expression-eval.js'
@@ -462,6 +471,29 @@ function renderElement(el: TemplateElement, isMeasure: boolean, containerStyle?:
       return `<div class="print-element" style="${style};border:${opts.borderWidth || 1}pt ${opts.borderStyle || 'solid'} ${opts.borderColor || '#333'};border-radius:50%;"${measureAttr}></div>`
     case 'longText':
       return `<div class="print-element" style="${style}${textStyle(opts)}${indentStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
+    case 'flowList': {
+      const columns = resolveFlowColumns(opts.flowColumns)
+      const gapX = resolveFlowGapX(opts.flowGapX)
+      const rowHeight = resolveFlowRowHeight(opts.flowRowHeight)
+      const maxSpan = resolveFlowMaxSpan(opts.flowMaxSpan, columns)
+      const boundItems: string[] | undefined = Array.isArray(opts._flowItems) ? opts._flowItems : undefined
+      const items: string[] = boundItems && boundItems.length > 0
+        ? boundItems
+        : String(opts.testData ?? '').split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+      const cfg: FlowRenderConfig = {
+        width, columns, gapX, rowHeight, maxSpan,
+        fontSizePt: opts.fontSize ?? 12,
+        autoSpan: opts.flowAutoSpan === true,
+      }
+      // 一框一页：单元超出框高由 overflow:hidden 裁掉，不撑破纸面（第 8 项口径）
+      const cells = layoutFlowList(items, cfg)
+        .flatMap(row => row.cells)
+        .map(c => `<div class="print-flow-cell"${c.span > 1 ? ` style="grid-column:span ${c.span};"` : ''}>${esc(c.text)}</div>`)
+        .join('\n  ')
+      return `<div class="print-element" style="${style}${textStyle(opts)}overflow:hidden;${flowGridStyle(cfg)};"${measureAttr}${fitAttr}>
+  ${cells}
+</div>`
+    }
     case 'html':
       return `<div class="print-element" style="${style}"${measureAttr}>${opts.testData ?? opts.title ?? ''}</div>`
     default:
@@ -579,9 +611,11 @@ function matrixCellStyle(cell: RenderCell, opts: Record<string, any>): string {
   if (cell.align === 'justify') parts.push('text-align-last:justify')
   parts.push(`vertical-align:${cell.valign ?? 'middle'}`)
   parts.push(`padding:${padding}mm`)
+  // 可换行档：pre-wrap 让表达式里的换行符落纸成多行；normal 保住英文整词不被拆开；
+  // break-word 只在一个词本身就比列宽还长、独占一行也放不下时才在行末兜底切断（Word/WPS 口径）
   parts.push(cell.wordWrap === false
     ? 'white-space:nowrap;overflow:hidden'
-    : 'word-break:break-all')
+    : 'white-space:pre-wrap;word-break:normal;overflow-wrap:break-word')
   const b = cell.borders ?? {}
   for (const side of ['top', 'right', 'bottom', 'left'] as const) {
     const border = b[side]

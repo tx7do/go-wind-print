@@ -207,7 +207,7 @@ function cellStyle(ctx: TableCtx, cell: TableCell): Record<string, string> {
     borderBottom: resolveCellBorderCss(cell.borders?.bottom, borderOpts),
     borderLeft: resolveCellBorderCss(cell.borders?.left, borderOpts),
     padding: (cell.padding ?? ctx.options.tableDefaultPadding ?? 1) + 'mm',
-    whiteSpace: (cell.wordWrap ?? true) ? 'normal' : 'nowrap',
+    whiteSpace: (cell.wordWrap ?? true) ? 'pre-wrap' : 'nowrap',
     overflow: (cell.wordWrap ?? true) ? 'visible' : 'hidden',
   }
 }

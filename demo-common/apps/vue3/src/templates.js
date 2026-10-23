@@ -990,7 +990,239 @@ export const SAMPLES = [
       },
     ],
   },
-  // ───────────────────────── 示例3：快递电子面单（自定义纸 100×150mm） ─────────────────────────
+  // ───────────────────────── 示例3：中药处方笺（A5 纵向（页边距 8mm）） ─────────────────────────
+  {
+    id: 'tcm-prescription',
+    name: '中药处方笺',
+    group: '单据',
+    desc: '药材流式排布：每行 4 列、行高 8mm，长药名自动跨两列且整味换行不切词；单元模板与表格单元格共用同一套表达式。',
+    paper: 'A5 纵向（页边距 8mm）',
+    fields: [
+      { id: 'tcm-1', fieldKey: 'hospital', fieldLabel: '医疗机构', fieldType: 'string', sortOrder: 1 },
+      { id: 'tcm-2', fieldKey: 'department', fieldLabel: '科室', fieldType: 'string', sortOrder: 2 },
+      { id: 'tcm-3', fieldKey: 'patient', fieldLabel: '患者姓名', fieldType: 'string', sortOrder: 3 },
+      { id: 'tcm-4', fieldKey: 'sex', fieldLabel: '性别', fieldType: 'string', sortOrder: 5 },
+      { id: 'tcm-5', fieldKey: 'age', fieldLabel: '年龄', fieldType: 'string', sortOrder: 6 },
+      { id: 'tcm-6', fieldKey: 'prescNo', fieldLabel: '处方号', fieldType: 'string', sortOrder: 7 },
+      { id: 'tcm-7', fieldKey: 'diagnosis', fieldLabel: '临床诊断', fieldType: 'string', sortOrder: 8 },
+      { id: 'tcm-8', fieldKey: 'drugs', fieldLabel: '药材明细', fieldType: 'list', sortOrder: 9 },
+      { id: 'tcm-9', fieldKey: 'drugs.name', fieldLabel: '药名', fieldType: 'string', sortOrder: 10 },
+      { id: 'tcm-10', fieldKey: 'drugs.spec', fieldLabel: '剂量', fieldType: 'string', sortOrder: 11 },
+      { id: 'tcm-11', fieldKey: 'note', fieldLabel: '医嘱', fieldType: 'string', sortOrder: 12 },
+      { id: 'tcm-12', fieldKey: 'doctor', fieldLabel: '医师', fieldType: 'string', sortOrder: 13 },
+      { id: 'tcm-13', fieldKey: 'amount', fieldLabel: '费用合计', fieldType: 'number', sortOrder: 14 },
+    ],
+    data: {
+      hospital: '杭州市中医医院·中医门诊',
+      department: '内科',
+      patient: '王秀兰',
+      sex: '女',
+      age: '58 岁',
+      prescNo: 'CM202608120037',
+      diagnosis: '气虚血瘀证',
+      drugs: [
+        { name: '黄芪', spec: '20g' },
+        { name: '当归尾', spec: '15g' },
+        { name: '赤芍', spec: '10g' },
+        { name: '川芎', spec: '10g' },
+        { name: '炙黄芪（先煎）', spec: '30g' },
+        { name: '地龙', spec: '10g' },
+        { name: '桃仁', spec: '10g' },
+        { name: '红花', spec: '10g' },
+        { name: '丹参', spec: '15g' },
+        { name: '鸡血藤（后下）', spec: '20g' },
+        { name: '甘草', spec: '6g' },
+      ],
+      note: '共 11 味，水煎分早晚两次温服，七剂。忌生冷辛辣。',
+      doctor: '李医生',
+      amount: 168.5,
+    },
+    batchData: [
+      {
+        hospital: '杭州市中医医院·中医门诊',
+        department: '内科',
+        patient: '王秀兰',
+        sex: '女',
+        age: '58 岁',
+        prescNo: 'CM202608120037',
+        diagnosis: '气虚血瘀证',
+        drugs: [
+          { name: '黄芪', spec: '20g' },
+          { name: '当归尾', spec: '15g' },
+          { name: '赤芍', spec: '10g' },
+          { name: '川芎', spec: '10g' },
+          { name: '炙黄芪（先煎）', spec: '30g' },
+          { name: '地龙', spec: '10g' },
+          { name: '桃仁', spec: '10g' },
+          { name: '红花', spec: '10g' },
+          { name: '丹参', spec: '15g' },
+          { name: '鸡血藤（后下）', spec: '20g' },
+          { name: '甘草', spec: '6g' },
+        ],
+        note: '共 11 味，水煎分早晚两次温服，七剂。忌生冷辛辣。',
+        doctor: '李医生',
+        amount: 168.5,
+      },
+      {
+        hospital: '杭州市中医医院·中医门诊',
+        department: '内科',
+        patient: '陈国平',
+        sex: '男',
+        age: '42 岁',
+        prescNo: 'CM202608120041',
+        diagnosis: '肝郁脾虚证',
+        drugs: [
+          { name: '柴胡', spec: '10g' },
+          { name: '白芍', spec: '15g' },
+          { name: '麸炒白术（麸炒）', spec: '20g' },
+          { name: '茯苓', spec: '15g' },
+          { name: '炙甘草', spec: '6g' },
+        ],
+        note: '共 5 味，水煎服，十四剂。',
+        doctor: '李医生',
+        amount: 96,
+      },
+    ],
+    template: {
+      unit: 'mm',
+      paperSize: 'A5',
+      orientation: 'portrait',
+      margins: { top: 8, right: 8, bottom: 8, left: 8 },
+      header: {
+        height: 15,
+        elements: [
+          {
+            id: 'tcm-1',
+            type: 'text',
+            options: {
+              left: 0,
+              top: 0,
+              width: 132,
+              height: 6,
+              formatter: '{hospital}',
+              fontSize: 13,
+              fontWeight: 'bold',
+              textAlign: 'center',
+              verticalAlign: 'middle',
+            },
+            printElementType: { type: 'text', title: '文本' },
+          },
+          {
+            id: 'tcm-2',
+            type: 'text',
+            options: {
+              left: 0,
+              top: 6.5,
+              width: 132,
+              height: 4,
+              formatter: '科室：{department}　处方号：{prescNo}',
+              fontSize: 8.5,
+              textAlign: 'center',
+              verticalAlign: 'middle',
+              color: '#555555',
+            },
+            printElementType: { type: 'text', title: '文本' },
+          },
+          {
+            id: 'tcm-3',
+            type: 'hline',
+            options: { left: 0, top: 12, width: 132, height: 1, borderWidth: 0.75, borderColor: '#333333' },
+            printElementType: { type: 'hline', title: '横线' },
+          },
+        ],
+      },
+      footer: {
+        height: 13,
+        elements: [
+          {
+            id: 'tcm-4',
+            type: 'hline',
+            options: { left: 0, top: 0, width: 132, height: 1, borderWidth: 0.75, borderColor: '#333333' },
+            printElementType: { type: 'hline', title: '横线' },
+          },
+          {
+            id: 'tcm-5',
+            type: 'text',
+            options: { left: 0, top: 2, width: 66, height: 5, formatter: '医师：{doctor}', fontSize: 8.5, verticalAlign: 'middle' },
+            printElementType: { type: 'text', title: '文本' },
+          },
+          {
+            id: 'tcm-6',
+            type: 'text',
+            options: {
+              left: 66,
+              top: 2,
+              width: 66,
+              height: 5,
+              formatter: '金额：¥{MONEY(amount)}',
+              fontSize: 8.5,
+              textAlign: 'right',
+              verticalAlign: 'middle',
+            },
+            printElementType: { type: 'text', title: '文本' },
+          },
+        ],
+      },
+      watermark: {},
+      elements: [
+        {
+          id: 'tcm-7',
+          type: 'text',
+          options: {
+            left: 0,
+            top: 0,
+            width: 132,
+            height: 4.5,
+            formatter: '姓名：{patient}　性别：{sex}　年龄：{age}　诊断：{diagnosis}',
+            fontSize: 9,
+            verticalAlign: 'middle',
+          },
+          printElementType: { type: 'text', title: '文本' },
+        },
+        {
+          id: 'tcm-8',
+          type: 'text',
+          options: {
+            left: 0,
+            top: 5.5,
+            width: 10,
+            height: 5,
+            formatter: 'Rp',
+            fontSize: 12.5,
+            fontWeight: 'bold',
+            verticalAlign: 'middle',
+          },
+          printElementType: { type: 'text', title: '文本' },
+        },
+        {
+          id: 'tcm-9',
+          type: 'flowList',
+          options: {
+            left: 0,
+            top: 12,
+            width: 132,
+            height: 32,
+            formatter: '{drugs.name} {drugs.spec}',
+            fontSize: 10.5,
+            color: '#222222',
+            flowColumns: 4,
+            flowRowHeight: 8,
+            flowGapX: 4,
+            flowAutoSpan: true,
+            flowMaxSpan: 2,
+          },
+          printElementType: { type: 'flowList', title: '流式列表' },
+        },
+        {
+          id: 'tcm-10',
+          type: 'longText',
+          options: { left: 0, top: 46, width: 132, height: 8, formatter: '医嘱：{note}', fontSize: 9, lineHeight: 13, color: '#555555' },
+          printElementType: { type: 'longText', title: '长文' },
+        },
+      ],
+    },
+  },
+  // ───────────────────────── 示例4：快递电子面单（自定义纸 100×150mm） ─────────────────────────
   {
     id: 'express-waybill',
     name: '快递电子面单',
@@ -1375,7 +1607,7 @@ export const SAMPLES = [
       },
     ],
   },
-  // ───────────────────────── 示例4：综合示例模板（A4 横向 · 277mm 版心） ─────────────────────────
+  // ───────────────────────── 示例5：综合示例模板（A4 横向 · 277mm 版心） ─────────────────────────
   {
     id: 'comprehensive-showcase',
     name: '综合示例模板',
@@ -2695,7 +2927,7 @@ export const SAMPLES = [
       },
     ],
   },
-  // ───────────────────────── 示例5：分页极限测试（A4 纵向 × 5 页） ─────────────────────────
+  // ───────────────────────── 示例6：分页极限测试（A4 纵向 × 5 页） ─────────────────────────
   {
     id: 'pagination-edge',
     name: '分页极限测试',
@@ -3095,7 +3327,7 @@ export const SAMPLES = [
       },
     ],
   },
-  // ───────────────────────── 示例6：称签打印（标签纸 60×40mm · 单枚） ─────────────────────────
+  // ───────────────────────── 示例7：称签打印（标签纸 60×40mm · 单枚） ─────────────────────────
   {
     id: 'weight-label',
     name: '称签打印',
@@ -3337,7 +3569,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例7：价签打印（标签 40×30mm · 拼版 A4（4×8）） ─────────────────────────
+  // ───────────────────────── 示例8：价签打印（标签 40×30mm · 拼版 A4（4×8）） ─────────────────────────
   {
     id: 'price-label',
     name: '价签打印',
@@ -3512,7 +3744,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例8：资产/设备标签（标签 60×40mm · 拼版 A4（3×6）） ─────────────────────────
+  // ───────────────────────── 示例9：资产/设备标签（标签 60×40mm · 拼版 A4（3×6）） ─────────────────────────
   {
     id: 'asset-tag',
     name: '资产/设备标签',
@@ -3665,7 +3897,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例9：双列卷纸标签（标签 60×45mm · 拼版 122×45mm 卷纸（每页 2 枚，自动分页）） ─────────────────────────
+  // ───────────────────────── 示例10：双列卷纸标签（标签 60×45mm · 拼版 122×45mm 卷纸（每页 2 枚，自动分页）） ─────────────────────────
   {
     id: 'roll-label',
     name: '双列卷纸标签',
@@ -3946,7 +4178,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例10：电池模块标签（含 SN 条码）（95×75mm 自定义纸（单枚一页）） ─────────────────────────
+  // ───────────────────────── 示例11：电池模块标签（含 SN 条码）（95×75mm 自定义纸（单枚一页）） ─────────────────────────
   {
     id: 'battery-module-label',
     name: '电池模块标签（含 SN 条码）',
@@ -3976,13 +4208,12 @@ export const SAMPLES = [
             left: 2.45,
             top: 2.5,
             width: 85,
-            height: 48.5,
+            height: 63.2,
             tableMode: 'dynamic',
             tableColWidths: [21.4, 24.2, 17.9, 21.5],
             tableDefaultFontSize: 7,
             tableDefaultPadding: 1,
             tableDefaultColor: '#333333',
-            tableDefaultFontFamily: 'SimHei',
             tablePagination: { enabled: true },
             fields: [],
             tableRows: [
@@ -4289,7 +4520,7 @@ export const SAMPLES = [
               {
                 id: 'row-bml-7',
                 type: 'header',
-                height: 8,
+                height: 22.7,
                 repeatOnPage: true,
                 cells: [
                   {
@@ -4316,6 +4547,7 @@ export const SAMPLES = [
                       left: { width: 0.75, style: 'solid', color: '#333333' },
                     },
                     colspan: 3,
+                    fontSize: 6,
                   },
                   { id: 'cell-bml-7-3', formatter: '', merged: true },
                   { id: 'cell-bml-7-4', formatter: '', merged: true },
@@ -4328,7 +4560,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例11：电池模块标签（无 SN 标签格）（95×75mm 自定义纸（单枚一页）） ─────────────────────────
+  // ───────────────────────── 示例12：电池模块标签（无 SN 标签格）（95×75mm 自定义纸（单枚一页）） ─────────────────────────
   {
     id: 'battery-module-label-no-sn',
     name: '电池模块标签（无 SN 标签格）',
@@ -4358,13 +4590,12 @@ export const SAMPLES = [
             left: 2.45,
             top: 2.5,
             width: 85,
-            height: 48.5,
+            height: 63.2,
             tableMode: 'dynamic',
             tableColWidths: [21.4, 24.2, 17.9, 21.5],
             tableDefaultFontSize: 7,
             tableDefaultPadding: 1,
             tableDefaultColor: '#333333',
-            tableDefaultFontFamily: 'SimHei',
             tablePagination: { enabled: true },
             fields: [],
             tableRows: [
@@ -4672,7 +4903,7 @@ export const SAMPLES = [
               {
                 id: 'row-bml-7',
                 type: 'header',
-                height: 8,
+                height: 22.7,
                 repeatOnPage: true,
                 cells: [
                   {
@@ -4699,6 +4930,7 @@ export const SAMPLES = [
                       left: { width: 0.75, style: 'solid', color: '#333333' },
                     },
                     colspan: 3,
+                    fontSize: 6,
                   },
                   { id: 'cell-bml-7-3', formatter: '', merged: true },
                   { id: 'cell-bml-7-4', formatter: '', merged: true },
@@ -4711,7 +4943,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例12：零售小票（热敏纸 80mm · 连续纸） ─────────────────────────
+  // ───────────────────────── 示例13：零售小票（热敏纸 80mm · 连续纸） ─────────────────────────
   {
     id: 'thermal-receipt',
     name: '零售小票',

@@ -21,6 +21,7 @@ import { renderBarcode, renderQrcode } from './code'
 import type { ShellCtx } from './controls'
 import { renderTable } from './table'
 import type { TableFire } from './table'
+import { renderFlowListElement } from './flow-list'
 
 const V_ALIGN_FLEX: Record<string, string> = { top: 'flex-start', middle: 'center', bottom: 'flex-end' }
 const H_ALIGN_FLEX: Record<string, string> = { left: 'flex-start', center: 'center', right: 'flex-end' }
@@ -214,6 +215,8 @@ function content(el: RuntimeElement, designMode: boolean, host?: { store: Design
       })
     case 'table':
       return host ? renderTable(el, host.store, host.fire) : h('div', { class: 'print-table' })
+    case 'flowList':
+      return renderFlowListElement(el)
     default:
       return h('div', { text: type })
   }

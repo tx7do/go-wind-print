@@ -17,6 +17,7 @@ import { ROLL_LABEL_SAMPLE } from './roll-label'
 import { BATTERY_MODULE_LABEL_SAMPLE } from './battery-module-label'
 import { BATTERY_MODULE_LABEL_NO_SN_SAMPLE } from './battery-module-label-no-sn'
 import { THERMAL_RECEIPT_SAMPLE } from './thermal-receipt'
+import { TCM_PRESCRIPTION_SAMPLE } from './tcm-prescription'
 import { COMPREHENSIVE_SHOWCASE_SAMPLE } from './comprehensive-showcase'
 import { PAGINATION_EDGE_SAMPLE } from './pagination-edge'
 
@@ -26,6 +27,7 @@ export type { SampleTemplate, SampleGroup }
 export const SAMPLE_TEMPLATES: SampleTemplate[] = [
   PURCHASE_RECEIPT_SAMPLE,
   SALES_OUTBOUND_SAMPLE,
+  TCM_PRESCRIPTION_SAMPLE,
   EXPRESS_WAYBILL_SAMPLE,
   COMPREHENSIVE_SHOWCASE_SAMPLE,
   PAGINATION_EDGE_SAMPLE,

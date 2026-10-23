@@ -1,7 +1,6 @@
-// 新建元素的默认字体：全部落在黑体上，且可被显式值覆盖或被清空。
-// 背景：兜底栈头部的微软雅黑/苹方是屏幕优化字体，203dpi 热敏出纸笔画发虚（见 print/fonts.ts）。
+// 新建元素不携带字体字段：未手工配置时由渲染端系统默认字体承接。
+// 项目不替用户预置字体名，避免陈列/写入第三方授权字体（见 print/fonts.ts）。
 import { describe, it, expect } from 'vitest'
-import { DEFAULT_PRINT_FONT_FAMILY } from '../../../print/fonts.js'
 import { createDefaultOptions, createRuntimeElement } from '../element-factory.js'
 import type { ElementType } from '../../types.js'
 
@@ -10,17 +9,15 @@ const ALL_TYPES: ElementType[] = [
   'barcode', 'qrcode', 'html', 'pageNumber',
 ]
 
-describe('createDefaultOptions 默认字体', () => {
-  it('每种新元素都带黑体默认族名', () => {
+describe('createDefaultOptions 不预置字体', () => {
+  it('每种新元素的 options 里都没有 fontFamily 键', () => {
     for (const type of ALL_TYPES) {
-      expect(createDefaultOptions(type).fontFamily, type).toBe(DEFAULT_PRINT_FONT_FAMILY)
+      expect('fontFamily' in createDefaultOptions(type), type).toBe(false)
     }
   })
 
-  it('表格额外带单元格继承基线 tableDefaultFontFamily', () => {
-    expect(createDefaultOptions('table').tableDefaultFontFamily).toBe(DEFAULT_PRINT_FONT_FAMILY)
-    // 其余类型不该出现这个字段（避免把表格专属配置写满所有元素）
-    expect(createDefaultOptions('text').tableDefaultFontFamily).toBeUndefined()
+  it('新表格也不写 tableDefaultFontFamily', () => {
+    expect('tableDefaultFontFamily' in createDefaultOptions('table')).toBe(false)
   })
 
   it('既有几何默认值零变化', () => {
@@ -30,15 +27,21 @@ describe('createDefaultOptions 默认字体', () => {
   })
 })
 
-describe('createRuntimeElement 覆盖语义', () => {
-  it('显式族名覆盖默认黑体', () => {
-    const el = createRuntimeElement('text', { fontFamily: 'SimSun' })
-    expect(el.options.fontFamily).toBe('SimSun')
+describe('createRuntimeElement 手工配置语义', () => {
+  it('手工配置的族名原样写入', () => {
+    const el = createRuntimeElement('text', { fontFamily: 'MyBrandFont' })
+    expect(el.options.fontFamily).toBe('MyBrandFont')
   })
 
   it('面板清成「默认」时显式 undefined 生效，交还 CSS 继承', () => {
     const el = createRuntimeElement('text', { fontFamily: undefined })
     expect('fontFamily' in el.options).toBe(true)
     expect(el.options.fontFamily).toBeUndefined()
+  })
+
+  it('未传字体时 options 里不留该键，序列化不会带出字体', () => {
+    const el = createRuntimeElement('table')
+    expect('fontFamily' in el.options).toBe(false)
+    expect(JSON.stringify(el.options)).not.toContain('fontFamily')
   })
 })

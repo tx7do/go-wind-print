@@ -1,6 +1,5 @@
 // web/src/components/print/utils/element-factory.ts
 import type { RuntimeElement, ElementType, ElementOptions } from '../types.js'
-import { DEFAULT_PRINT_FONT_FAMILY } from '../../print/fonts.js'
 import { createDefaultTable } from './table-matrix.js'
 
 export function generateId(): string {
@@ -9,10 +8,9 @@ export function generateId(): string {
 
 export function createDefaultOptions(type: ElementType): ElementOptions {
   // pt → mm：20/50/120/20 → 7/17.6/42.3/7.1
-  // 默认字体给黑体：兜底栈头部的微软雅黑/苹方是屏幕优化字体，热敏（203dpi 1-bit）出纸笔画发虚
+  // 不预置 fontFamily：未手工配置字体时交还 CSS 继承，由渲染端系统默认字体承接
   const base: ElementOptions = {
     left: 7, top: 17.6, width: 42.3, height: 7.1,
-    fontFamily: DEFAULT_PRINT_FONT_FAMILY,
   }
 
   switch (type) {
@@ -32,13 +30,19 @@ export function createDefaultOptions(type: ElementType): ElementOptions {
         tableRows: rows,
         tableColWidths: colWidths,
         tableDefaultFontSize: 10,
-        tableDefaultFontFamily: DEFAULT_PRINT_FONT_FAMILY,
         tableDefaultColor: '#333333',
         tableDefaultPadding: 1,
         fields: [],
         tablePagination: { enabled: true },
       }
     }
+    case 'flowList':
+      // 每行列数与行高都必须由作者指定（不自动算列数）；跨列默认关，打开后上限钳到列数
+      return {
+        ...base, width: 141.1, height: 21.2, fontSize: 12, formatter: '{name} {spec}',
+        flowColumns: 4, flowRowHeight: 8, flowGapX: 4,
+        flowAutoSpan: false, flowMaxSpan: 2,
+      }
     case 'hline':
       return { ...base, width: 70.6, height: 1.8, borderWidth: 0.75 }
     case 'vline':
@@ -64,6 +68,7 @@ export function createRuntimeElement(type: ElementType, options?: Partial<Elemen
     image: { title: '图片' },
     longText: { title: '长文' },
     table: { title: '表格' },
+    flowList: { title: '流式列表' },
     hline: { title: '横线' },
     vline: { title: '竖线' },
     rect: { title: '矩形' },

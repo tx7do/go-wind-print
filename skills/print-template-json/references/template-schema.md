@@ -58,10 +58,10 @@
 }
 ```
 
-元素类型：`text`（文本）、`longText`（长文）、`image`（图片）、`table`（表格）、
+元素类型：`text`（文本）、`longText`（长文）、`image`（图片）、`table`（表格）、`flowList`（流式列表）、
 `hline`（横线）、`vline`（竖线）、`rect`（矩形）、`oval`（椭圆）、
 `barcode`（条形码）、`qrcode`（二维码）、`html`、`pageNumber`（页码）。
-对应 title：文本 / 长文 / 图片 / 表格 / 横线 / 竖线 / 矩形 / 椭圆 / 条形码 / 二维码 / HTML / 页码。
+对应 title：文本 / 长文 / 图片 / 表格 / 流式列表 / 横线 / 竖线 / 矩形 / 椭圆 / 条形码 / 二维码 / HTML / 页码。
 
 ### 常用 options（通用）
 
@@ -71,31 +71,45 @@
 | `formatter` | 内容表达式，如 `'单价 ¥{MONEY(product.price)}'` |
 | `fontSize` | 字号 pt |
 | `fontWeight` | `bold` / `normal` |
-| `fontFamily` / `color` / `backgroundColor` | 字体、前景、背景；`fontFamily` **缺省 `SimHei`（黑体）**，详见下「字体档位」 |
+| `fontFamily` / `color` / `backgroundColor` | 字体、前景、背景；`fontFamily` **缺省不写**，详见下「字体档位」 |
 | `textAlign` | `left` / `center` / `right` / `justify` |
 
 | `verticalAlign` | `top` / `middle` / `bottom` |
 | `textDecoration` | `underline` / `line-through` |
-| `wordWrap` / `textFit` | 换行；溢出形式 `clip` / `shrink` |
+| `wordWrap` / `textFit` | 换行（`wordWrap` 缺省 `true` 时 `\n` 也生效）；溢出形式 `clip` / `shrink` |
 | `borderWidth` `borderStyle` `borderColor` | 边框（宽度 pt） |
 | `zIndex` `locked` `visible` | 层级 / 锁定 / 可见 |
 
-#### 字体档位（免字体文件 vs 模板字体）
+**单元格换行与断词口径（算行数必须按这个来）**：可换行档出纸内联是
+`white-space:pre-wrap;word-break:normal;overflow-wrap:break-word` —— `\n` 各占一行、连续空格与行首空格原样显形、
+英文按整词换行（只有一个词本身比列宽还长时才在行末兜底切一次）、中文按字断行。
+`wordWrap: false` 档是 `white-space:nowrap` + 省略号，`\n` 在该档折叠。
+判据：强制行数 = `\n` 段数；每段再用「可用宽 = 列宽和 − 2×`padding` − 塌陷边框」按字号估每行字符数，
+行数 ×（≈ 1.4×字号）+ 2×`padding` 即该格最小行高。`height` 声明小于它就由内容撑开，
+整表随之变长并牵动分页预算（预算 = 纸内区 − 表格元素 `top`，单枚标签类模板尤其要复核）。
+**边界豁免**：多行只能从**表达式编辑器**（textarea）录入，属性台「内容」是单行 input，粘贴多行会被浏览器剥掉换行；
+合并单元格按空格拼接内容（`mergeCells`），`\n` 会被压平。
 
-`fontFamily` 写的是 **CSS 族名**，分两类：
+#### 字体档位（不预置字体）
 
-- **本机系统字体**（免字体文件，设计器下拉已列出）：`SimHei` 黑体 / `Heiti SC` 黑体-简 /
-  `Hiragino Sans GB` 冬青黑体 / `Noto Sans CJK SC` 思源黑体 / `Microsoft YaHei` 微软雅黑 /
-  `PingFang SC` 苹方 / `SimSun` 宋体 / `KaiTi` 楷体 / `FangSong` 仿宋。
-  单点清单在 core 的 `print/fonts.ts`（`SYSTEM_FONT_OPTIONS`），改档位只改那一处。
-- **模板声明字体**（宿主 `fonts` prop + `@font-face`）：只有这类才随模板分发、三端字面一致。
+`fontFamily` 写的是 **CSS 族名**，只有用户手工配置过才会出现在模板里：
 
-系统字体**三端解析不同**：画布、浏览器直印、桌面客户端用「用户机」装了什么，服务端 PDF 用渲染容器
+- **不写该字段**（缺省）：出图端不输出 `font-family`，落纸字体交还渲染端的系统默认字体。
+  设计器不内置任何字体名档位，也不替用户预置族名。
+- **模板声明字体**（宿主 `fonts` prop + `@font-face`）：字体文件随宿主分发，三端字面一致。
+  **字体文件的授权由使用者自查**——OFL/Apache 系（思源黑体、站酷、马善政等）可自由分发，
+  微软授权的字体名不允许随镜像或安装包再分发。
+- **手工输入族名**：字体框可直接键入本机已装的字体名，能否出图取决于各端装了什么。
+
+表格另有 `tableDefaultFontFamily`（单元格未设字体时的基线），继承序为「单元格 → 表格默认 →
+交还 CSS 继承」，同样缺省不写。
+
+三端解析不同：画布、浏览器直印、桌面客户端用「用户机」装了什么，服务端 PDF 用渲染容器
 装了什么（镜像内中文只有 `fonts-noto-cjk`）。族名在本机缺失时按兜底栈逐级回落（`toFontFamilyStack`），
 不会出豆腐块，但字宽随之变化，可能引起换行与分页差异——跨端字面要求严格就走模板声明字体。
 
-热敏（203dpi＝8 点/mm）建议黑体系（`SimHei` / `Heiti SC` / `Noto Sans CJK SC`）；宋体、楷体、仿宋是
-衬线或细笔画，出纸易断笔发虚。**字重保持缺省 `normal`**：写 `bold` 而模板没挂对应字重的字体文件时，
+热敏（203dpi＝8 点/mm）建议笔画均匀的黑体系；宋体、楷体、仿宋是衬线或细笔画，出纸易断笔发虚。
+选哪一族由使用者按自己的字体授权决定。**字重保持缺省 `normal`**：写 `bold` 而模板没挂对应字重的字体文件时，
 Chromium 会合成粗体，度量漂移会静默改分页。
 
 ### 类型专属
@@ -106,6 +120,7 @@ Chromium 会合成粗体，度量漂移会静默改分页。
 | `qrcode` | `qrCodeLevel`（`L`/`M`/`Q`/`H`）、`qrQuietZone`（静区白边，单位「模块」，0~8，缺省 0＝不留白边、码面等比铺满元素框）、`fit`（缺省 `contain`）、`maxWidth`/`maxHeight` |
 | `image` | `src`、`fit`（`contain`/`cover`/`fill`/`none`/`scale-down`，缺省 `contain`；属性台里 `cover` 显示为「剪裁（等比铺满后裁边）」）、`objectPosition`（裁剪锚点，**建议写 `<x>% <y>%`**，如 `50% 0%` 取图顶端；缺省不输出＝`50% 50%` 居中）、`fitScale`（剪裁放大比例，100~400 的百分数，**仅 `fit: 'cover'` 消费**：铺满后把画面再推大这么多才有可裁的边，`transform-origin` 取的就是同一条 `objectPosition`；100 与缺省同形、不要写出来）、`maxWidth`/`maxHeight` |
 | `longText` | `longTextIndent`（首行缩进，单位 **em**＝「N 个字符宽」，随字号走；仅 `longText` 消费，写在 `text` 上不生效） |
+| `flowList` | `flowColumns`（每行列数，**必须显式给**，1~12，缺省 4）、`flowRowHeight`（行高 mm，**最小高**语义，3~100，缺省 8）、`flowGapX`（单元横向间距 mm，0~50，缺省 4）、`flowAutoSpan`（内容过长时跨列，**缺省 false**）、`flowMaxSpan`（最多跨几列，**钳到 `flowColumns`**）、`formatter`（**单元模板 = 一条完整表达式**，对数组每项求值一次，列表路径写在里面：`{drugs.name} {drugs.spec}`；只写行内字段 `{name} {spec}` 也行，此时按数据里第一个数组兜底）、`dataSource`（**可选覆盖**，属性台不提供该行；显式给出时优先于表达式检出）。排布规则：整单元占位换行（当前行列位不够就把整单元挪到下一行行首，绝不切词）；**一框一页不续页**，超出框高按 `textFit` 三档（缺省 `clip`）处理；**跨列只在出纸生效**，画布永远是一列一格。要「剂量成列」需单元本身等长 |
 | `hline`/`vline` | `borderWidth` + `borderColor`（元素高度常取 0.2） |
 
 **排版口径**：`textAlign` 支持 `justify`（两端对齐 = 撑满行宽，含末行；渲染端会同时输出 `text-align-last:justify`，因为 CSS 的 `justify` 不拉伸段落末行，单行文本否则毫无变化）。与 `verticalAlign` 同时给出时，渲染端把 flex 主轴改成纵向让行盒取满宽，右缘才真正齐平——三端（画布/浏览器打印/PDF/客户端）同策。
@@ -145,7 +160,6 @@ Chromium 会合成粗体，度量漂移会静默改分页。
     "left": 0, "top": 23, "width": 128, "height": 30,
     "tableColWidths": [40, 20, 20, 20, 14, 14],   // 列宽 mm，和 == width
     "tableDefaultFontSize": 8,
-    "tableDefaultFontFamily": "SimHei",             // 单元格未设 family 时的基线（新建表格自带）
     "tableDefaultPadding": 1,
     "dataSource": "goods",                        // 明细行迭代的数组路径
     "tableRows": [

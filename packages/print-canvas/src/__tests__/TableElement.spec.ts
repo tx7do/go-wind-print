@@ -422,6 +422,35 @@ describe('TableElement 单元格文字溢出显示形式', () => {
     expect(box.attributes('data-fit-base')).toBe('14')
     expect(box.attributes('data-fit-min')).toBe('9')
   })
+
+  it('可换行档：单元格按换行符断行且英文整词不拆', () => {
+    const wrapper = mountFitTable(makeFitElement())
+    const style = (wrapper.find('td').attributes('style') ?? '').replace(/\s/g, '')
+    expect(style).toContain('white-space:pre-wrap')
+    expect(style).not.toContain('word-break:break-all')
+  })
+
+  it('换行符原样进文本节点：折叠只发生在渲染层，画布不得先吃掉它', () => {
+    const wrapper = mountFitTable(makeFitElement({ formatter: '电池模块\nMODEL-BAT-2024X' }))
+    expect(wrapper.find('td').element.textContent).toBe('电池模块\nMODEL-BAT-2024X')
+  })
+
+  it('不换行档仍强制单行并裁剪（换行符在该档按语义折叠）', () => {
+    const wrapper = mountFitTable(makeFitElement({ wordWrap: false }))
+    const style = (wrapper.find('td').attributes('style') ?? '').replace(/\s/g, '')
+    expect(style).toContain('white-space:nowrap')
+    expect(style).toContain('overflow:hidden')
+  })
+
+  // 画布 td 没有内联 word-break，断词全由 scoped 规则决定；该规则又是 common designer.css 的派生源
+  it('scoped .print-table td 与出纸断词同口径', async () => {
+    const { readFileSync } = await import('node:fs')
+    const source = readFileSync(`${process.cwd()}/src/components/elements/TableElement.vue`, 'utf-8')
+    const rule = source.match(/\.print-table td\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(rule).toContain('word-break: normal')
+    expect(rule).toContain('overflow-wrap: break-word')
+    expect(rule).not.toContain('break-all')
+  })
 })
 
 // 表格右键菜单逐项测试：打开条件 + 每个菜单项对表格结构的实际效果。

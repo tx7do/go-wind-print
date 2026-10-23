@@ -227,3 +227,17 @@ describe('出纸旋转（outputRotation）整页旋转', () => {
     expect(css).not.toContain('.print-page-rotor')
   })
 })
+
+describe('.print-table 单元格断行兜底', () => {
+  /** 内联样式之外的全局兜底：漏改会让「内联没覆盖的档」回落到逐字硬切 */
+  function tableTdRule(css: string): string {
+    return css.match(/\.print-table th,\n\.print-table td \{[\s\S]*?\}/)?.[0] ?? ''
+  }
+
+  it('整词断行：与 matrixCellStyle 内联同一口径，不含 break-all', () => {
+    const rule = tableTdRule(buildBasePageCss())
+    expect(rule).toContain('word-break: normal')
+    expect(rule).toContain('overflow-wrap: break-word')
+    expect(rule).not.toContain('break-all')
+  })
+})

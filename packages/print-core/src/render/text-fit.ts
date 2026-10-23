@@ -22,6 +22,8 @@ function normalizeFit(value: unknown): TextFit | undefined {
 const ELEMENT_DEFAULT_FIT: Record<string, TextFit> = {
   text: 'clip',
   longText: 'autoHeight',
+  // 流式列表一框一页：超出元素框高的单元按截断处理，不自动撑破纸面（specs 第八节第 8 项）
+  flowList: 'clip',
 }
 
 /** 元素级显示形式：未配置时按元素类型取默认（text=截断、longText=自适应行高） */

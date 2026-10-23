@@ -110,45 +110,16 @@ export interface FontCatalogOption {
 }
 
 /**
- * 新元素的默认字体族名：黑体。
- * 选它而不是继续走兜底栈（微软雅黑/苹方）的理由：后两者的 hinting 面向屏幕 ClearType、笔画偏细，
- * 在 203dpi（8 点/mm）的 1-bit 热敏上阈值化后发虚；黑体笔画均匀且本身更粗，落纸更实。
- * 该族名只在 Windows 与部分 mac 上存在，缺失时由 `toFontFamilyStack` 追加的兜底栈接住，
- * 每端都落到本平台最接近的黑体上，不会开天窗。
+ * 整理字体下拉候选：候选只来自宿主声明的模板字体（随模板分发、三端一致，字体文件授权由使用者自负）。
+ * 项目不内置任何字体名档位——替用户预置或陈列第三方授权字体会把版权风险转嫁给设计器与产出物。
+ * 去空白、丢空值，族名大小写不敏感去重，保留声明顺序与首次出现的 label。
  */
-export const DEFAULT_PRINT_FONT_FAMILY = 'SimHei'
-
-/**
- * 免字体文件的本机系统字体候选（CSS 族名直接可用，不参与 @font-face）。
- *
- * **三端解析结果不同**：画布、浏览器直印与桌面客户端用「用户机」装了什么，服务端 PDF 用渲染容器
- * 装了什么（镜像内中文只有 fonts-noto-cjk）。所以这些档位是「零配置便捷档」，跨端字面不保证一致；
- * 要三端完全一致仍应走模板字体声明（@font-face）。
- *
- * label 文案会被下拉拼成「label（family）」，故这里不再带括号，只用 `·` 追加短标注，避免长串被截断。
- */
-export const SYSTEM_FONT_OPTIONS: readonly FontCatalogOption[] = [
-  { family: 'SimHei', label: '黑体 · 热敏推荐' },
-  { family: 'Heiti SC', label: '黑体-简 · 热敏推荐' },
-  { family: 'Hiragino Sans GB', label: '冬青黑体' },
-  { family: 'Noto Sans CJK SC', label: '思源黑体 · 服务端' },
-  { family: 'Microsoft YaHei', label: '微软雅黑 · 屏幕体' },
-  { family: 'PingFang SC', label: '苹方 · 屏幕体' },
-  { family: 'SimSun', label: '宋体 · 热敏慎用' },
-  { family: 'KaiTi', label: '楷体 · 热敏慎用' },
-  { family: 'FangSong', label: '仿宋 · 热敏慎用' },
-]
-
-/**
- * 合并下拉候选：宿主声明的模板字体在前（随模板分发、三端一致），系统候选在后。
- * 族名大小写不敏感去重，宿主命中时保留宿主自己的 label，不被系统档覆盖。
- */
-export function withSystemFontOptions(
+export function normalizeFontCatalog(
   host?: readonly (FontCatalogOption | null | undefined)[] | null,
 ): FontCatalogOption[] {
   const out: FontCatalogOption[] = []
   const seen = new Set<string>()
-  for (const font of [...(host ?? []), ...SYSTEM_FONT_OPTIONS]) {
+  for (const font of host ?? []) {
     const family = font?.family?.trim()
     if (!family) continue
     const key = family.toLowerCase()

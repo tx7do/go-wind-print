@@ -4,7 +4,10 @@ import type {
   RuntimeElement, TableSelection, TableCell, TextAlign, VerticalAlign, TableCellBorder,
   ElementBorderSide,
 } from '@worm-vue3-print/core/designer'
-import { applyBorderPreset, type BorderPreset } from '@worm-vue3-print/core/designer'
+import {
+  applyBorderPreset, type BorderPreset,
+  applyElementBorderPreset, elementBorderEdgeOn, setElementBorderEdge, type ElementBorderSpec,
+} from '@worm-vue3-print/core/designer'
 
 /** 多选目标间字段值不一致的哨兵 */
 export const MIXED: unique symbol = Symbol('mixed')
@@ -22,11 +25,8 @@ export interface FormatStylePatch {
   verticalAlign?: VerticalAlign
 }
 
-export interface ElementBorderSpec {
-  width: number
-  style: string
-  color: string
-}
+/** 元素边框规格：类型与写入口径都在 core，本包不再自造一份 */
+export type { ElementBorderSpec }
 
 export interface FormatToolbarDeps {
   elements: Ref<RuntimeElement[]>
@@ -190,14 +190,7 @@ export function useFormatToolbar(deps: FormatToolbarDeps) {
     if (!targets.length) return
     targets.forEach(e => {
       // 整圈预设统一边框形态：分边残留一并清除（「所有边框」=四边一致，「无边框」=全清）
-      e.options.borders = undefined
-      if (mode === 'none') {
-        e.options.borderWidth = 0
-      } else {
-        e.options.borderWidth = border.width
-        e.options.borderStyle = border.style
-        e.options.borderColor = border.color
-      }
+      applyElementBorderPreset(e.options, mode, border)
     })
     recordHistory()
   }
@@ -252,7 +245,7 @@ export function useFormatToolbar(deps: FormatToolbarDeps) {
     if (!t.length) return null
     const out = {} as Record<BorderSide, boolean | typeof MIXED>
     for (const side of BORDER_SIDES) {
-      const flags = t.map(e => !!e.options.borders?.[side])
+      const flags = t.map(e => elementBorderEdgeOn(e.options, side))
       out[side] = flags.every(Boolean) ? true : flags.some(Boolean) ? MIXED : false
     }
     return out
@@ -263,12 +256,7 @@ export function useFormatToolbar(deps: FormatToolbarDeps) {
     const targets = selectedElements.value
     if (!targets.length) return
     const on = elementEdges.value?.[side] !== true
-    targets.forEach(e => {
-      const nb = { ...(e.options.borders ?? {}) }
-      if (on) nb[side] = { width: border.width, style: border.style, color: border.color }
-      else delete nb[side]
-      e.options.borders = nb
-    })
+    targets.forEach(e => setElementBorderEdge(e.options, side, on ? border : null))
     recordHistory()
   }
 

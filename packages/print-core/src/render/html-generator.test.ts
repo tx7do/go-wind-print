@@ -1238,3 +1238,46 @@ describe('元素级边框出纸渲染', () => {
     expect(html).not.toContain('border-top:5pt dotted #00f')
   })
 })
+
+// ─── 单元格换行与断词口径 ───
+// 表达式编辑器（textarea）里的换行符要能落纸成多行；英文单词按整词换行，
+// 只有当单词本身就比列宽还长时才在行末兜底切断（Word/WPS 口径）。
+describe('单元格换行与断词口径', () => {
+  /** 可换行档的三件套声明：pre-wrap 保换行符、normal 保整词、break-word 兜底超长串 */
+  const WRAP = 'white-space:pre-wrap;word-break:normal;overflow-wrap:break-word'
+
+  function cellHtml(cellPatch: Record<string, any> = {}): string {
+    return generateHtml(makeTemplate({
+      tableColWidths: [40, 60],
+      _renderRows: [
+        { type: 'header', height: 8, cells: [{ ...baseCell, content: '品名' }, { ...baseCell, content: '数量' }] },
+        { type: 'data', height: 8, cells: [
+          { ...baseCell, content: '12V 100Ah 磷酸铁锂电池\n型号 MB-100', colspan: 2, ...cellPatch },
+          { ...baseCell, content: '', merged: true },
+        ] },
+      ],
+    }), pageWith([{ elementId: 'tbl-1', type: 'table-slice', startRow: 0, endRow: 2 }]))
+  }
+
+  /** 目标格所在行：整页里表头格恒为可换行档，按行切片才钉得住被 patch 的那一格 */
+  function cellRow(html: string): string {
+    const i = html.indexOf('磷酸铁锂电池')
+    return html.slice(html.lastIndexOf('<tr', i), html.indexOf('</tr>', i))
+  }
+
+  it('可换行档（默认）输出 pre-wrap + 整词换行 + 超长串兜底', () => {
+    expect(cellHtml()).toContain(WRAP)
+  })
+
+  it('内联与全局 .print-table 规则都不再出现逐字硬切', () => {
+    expect(cellHtml()).not.toContain('word-break:break-all')
+  })
+
+  it('换行符原样落在 td 文本里，由 CSS 负责断行', () => {
+    expect(cellHtml()).toContain('磷酸铁锂电池\n型号 MB-100')
+  })
+
+  it('不换行档逐字保持强制单行（该档语义就是折叠换行符）', () => {
+    expect(cellRow(cellHtml({ wordWrap: false }))).toContain('white-space:nowrap;overflow:hidden')
+  })
+})

@@ -41,4 +41,10 @@ describe('searchProperties', () => {
     expect(searchProperties('最大高度').itemKeys.has('cd-max-height')).toBe(true)
     expect(searchProperties('缩放模式').itemKeys.has('cd-fit')).toBe(true)
   })
+  it('元素台线型按「线型 / 虚线 / 双线」可检索；「内部」不给检索入口', () => {
+    expect(searchProperties('线型').itemKeys.has('bb-border-style')).toBe(true)
+    expect(searchProperties('虚线').itemKeys.has('bb-border-style')).toBe(true)
+    expect(searchProperties('双线').itemKeys.has('bb-border-style')).toBe(true)
+    expect(searchProperties('内部').itemKeys.size).toBe(0)
+  })
 })

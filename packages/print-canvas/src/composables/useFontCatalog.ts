@@ -1,9 +1,8 @@
-// 字体下拉的数据源：模板级字体声明（宿主经 PrintDesigner 的 fonts prop 传入），
-// 再拼上 core 的静态系统字体候选（免字体文件、本机已装）。
-// 声明随模板保存、由各端按 @font-face 加载；系统候选只做「零配置便捷档」，
-// 三端装了什么字体各不相同（服务端容器内中文只有 Noto CJK），跨端字面不保证一致。
+// 字体下拉的数据源：模板级字体声明（宿主经 PrintDesigner 的 fonts prop 传入）。
+// 声明随模板保存、由各端按 @font-face 加载，字体文件的授权由宿主自负。
+// 设计器不内置任何字体名档位：替用户预置或陈列第三方授权字体会把版权风险带进设计器与产出物。
 import { computed, inject, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
-import { withSystemFontOptions, type PrintFontDeclaration } from '@worm-vue3-print/core'
+import { normalizeFontCatalog, type PrintFontDeclaration } from '@worm-vue3-print/core'
 import { FONT_CATALOG_KEY } from './useHostAdapter'
 
 /** 下拉候选项：family 写入模板，label 仅用于界面展示 */
@@ -12,31 +11,17 @@ export interface FontOption {
   label?: string
 }
 
-/** 空目录：宿主未声明字体时仍给出系统字体候选 */
-export const EMPTY_FONT_CATALOG: ComputedRef<readonly FontOption[]> = computed(() => withSystemFontOptions())
+/** 空目录：宿主未声明字体时不陈列任何字体名，下拉只剩「默认」与手工输入 */
+export const EMPTY_FONT_CATALOG: ComputedRef<readonly FontOption[]> = computed(() => normalizeFontCatalog())
 
 /**
- * 由 PrintDesigner 调用：把模板字体声明整理为下拉候选项，并追加系统字体候选。
- * 去空白、丢空值、族名大小写不敏感去重，保留声明顺序（顺序即宿主期望的优先级）。
+ * 由 PrintDesigner 调用：把模板字体声明整理为下拉候选项。
+ * 去空白、丢空值、族名大小写不敏感去重，保留声明顺序（顺序即宿主期望的优先级），整理规则在 core 单点。
  */
 export function useFontCatalog(
   declarations?: MaybeRefOrGetter<readonly PrintFontDeclaration[] | undefined>,
 ): { catalog: ComputedRef<readonly FontOption[]> } {
-  const catalog = computed<readonly FontOption[]>(() => {
-    const out: FontOption[] = []
-    const seen = new Set<string>()
-    for (const font of toValue(declarations) ?? []) {
-      const family = font?.family?.trim()
-      if (!family) continue
-      const key = family.toLowerCase()
-      if (seen.has(key)) continue
-      seen.add(key)
-      const label = font.label?.trim()
-      out.push(label ? { family, label } : { family })
-    }
-    // 宿主档在前、系统档在后；同族名以宿主声明为准（合并与去重在 core 单点）
-    return withSystemFontOptions(out)
-  })
+  const catalog = computed<readonly FontOption[]>(() => normalizeFontCatalog(toValue(declarations)))
   return { catalog }
 }
 

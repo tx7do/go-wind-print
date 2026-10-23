@@ -3,7 +3,6 @@
 // 单元格自身 → 表格默认字体 → 交还 CSS 继承，且族名必须带全局兜底栈。
 import { describe, it, expect } from 'vitest'
 import type { TableRow } from '@worm-vue3-print/core/designer'
-import { DEFAULT_PRINT_FONT_FAMILY } from '@worm-vue3-print/core'
 import { DesignerStore } from '../../core/store'
 import { h, render } from '../../core/h'
 import { renderTable } from '../table'
@@ -26,15 +25,21 @@ function paintRow(cellOverrides: Record<string, unknown>, tableOverrides: Record
 }
 
 describe('外壳单元格字体', () => {
-  it('新建表格自带黑体默认字体，单元格继承并补兜底栈', () => {
+  it('新建表格不预置字体，单元格交还 CSS 继承', () => {
     const style = paintRow({}, {})
-    expect(style).toContain(`font-family:${DEFAULT_PRINT_FONT_FAMILY},"MicrosoftYaHei"`)
+    expect(style).toContain('font-family:inherit')
+    expect(style).not.toContain('MicrosoftYaHei')
   })
 
-  it('单元格自己的字体优先于表格默认字体', () => {
-    const style = paintRow({ fontFamily: 'SimSun' }, { tableDefaultFontFamily: 'KaiTi' })
-    expect(style).toContain('font-family:SimSun,')
-    expect(style).not.toContain('KaiTi')
+  it('手工配置的单元格字体优先于表格默认字体', () => {
+    const style = paintRow({ fontFamily: 'BrandSans' }, { tableDefaultFontFamily: 'BrandSerif' })
+    expect(style).toContain('font-family:BrandSans,')
+    expect(style).not.toContain('BrandSerif')
+  })
+
+  it('只配了表格默认字体时，未设字体的单元格继承它并补兜底栈', () => {
+    expect(paintRow({}, { tableDefaultFontFamily: 'BrandSerif' }))
+      .toContain('font-family:BrandSerif,"MicrosoftYaHei"')
   })
 
   it('两级都清空时交还 CSS 继承（与出图端「不输出 font-family」等价）', () => {

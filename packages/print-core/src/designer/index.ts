@@ -9,6 +9,8 @@ export * from './types.js'
 
 // ─── 文字溢出显示形式的判定（与渲染端共用同一份，避免设计态/出纸两套规则） ───
 export * from '../render/text-fit.js'
+// 流式列表的排布纯逻辑：三端出纸与两套设计器外壳共用同一份列数/跨列/估算口径
+export * from '../render/flow-list.js'
 
 // ─── 条码打印点对齐（与渲染端共用同一份，设计态条宽必须等于出纸条宽） ───
 export * from '../render/barcode-dot.js'
@@ -27,6 +29,7 @@ export * from './utils/overlay-placement.js'
 export * from './utils/migrate.js'
 export * from './utils/default-config.js'
 export * from './utils/table-matrix.js'
+export * from './utils/element-border-edit.js'
 export * from './utils/element-factory.js'
 export * from './utils/zone-layout.js'
 export * from './utils/ruler.js'

@@ -59,6 +59,7 @@ import TextElement from './TextElement.vue'
 import ImageElement from './ImageElement.vue'
 import LongTextElement from './LongTextElement.vue'
 import TableElement from './TableElement.vue'
+import FlowListElement from './FlowListElement.vue'
 import LineElement from './LineElement.vue'
 import ShapeElement from './ShapeElement.vue'
 import BarcodeElement from './BarcodeElement.vue'
@@ -115,6 +116,7 @@ const componentMap: Record<string, any> = {
   image: markRaw(ImageElement),
   longText: markRaw(LongTextElement),
   table: markRaw(TableElement),
+  flowList: markRaw(FlowListElement),
   hline: markRaw(LineElement),
   vline: markRaw(LineElement),
   rect: markRaw(ShapeElement),

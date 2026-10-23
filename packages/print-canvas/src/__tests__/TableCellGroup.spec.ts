@@ -288,3 +288,32 @@ describe('TableCellGroup 条形码单元格条高 (mm)', () => {
     expect(field.find('.pd-help').attributes('data-tip'), '条高应有帮助说明').toContain('条宽')
   })
 })
+
+describe('TableCellGroup 边框草稿：预设与单边才落盘', () => {
+  const cellOf = (el: RuntimeElement) => (el.options.tableRows as any[])[0].cells[0] as TableCell
+
+  it('预设与单边之下常驻一行说明，且排在两组控件之后', () => {
+    const nodes = mountGroup(makeElement({ formatter: '文本' }))
+      .findAll('.pd-form > *')
+      .map(n => n.attributes('class') ?? '')
+    const hint = nodes.indexOf('pd-hint')
+    expect(hint, '应有边框草稿说明').toBeGreaterThan(-1)
+    expect(hint).toBeGreaterThan(nodes.indexOf('pd-checkbox-group'))
+    expect(mountGroup(makeElement({ formatter: '文本' })).text())
+      .toContain('改完线型 / 宽度 / 颜色后，要点「全部 / 外侧 / 内部」')
+  })
+
+  it('只改宽度不写边框，点「全部」才按新宽度落盘', async () => {
+    const element = makeElement({ formatter: '文本' })
+    const w = mountGroup(element)
+    const input = w.find('.border-style-row input[type="number"]')
+    await input.setValue('2')
+    await input.trigger('change')
+    expect(cellOf(element).borders, '仅改宽度不应落盘').toBeUndefined()
+
+    const all = w.findAll('.border-presets button').find(b => b.text() === '全部')!
+    await all.trigger('click')
+    const borders = cellOf(element).borders!
+    expect(['top', 'right', 'bottom', 'left'].map(s => (borders as any)[s].width)).toEqual([2, 2, 2, 2])
+  })
+})

@@ -7,6 +7,7 @@ import type {
 } from '@worm-vue3-print/core/designer'
 import {
   applyBorderPreset, acceptsElementBorder, ELEMENT_BORDER_SIDES, type BorderPreset,
+  applyElementBorderPreset, elementBorderEdgeOn, setElementBorderEdge, type ElementBorderSpec,
 } from '@worm-vue3-print/core/designer'
 import type { DesignerStore } from './store'
 
@@ -26,11 +27,8 @@ export interface FormatStylePatch {
   verticalAlign?: VerticalAlign
 }
 
-export interface ElementBorderSpec {
-  width: number
-  style: string
-  color: string
-}
+/** 元素边框规格：类型与写入口径都在 core，本包不再自造一份 */
+export type { ElementBorderSpec }
 
 type BorderSide = 'top' | 'right' | 'bottom' | 'left'
 const BORDER_SIDES: BorderSide[] = ['top', 'right', 'bottom', 'left']
@@ -251,14 +249,7 @@ export class FormatToolbar {
     if (!targets.length) return
     targets.forEach(e => {
       // 整圈预设统一边框形态：分边残留一并清除（「所有边框」=四边一致，「无边框」=全清）
-      e.options.borders = undefined
-      if (mode === 'none') {
-        e.options.borderWidth = 0
-      } else {
-        e.options.borderWidth = border.width
-        e.options.borderStyle = border.style
-        e.options.borderColor = border.color
-      }
+      applyElementBorderPreset(e.options, mode, border)
     })
     this.commit()
   }
@@ -310,7 +301,7 @@ export class FormatToolbar {
     if (!t.length) return null
     const out = {} as Record<BorderSide, MixedOr<boolean>>
     for (const side of BORDER_SIDES) {
-      const flags = t.map(e => !!e.options.borders?.[side])
+      const flags = t.map(e => elementBorderEdgeOn(e.options, side))
       out[side] = flags.every(Boolean) ? true : flags.some(Boolean) ? MIXED : false
     }
     return out
@@ -321,12 +312,7 @@ export class FormatToolbar {
     const targets = this.selectedElements
     if (!targets.length) return
     const on = this.elementEdges?.[side] !== true
-    targets.forEach(e => {
-      const nb = { ...(e.options.borders ?? {}) }
-      if (on) nb[side] = { width: border.width, style: border.style, color: border.color }
-      else delete nb[side]
-      e.options.borders = nb
-    })
+    targets.forEach(e => setElementBorderEdge(e.options, side, on ? border : null))
     this.commit()
   }
 

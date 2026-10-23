@@ -387,6 +387,10 @@ export function applyBorderPreset(
   }
 }
 
+/** 线型/宽度/颜色只是待应用草稿，必须点预设或勾单边才落盘；文案画布与 common 单元格台共用一条 */
+export const CELL_BORDER_APPLY_HINT
+  = '改完线型 / 宽度 / 颜色后，要点「全部 / 外侧 / 内部」或勾选上、下、左、右某条边才会写入选中的单元格；「无」是清除边框'
+
 /** 设计态下无边框单元格的辅助虚线：与背景网格线同风格（浅灰虚线），略深保证可读 */
 export const GHOST_BORDER_CSS = '1px dashed rgba(0,0,0,0.18)'
 

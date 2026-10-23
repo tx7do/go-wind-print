@@ -1,8 +1,8 @@
 // packages/print-core/tests/fonts.test.ts
 import { describe, it, expect } from 'vitest'
 import {
-  DEFAULT_PRINT_FONT_FAMILY, FALLBACK_FONT_STACK, SYSTEM_FONT_OPTIONS,
-  buildFontFaceCss, resolveCanvasFontFamily, toFontFamilyStack, withSystemFontOptions,
+  FALLBACK_FONT_STACK,
+  buildFontFaceCss, normalizeFontCatalog, resolveCanvasFontFamily, toFontFamilyStack,
 } from '../src/print/fonts.js'
 
 describe('buildFontFaceCss', () => {
@@ -77,51 +77,39 @@ describe('resolveCanvasFontFamily', () => {
   })
 })
 
-describe('DEFAULT_PRINT_FONT_FAMILY', () => {
-  it('默认黑体在系统候选里有档，面板才显示得出中文名', () => {
-    expect(SYSTEM_FONT_OPTIONS.some(f => f.family === DEFAULT_PRINT_FONT_FAMILY)).toBe(true)
+describe('normalizeFontCatalog', () => {
+  it('宿主声明按序输出，不再追加任何内置字体档', () => {
+    const out = normalizeFontCatalog([
+      { family: 'ZCOOL KuaiLe', label: '站酷快乐体' },
+      { family: 'Ma Shan Zheng', label: '马善政楷书' },
+    ])
+    expect(out).toEqual([
+      { family: 'ZCOOL KuaiLe', label: '站酷快乐体' },
+      { family: 'Ma Shan Zheng', label: '马善政楷书' },
+    ])
   })
 
-  it('默认族名参与兜底栈：本机没装黑体也不会开天窗', () => {
-    expect(toFontFamilyStack(DEFAULT_PRINT_FONT_FAMILY)).toBe(
-      `"${DEFAULT_PRINT_FONT_FAMILY}", ${FALLBACK_FONT_STACK.join(', ')}`,
-    )
-  })
-})
-
-describe('SYSTEM_FONT_OPTIONS', () => {
-  it('每条都带展示名，且族名不带引号（写进模板后由 toFontFamilyStack 统一加引号）', () => {
-    for (const font of SYSTEM_FONT_OPTIONS) {
-      expect(font.label?.trim()).toBeTruthy()
-      expect(font.family).not.toMatch(/["']/)
-      expect(font.family.trim()).toBeTruthy()
-    }
+  it('宿主未声明字体时目录为空，设计器不陈列任何字体名', () => {
+    expect(normalizeFontCatalog()).toEqual([])
+    expect(normalizeFontCatalog(null)).toEqual([])
+    expect(normalizeFontCatalog(undefined)).toEqual([])
   })
 
-  it('族名不重复，避免下拉出现两条同名档位', () => {
-    const keys = SYSTEM_FONT_OPTIONS.map(f => f.family.toLowerCase())
-    expect(new Set(keys).size).toBe(keys.length)
-  })
-})
-
-describe('withSystemFontOptions', () => {
-  it('宿主声明在前、系统候选在后（宿主字体随模板分发，优先级更高）', () => {
-    const out = withSystemFontOptions([{ family: 'Noto Sans SC', label: '思源黑体' }])
-    expect(out[0]).toEqual({ family: 'Noto Sans SC', label: '思源黑体' })
-    expect(out[out.length - 1]!.family).toBe(SYSTEM_FONT_OPTIONS[SYSTEM_FONT_OPTIONS.length - 1]!.family)
+  it('同族名大小写不敏感去重，保留首现顺序与宿主自己的 label', () => {
+    const out = normalizeFontCatalog([
+      { family: 'Demo', label: '甲' },
+      { family: 'demo', label: '乙' },
+    ])
+    expect(out).toEqual([{ family: 'Demo', label: '甲' }])
   })
 
-  it('同族名去重并保留宿主 label，大小写不敏感', () => {
-    const out = withSystemFontOptions([{ family: 'simhei', label: '公司黑体' }])
-    const hit = out.filter(f => f.family.toLowerCase() === 'simhei')
-    expect(hit).toHaveLength(1)
-    expect(hit[0]!.label).toBe('公司黑体')
-  })
-
-  it('宿主为空或未注入时回退纯系统候选，空值与空白族名被丢弃', () => {
-    expect(withSystemFontOptions()).toEqual(SYSTEM_FONT_OPTIONS.map(f => ({ ...f })))
-    const out = withSystemFontOptions([null, undefined, { family: '  ' }, { family: 'SimSun' }])
-    expect(out.filter(f => f.family === 'SimSun')).toHaveLength(1)
-    expect(out.some(f => f.family === 'SimHei')).toBe(true)
+  it('空值与空白族名被丢弃，空白 label 不落字段', () => {
+    const out = normalizeFontCatalog([
+      null,
+      undefined,
+      { family: '  ' },
+      { family: 'A', label: '  ' },
+    ])
+    expect(out).toEqual([{ family: 'A' }])
   })
 })

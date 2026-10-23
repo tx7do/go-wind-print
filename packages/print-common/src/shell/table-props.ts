@@ -11,6 +11,7 @@ import {
   applyBorderPreset, canMergeReason, cellFitCapMm, cellFitWidthMm, findMainCell, mergeCells,
   resolveCellTextFit, setHeaderRepeat,
   setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText, createDefaultOptions,
+  CELL_BORDER_APPLY_HINT,
 } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
@@ -472,6 +473,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         }),
         h('span', { text: edge.label }),
       ]))),
+      hint(CELL_BORDER_APPLY_HINT),
 
       numField('内边距 (mm)', optNum(cell0.padding), (c, v) => { c.padding = v }, { min: 0, max: 10, step: 0.5, placeholder: '默认' }, cellReset('padding')),
       switchRow('自动换行', cell0.wordWrap ?? true, v => write(c => { c.wordWrap = v }), undefined, cellReset('wordWrap')),

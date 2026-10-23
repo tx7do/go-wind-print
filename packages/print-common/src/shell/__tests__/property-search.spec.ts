@@ -112,10 +112,10 @@ describe('property-search 门控（对照 filteredGroups / matchedKeys / searchi
     expect(host.querySelectorAll('[data-prop-key]').length).toBeGreaterThan(visibleItemKeys(host).length)
   })
 
-  it('「边框」：命中边框与背景分组及其三个字段（背景色同组，注册表口径两侧一致）', () => {
+  it('「边框」：命中边框与背景分组及其四个字段（线型同组，注册表口径两侧一致）', () => {
     const { host } = paint('text', '边框')
     expect(visibleGroups(host)).toEqual(['边框与背景'])
-    expect(visibleItemKeys(host)).toEqual(['bb-border-width', 'bb-border-color', 'bb-bg-color'])
+    expect(visibleItemKeys(host)).toEqual(['bb-border-style', 'bb-border-width', 'bb-border-color', 'bb-bg-color'])
   })
 
   it('「位置」：命中位置与尺寸分组的四个字段', () => {

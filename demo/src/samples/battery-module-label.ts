@@ -43,7 +43,7 @@ const SN_BARCODE = cell('054PC070S050M1G32Q500055', {
   printerDpi: 203,
 })
 
-/** 四列宽之和 = 元素宽 85mm；行高之和 = 元素高 48.5mm */
+/** 四列宽之和 = 元素宽 85mm；行高之和 = 元素高 63.2mm（Chromium 实测整表含塌陷边框 64.44mm） */
 const COL_WIDTHS = [21.4, 24.2, 17.9, 21.5]
 
 export const BATTERY_MODULE_LABEL_TABLE_ROWS = [
@@ -65,8 +65,15 @@ export const BATTERY_MODULE_LABEL_TABLE_ROWS = [
   row('header', 5.5, [
     cell('Production Date'), cell('2026-03-03'), cell('SOC'), cell('45%'),
   ], { repeatOnPage: true }),
-  row('header', 8, [
-    cell('Cautions'), cell(CAUTIONS, { colspan: 3, align: 'left' }), MERGED(), MERGED(),
+  /**
+   * 「注意事项」按原文的两处换行符断行（旧口径把 \n 折叠成一整段）。
+   * 该格字号 6pt：分页预算是「纸内区 71mm − 表格 top 2.5mm = 68.5mm」，实测同口径下
+   * 7pt 整表 71.52mm、6.5pt 69.44mm 都越界 → 分页把整行推到第二张标签（单枚标签出两版）；
+   * 6pt 实测整表 64.44mm，单枚一页、无单词被拆开（画布与预览实测该格 8 行）。
+   * 行高声明取实测值 22.7mm，免得依赖自动撑高后与「行高和 = 元素高」对不上。
+   */
+  row('header', 22.7, [
+    cell('Cautions'), cell(CAUTIONS, { colspan: 3, align: 'left', fontSize: 6 }), MERGED(), MERGED(),
   ], { repeatOnPage: true }),
 ]
 
@@ -91,14 +98,12 @@ export const BATTERY_MODULE_LABEL_TEMPLATE: TemplateData = {
       left: 2.45,
       top: 2.5,
       width: 85,
-      height: 48.5,
+      height: 63.2,
       tableMode: 'dynamic',
       tableColWidths: COL_WIDTHS,
       tableDefaultFontSize: 7,
       tableDefaultPadding: 1,
       tableDefaultColor: '#333333',
-      /** 黑体走 core 内置的本机系统字体档（免字体文件），单元格未设 fontFamily 时都继承这条 */
-      tableDefaultFontFamily: 'SimHei',
       tablePagination: { enabled: true },
       fields: [],
       tableRows: BATTERY_MODULE_LABEL_TABLE_ROWS,

@@ -221,6 +221,7 @@
         <label class="pd-checkbox"><input type="checkbox" v-model="edgeChecks" value="bottom" @change="onEdgesChange($event)"><span>下</span></label>
         <label class="pd-checkbox"><input type="checkbox" v-model="edgeChecks" value="left" @change="onEdgesChange($event)"><span>左</span></label>
       </div>
+      <p class="pd-hint">{{ CELL_BORDER_APPLY_HINT }}</p>
 
       <div class="pd-field"><span class="pd-label"><span class="pd-label-t">内边距 (mm)</span>
           <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="padding" :tip-override="CELL_TIP" :write="(v) => write(c => { c.padding = v })" />
@@ -282,7 +283,7 @@ import type {
 import {
   canMergeReason, mergeCells, splitCells, applyBorderPreset, findMainCell, type BorderPreset,
   resolveCellTextFit, type TextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA, barcodeBarWidthRecommendText,
-  cellFitCapMm, cellFitWidthMm,
+  cellFitCapMm, cellFitWidthMm, CELL_BORDER_APPLY_HINT,
 } from '@worm-vue3-print/core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import PropertyGroup from './PropertyGroup.vue'

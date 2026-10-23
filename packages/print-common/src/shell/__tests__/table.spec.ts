@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 // 临时验收脚本（跑完即删）：表格渲染 / 右键菜单 / 矩阵操作 / 列宽拖拽 / 单元格码
 import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { TableRow } from '@worm-vue3-print/core/designer'
 import { DesignerStore } from '../../core/store'
 import { render, h } from '../../core/h'
@@ -97,6 +99,10 @@ describe('表格渲染 DOM 与 canvas 逐字一致', () => {
     expect(fit.dataset.fitBase).toBe('10')
     expect(fit.dataset.fitMin).toBe('6')
     expect(fit.getAttribute('style')).toContain('max-height: 6mm')
+    // 换行口径与 canvas 逐字一致：可换行格按换行符断行、整词不拆；wordWrap:false 格强制单行
+    expect(tds[0].getAttribute('style')).toContain('white-space: pre-wrap')
+    expect(tds[0].getAttribute('style')).not.toContain('word-break: break-all')
+    expect(tds[4].getAttribute('style')).toContain('white-space: nowrap')
     // 数据行占位
     expect(tds[3].querySelector('.data-placeholder')!.textContent).toBe('{name}')
     // 徽标
@@ -307,5 +313,38 @@ describe('列宽拖拽', () => {
     store.undo()
     expect((store.elements[0]!.options.tableColWidths as number[])[0]).toBe(50)
     abortTableColResize()
+  })
+})
+
+describe('单元格换行与断行口径', () => {
+  function styleAttr(host: HTMLElement, r: number, c: number): string {
+    const td = host.querySelectorAll('tr')[r]!.querySelectorAll('td')[c] as HTMLElement
+    return (td.getAttribute('style') ?? '').replace(/\s/g, '')
+  }
+
+  it('可换行档内联 pre-wrap，不换行档维持 nowrap（与画布/出纸同源）', () => {
+    const host = paint(makeStore(), () => {}, { visible: false, x: 0, y: 0 })
+    expect(styleAttr(host, 1, 0)).toContain('white-space:pre-wrap')
+    expect(styleAttr(host, 1, 1)).toContain('white-space:nowrap')
+  })
+
+  /** 派生样式表路径：不依赖 import.meta.url（vitest 下它是虚拟路径），兼容包目录/仓库根两种 cwd */
+  function designerCss(): string {
+    for (const rel of ['src/styles/designer.css', 'packages/print-common/src/styles/designer.css']) {
+      try {
+        return readFileSync(resolve(process.cwd(), rel), 'utf8')
+      } catch {
+        // 换下一个 cwd 基准
+      }
+    }
+    throw new Error('未找到 designer.css，先执行 npm run styles -w @worm-vue3-print/common')
+  }
+
+  it('派生样式表整词断行：.print-table td 不再逐字硬切', () => {
+    const css = designerCss()
+    const rule = css.match(/\.print-table td\s*\{[^}]*\}/)?.[0] ?? ''
+    expect(rule).toContain('word-break:normal')
+    expect(rule).toContain('overflow-wrap:break-word')
+    expect(rule).not.toContain('break-all')
   })
 })

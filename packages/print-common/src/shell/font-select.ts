@@ -13,7 +13,7 @@ import {
 } from '../core/font-catalog'
 import type { FontOption } from '../core/font-catalog'
 import { resolveOverlayPlacement } from '@worm-vue3-print/core/designer'
-import { withSystemFontOptions } from '@worm-vue3-print/core'
+import { normalizeFontCatalog } from '@worm-vue3-print/core'
 import type { ShellState } from './controls'
 
 type FontRowKind = 'clear' | 'unknown' | 'font' | 'free'
@@ -60,8 +60,8 @@ function measureBoundary(el: HTMLElement): { top: number; bottom: number } {
 }
 
 export function renderFontSelect(opts: FontSelectOptions): HTMLElement {
-  // 宿主声明的模板字体在前（随模板分发、三端一致），core 的系统字体候选在后（免字体文件，本机可用）
-  const catalog = withSystemFontOptions(buildFontCatalog(opts.fonts))
+  // 候选只来自宿主声明的模板字体（随模板分发、三端一致）；设计器不内置字体名档位
+  const catalog = normalizeFontCatalog(buildFontCatalog(opts.fonts))
   const placeholder = opts.placeholder ?? '默认'
   const listId = `font-select-list-${opts.id}`
 

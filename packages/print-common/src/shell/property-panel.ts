@@ -4,8 +4,14 @@
 //  .property-search>input.pd-input / .font-select>.font-select-input+.font-select-list /
 //  .pd-form / .position-grid / .margin-grid / .pd-field>.pd-label / .pd-divider / .pd-empty）。
 // 搜索门控（filteredGroups / matchedKeys / searching）见 shell/property-search.ts，口径同 canvas。
-import { PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText } from '@worm-vue3-print/core/designer'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import {
+  PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS,
+  resolveDesignImageSrc, barcodeBarWidthRecommendText,
+  acceptsElementBorder, applyElementBorderPreset, elementBorderEdgeOn, resolveElementBorderSpec,
+  setElementBorderEdge, ELEMENT_BORDER_APPLY_HINT,
+  resolveFlowColumns, resolveFlowGapX, resolveFlowMaxSpan, resolveFlowRowHeight, suggestFlowColumns,
+} from '@worm-vue3-print/core/designer'
+import type { BorderPreset, ElementBorderSide, ElementOptions, RuntimeElement } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import { colorTrigger, divider, field, fieldHelp, radioGroup, resetButton, stepper } from './controls'
@@ -54,6 +60,22 @@ function switchField(_ctx: ShellCtx, label: string, checked: boolean, onCommit: 
     onChange: (ev: Event) => onCommit((ev.target as HTMLInputElement).checked),
   }), undefined, reset)
 }
+
+/** 元素边框入口：档位、边位与文案与 canvas 的 BorderBgGroup.vue 逐项一致 */
+const BORDER_STYLE_OPTIONS = [
+  { value: 'solid', label: '实线' }, { value: 'dashed', label: '虚线' },
+  { value: 'dotted', label: '点线' }, { value: 'double', label: '双线' },
+]
+
+const ELEMENT_BORDER_PRESETS: { value: BorderPreset; label: string }[] = [
+  { value: 'all', label: '全部' }, { value: 'outer', label: '外侧' },
+  { value: 'inner', label: '内部' }, { value: 'none', label: '无' },
+]
+
+const ELEMENT_BORDER_EDGES: { value: ElementBorderSide; label: string }[] = [
+  { value: 'top', label: '上' }, { value: 'right', label: '右' },
+  { value: 'bottom', label: '下' }, { value: 'left', label: '左' },
+]
 
 function elementPane(ctx: ShellCtx, el: RuntimeElement) {
   const s = ctx.store
@@ -231,13 +253,84 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
   if (isTable) {
     rows.push(tableSettingsGroup(ctx, el))
   }
+  // 流式列表：列数与行高必须指定、跨列默认关、放不下只提示不写值（与 canvas FlowListGroup 逐项一致）
+  if (type === 'flowList') {
+    const cols = resolveFlowColumns(o.flowColumns)
+    const gap = resolveFlowGapX(o.flowGapX)
+    const fitCols = suggestFlowColumns(o.width ?? 0, gap, o.fontSize ?? 12)
+    rows.push(group(ctx, 'flow-list', '流式列表', 'Grid3x3', [
+      h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, [
+        gateItem(ctx, 'fl-columns', fieldHelp('每行列数', stepper({
+          value: o.flowColumns, min: 1, max: 12,
+          onCommit: v => patch({
+            flowColumns: resolveFlowColumns(v),
+            flowMaxSpan: resolveFlowMaxSpan(o.flowMaxSpan, resolveFlowColumns(v)),
+          }),
+        }), propertyTip('fl-columns'))),
+        gateItem(ctx, 'fl-row-height', fieldHelp('行高 (mm)', stepper({
+          value: o.flowRowHeight, min: 3, max: 100, step: 0.5,
+          onCommit: v => patch({ flowRowHeight: resolveFlowRowHeight(v) }),
+        }), propertyTip('fl-row-height'))),
+        gateItem(ctx, 'fl-gap-x', fieldHelp('单元横向间距 (mm)', stepper({
+          value: o.flowGapX, min: 0, max: 50, step: 0.5,
+          onCommit: v => patch({ flowGapX: resolveFlowGapX(v) }),
+        }), propertyTip('fl-gap-x'))),
+        gateItem(ctx, 'fl-auto-span', switchField(ctx, '内容过长时跨列', o.flowAutoSpan === true, v => patch({
+          flowAutoSpan: v,
+          flowMaxSpan: resolveFlowMaxSpan(o.flowMaxSpan, cols),
+        }))),
+        o.flowAutoSpan === true ? gateItem(ctx, 'fl-max-span', fieldHelp('最多跨几列', stepper({
+          value: o.flowMaxSpan, min: 1, max: cols,
+          onCommit: v => patch({ flowMaxSpan: resolveFlowMaxSpan(v, cols) }),
+        }), propertyTip('fl-max-span'))) : '',
+        cols > fitCols ? h('p', {
+          class: 'pd-hint',
+          text: `按当前字号与框宽，${cols} 列偏挤（可放约 ${fitCols} 列）。数值保持不变，出纸按 ${cols} 列排`,
+        }) : '',
+        // 单元模板与列表源不在本分组：模板写在「内容」分组的一条完整表达式里（{drugs.name} {drugs.spec}），
+        // 列表源由表达式里出现的数组字段检出（core detectFlowListKey），与出纸同一口径
+      ].flat().filter(Boolean)),
+    ]))
+  }
+
+  /** 整圈四字段副本：预设与单边都在副本上改，再经 updateElement 收口（历史与重绘同一条路） */
+  const borderFields = (): Pick<ElementOptions, 'borderWidth' | 'borderStyle' | 'borderColor' | 'borders'> => ({
+    borderWidth: o.borderWidth, borderStyle: o.borderStyle, borderColor: o.borderColor, borders: o.borders,
+  })
+  const applyBorderPresetTo = (preset: BorderPreset) => {
+    const next = borderFields()
+    applyElementBorderPreset(next, preset, resolveElementBorderSpec(next))
+    patch(next)
+  }
+  const toggleBorderEdge = (side: ElementBorderSide) => {
+    const next = borderFields()
+    setElementBorderEdge(next, side, elementBorderEdgeOn(next, side) ? null : resolveElementBorderSpec(next))
+    patch(next)
+  }
 
   rows.push(group(ctx, 'border-bg', '边框与背景', 'Picture', [
     h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, [
+      gateItem(ctx, 'bb-border-style', selectField(ctx, '线型', o.borderStyle || 'solid', BORDER_STYLE_OPTIONS,
+        v => patch({ borderStyle: v }))),
       h('div', { class: 'border-row' }, [
         gateItem(ctx, 'bb-border-width', numField(ctx, '边框宽度', o.borderWidth, v => patch({ borderWidth: v }), { min: 0, max: 20, step: 0.25 }, reset('borderWidth', 'bb-border-width'))),
         gateItem(ctx, 'bb-border-color', field('边框颜色', colorTrigger(o.borderColor, v => patch({ borderColor: v }), '边框颜色'), undefined, reset('borderColor', 'bb-border-color'))),
       ]),
+      // rect/oval/hline/vline/table 用 border 画自身本体，写分边不出效果（与出纸 resolveElementBorder 同一排除表）
+      ...(acceptsElementBorder(type) ? [
+        h('div', { class: 'pd-button-group border-presets' }, ELEMENT_BORDER_PRESETS.map(p => h('button', {
+          type: 'button', class: 'pd-button small', text: p.label, disabled: p.value === 'inner',
+          onClick: () => applyBorderPresetTo(p.value),
+        }))),
+        h('div', { class: 'pd-checkbox-group' }, ELEMENT_BORDER_EDGES.map(edge => h('label', { class: 'pd-checkbox' }, [
+          h('input', {
+            type: 'checkbox', checked: elementBorderEdgeOn(o, edge.value),
+            onChange: () => toggleBorderEdge(edge.value),
+          }),
+          h('span', { text: edge.label }),
+        ]))),
+        h('p', { class: 'pd-hint', text: ELEMENT_BORDER_APPLY_HINT }),
+      ] : []),
       gateItem(ctx, 'bb-bg-color', field('背景色', colorTrigger(o.backgroundColor, v => patch({ backgroundColor: v }), '背景颜色'), undefined, reset('backgroundColor', 'bb-bg-color'))),
     ]),
   ]))

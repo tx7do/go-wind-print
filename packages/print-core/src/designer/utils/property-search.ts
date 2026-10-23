@@ -73,6 +73,37 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
     ],
   },
   {
+    group: 'flow-list',
+    groupLabel: '流式列表',
+    items: [
+      {
+        key: 'fl-columns',
+        keywords: ['每行列数', '列数', '栏数', '几列', 'flowcolumns'],
+        tip: '一行排几个单元，必须由你指定——不随内容自动算列数。填的列数乘单元宽放不下元素框时只给提示、不改你的数，出纸按你填的排',
+      },
+      {
+        key: 'fl-row-height',
+        keywords: ['行高', '每行高度', '单元高度', 'flowrowheight'],
+        tip: '每个单元行的最低高度（毫米），与表格行高同一口径：内容比它高时这一行会撑高，不会裁字',
+      },
+      {
+        key: 'fl-gap-x',
+        keywords: ['单元间距', '横向间距', '格间距', '列间距', 'flowgapx'],
+        tip: '相邻单元之间的横向留白（毫米）；纵向不留缝，行与行的距离由行高承担',
+      },
+      {
+        key: 'fl-auto-span',
+        keywords: ['自适应', '跨列', '内容过长', '占两列', '自动换行', 'flowsautspan', 'flowautospan'],
+        tip: '单元内容比一列还宽时，让它占掉两个或更多列位；当前行剩不够放就把整个单元挪到下一行行首（绝不把词切两半）。默认关——开着时出纸栏数由字号与框宽决定',
+      },
+      {
+        key: 'fl-max-span',
+        keywords: ['最多跨几列', '跨列上限', 'flowmaxspan'],
+        tip: '跨列的列数上限，最大只能等于「每行列数」：把每行列数改小时，这里会被一并顶回去',
+      },
+    ],
+  },
+  {
     group: 'code',
     groupLabel: '条码设置',
     items: [
@@ -121,6 +152,7 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
     group: 'border-bg',
     groupLabel: '边框与背景',
     items: [
+      { key: 'bb-border-style', keywords: ['线型', '边框线型', '实线', '虚线', '点线', '双线', 'borderstyle'] },
       { key: 'bb-border-width', keywords: ['边框宽度', 'border'] },
       { key: 'bb-border-color', keywords: ['边框颜色'] },
       { key: 'bb-bg-color', keywords: ['背景色', 'background'] },

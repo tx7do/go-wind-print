@@ -33,9 +33,6 @@ TYPE_TITLES = {
     'pageNumber': '页码',
 }
 
-# 新建元素的默认字体族名，与 core 的 DEFAULT_PRINT_FONT_FAMILY 同值（热敏出纸笔画更实）
-DEFAULT_PRINT_FONT_FAMILY = 'SimHei'
-
 # 简写键 → 原生 ElementOptions 键（通用项）
 COMMON_ALIAS = {
     'text': 'formatter',      # 文本/条码/二维码的内容（支持 {field} 与表达式）
@@ -206,11 +203,8 @@ def build_options(spec: Dict[str, Any], etype: str) -> Dict[str, Any]:
         options.setdefault('qrCodeLevel', 'M')
     if etype in ('text', 'longText'):
         options.setdefault('fontSize', 9)
-    # 与 core 的 createDefaultOptions 同口径：新建元素默认黑体（热敏 203dpi 出纸笔画更实）。
-    # 显式写 family 时以 family 为准；family 给 null/空串即清成「默认」，交还 CSS 继承。
-    options.setdefault('fontFamily', DEFAULT_PRINT_FONT_FAMILY)
-    if etype == 'table':
-        options.setdefault('tableDefaultFontFamily', DEFAULT_PRINT_FONT_FAMILY)
+    # 不预置字体：未显式写 family 时不产出 fontFamily/tableDefaultFontFamily，
+    # 由渲染端系统默认字体承接（项目不替用户预置第三方授权字体名）
     return options
 
 

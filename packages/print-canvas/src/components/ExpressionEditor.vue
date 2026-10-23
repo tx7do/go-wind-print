@@ -600,6 +600,8 @@ function onConfirm() {
   font-size: 13px;
   color: var(--pd-text);
   line-height: 1.6;
+  /* 与单元格出纸同口径：表达式里的换行符在编辑器内就能看到 */
+  white-space: pre-wrap;
 }
 
 .ee-preview-error {

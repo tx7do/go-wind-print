@@ -22,6 +22,15 @@ export const ELEMENT_BINDING_REGISTRY: Record<string, BindingDescriptor[]> = {
     { targetPath: 'options.src', label: '内容', dataSource: 'main', placeholder: '输入图片路径，支持 /docfiles/... 相对路径、绝对 URL 或 {字段} 表达式' },
   ],
   table: [],
+  // 流式列表的单元模板是一条完整表达式：列表路径写在里面（{drugs.name}），不再单独配数据源
+  flowList: [
+    {
+      targetPath: 'options.formatter',
+      label: '单元模板',
+      dataSource: 'main',
+      placeholder: '{drugs.name} {drugs.spec}',
+    },
+  ],
 }
 
 export function getTableCellBindings(

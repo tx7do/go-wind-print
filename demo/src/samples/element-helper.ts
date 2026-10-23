@@ -15,6 +15,7 @@ const TYPE_TITLES: Record<ElementType, string> = {
   image: '图片',
   longText: '长文',
   table: '表格',
+  flowList: '流式列表',
   hline: '横线',
   vline: '竖线',
   rect: '矩形',
