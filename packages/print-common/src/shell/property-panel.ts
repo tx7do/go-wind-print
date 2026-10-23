@@ -166,12 +166,12 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
           gateItem(ctx, 'cd-dpi', selectField(ctx, '打印机分辨率', dpi, [
             { value: '', label: '不指定（按条宽渲染）' }, { value: '203', label: '203 dpi（8 点/mm）' },
             { value: '300', label: '300 dpi（11.8 点/mm）' }, { value: '600', label: '600 dpi（23.6 点/mm）' },
-          ], v => patch({ printerDpi: Number(v) > 0 ? Number(v) : undefined }))),
+          ], v => patch({ printerDpi: Number(v) > 0 ? Number(v) : undefined }), undefined, reset('printerDpi', 'cd-dpi'))),
           gateItem(ctx, 'cd-dpi', h('p', {
             class: 'pd-hint',
             text: '填写后条宽吸附到整数打印点（消除出纸「条宽忽宽忽窄」）：条码先按条宽渲染，可用宽度够就原样落纸，不够才整体等比缩小',
           })),
-          gateItem(ctx, 'cd-bar-width', numField(ctx, '条宽（倍率）', o.barWidth ?? 2, v => patch({ barWidth: v }), { min: 2, max: 8, step: 0.5 })),
+          gateItem(ctx, 'cd-bar-width', numField(ctx, '条宽（倍率）', o.barWidth ?? 2, v => patch({ barWidth: v }), { min: 2, max: 8, step: 0.5 }, reset('barWidth', 'cd-bar-width'))),
           gateItem(ctx, 'cd-bar-width', h('p', {
             class: 'pd-hint',
             text: (dpi
@@ -181,25 +181,25 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
           gateItem(ctx, 'cd-bar-quiet-zone', fieldHelp('静区 (模块)', stepper({
             value: o.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',
             onCommit: v => patch({ barQuietZone: v }),
-          }), propertyTip('cd-bar-quiet-zone'))),
+          }), propertyTip('cd-bar-quiet-zone'), reset('barQuietZone', 'cd-bar-quiet-zone'))),
           gateItem(ctx, 'cd-bar-height', fieldHelp('条高 (mm)', stepper({
             value: o.barHeight, min: 1, max: 100, placeholder: '默认 30 模块',
             onCommit: v => patch({ barHeight: v ?? undefined }),
-          }), propertyTip('cd-bar-height'))),
-          gateItem(ctx, 'cd-show-text', switchField(ctx, '显示文本', o.hideTitle !== true, v => patch({ hideTitle: v ? undefined : true }))),
+          }), propertyTip('cd-bar-height'), reset('barHeight', 'cd-bar-height'))),
+          gateItem(ctx, 'cd-show-text', switchField(ctx, '显示文本', o.hideTitle !== true, v => patch({ hideTitle: v ? undefined : true }), reset('hideTitle', 'cd-show-text'))),
           gateItem(ctx, 'cd-font-size', field('文本字号（相对条高，条高为 30）', stepper({
             value: o.fontSize, min: 5, max: 24, placeholder: '默认 10',
             onCommit: v => patch({ fontSize: v || undefined }),
-          }))),
+          }), undefined, reset('fontSize', 'cd-font-size'))),
         ] : [
           gateItem(ctx, 'cd-ec-level', selectField(ctx, '纠错级别', String(o.qrCodeLevel ?? 'M'), [
             { value: 'L', label: 'L（最低，容量大）' }, { value: 'M', label: 'M（推荐）' },
             { value: 'Q', label: 'Q' }, { value: 'H', label: 'H（最高）' },
-          ], v => patch({ qrCodeLevel: v }))),
+          ], v => patch({ qrCodeLevel: v }), undefined, reset('qrCodeLevel', 'cd-ec-level'))),
           gateItem(ctx, 'cd-quiet-zone', fieldHelp('静区 (模块)', stepper({
             value: o.qrQuietZone, min: 0, max: 8, placeholder: '默认 0',
             onCommit: v => patch({ qrQuietZone: v }),
-          }), propertyTip('cd-quiet-zone'))),
+          }), propertyTip('cd-quiet-zone'), reset('qrQuietZone', 'cd-quiet-zone'))),
         ],
         divider('自定义设置'),
         isBarcode ? h('p', {
@@ -207,15 +207,15 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
           text: '条码尺寸由「条宽」与「打印机分辨率」结算：宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限。要放大条码：先加条宽倍率，再收窄静区（左右白边会换成条宽），必要时关掉显示文本以让出文本区高度',
         }) : '',
         !isBarcode ? gateItem(ctx, 'cd-fit', selectField(ctx, '缩放模式', String(o.fit || 'contain'), IMAGE_FIT_OPTIONS,
-          v => patch({ fit: v || undefined }))) : '',
+          v => patch({ fit: v || undefined }), undefined, reset('fit', 'cd-fit'))) : '',
         gateItem(ctx, 'cd-max-width', field('最大宽度 (mm)', stepper({
           value: o.maxWidth, min: 1, max: 200, placeholder: '默认',
           onCommit: v => patch({ maxWidth: v || undefined }),
-        }))),
+        }), undefined, reset('maxWidth', 'cd-max-width'))),
         gateItem(ctx, 'cd-max-height', field('最大高度 (mm)', stepper({
           value: o.maxHeight, min: 1, max: 200, placeholder: '默认',
           onCommit: v => patch({ maxHeight: v || undefined }),
-        }))),
+        }), undefined, reset('maxHeight', 'cd-max-height'))),
       ].flat().filter(Boolean)),
     ]))
   }
