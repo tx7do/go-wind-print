@@ -14,11 +14,15 @@
 | ② 出现时机 | **K1** | 常驻显示；等于默认时置灰，被改过时高亮可点 |
 | ③ 批量入口 | **G1** | 只做单属性逐项，不加分组级/元素级批量 |
 | ④ 既有「默认」按钮 | **T1** | 统一换成同一枚图标，「默认」二字消失，提示走 `data-tip` |
-| ⑤ 范围 | **R2 + 派生规则** | 外观/条码/表格/页面全纳入；几何与数据类排除 |
+| ⑤ 范围 | **R2 + 派生规则** | 元素属性台（外观/条码/边框/高级/表格/单元格）+ 水印/拼版全纳入；几何与数据类排除；**出厂值有两处来源的页级行延后**（见第三节边界 4 修订） |
 | ⑥ 表格层级 | **C2** | 元素级 / 表格级默认 / 单元格级三层各自可恢复 |
 | ⑦ 写回语义 | **派生规则**（取代原 `omit`/`literal` 双模式） | 重置目标 = 该元素类型的出厂值 |
 
 **派生规则是本轮实施中最重要的一处改口**：原设计拟在注册表声明 `reset: 'omit' | 'literal'` 双模式，逐项摊开后发现同一属性键在不同元素类型下的出厂状态不同（`ap-line-height` 在 longText 上出厂即写 `18`、在 text 上未设），按属性划范围会划出一条随元素类型漂移的线。改为单一派生规则后，四类特例（`ap-font-size`、`ap-img-fit`、`tableDefaultFontSize`、`tableDefaultColor`）自动落到正确动作上。
+
+**2026-10-23 二次修订（用户指令）**：第三节**边界 4 的常量上收本期不实施**。连带后果不是"整个页面页签停做"，而是**按出厂值来源逐行判定**：纸型、方向、输出旋转、页边距、页眉页脚这些行的 `F` 目前有两个来源（`default-config.ts` 预设 + `PropertyPanel.vue` 组件内硬编码），不收口就没有可信的 `base` 可传给 `ResetButton`，硬做等于把第三处真源固化进重置逻辑——**这些行延后**。而**水印与拼版仍在本期**，因为 `WatermarkConfig.vue` 与 `TilingConfig.vue` 已经直接 import core 的 `WATERMARK_DEFAULTS` / `TILE_DEFAULTS` 作唯一回落源，单一出口天然成立。详见第四节表格。
+
+页面背景色那一行**仍按 T1 换成图标**：它的 `F` 就是 `undefined`（现有代码写的正是 `pageBackground: undefined`，渲染端回落白色），判据 `pageBackground === undefined` **不需要任何常量上收**即可成立。若连这行也一并延后，本期就只有元素属性台带重置图标、页面那行仍是文字「默认」，T1 想消除的"两种形态并存"会重新出现——要砍这条例外请回一句。
 
 ## 二、现有代码事实（按符号复核，行号会漂）
 
@@ -39,7 +43,8 @@
 ```
 出厂值 F = createDefaultOptions(elementType)[key]        // 元素级
         = createDefaultTable() 对应层不预置 ⇒ F = undefined  // 单元格级
-        = default-config.ts 纸型预设[key]                 // 页面级
+        = WATERMARK_DEFAULTS / TILE_DEFAULTS              // 水印、拼版（单一源，本期做）
+        = default-config.ts 纸型预设[key]                 // 页面级（两处来源未收口 ⇒ 本期延后）
 
 灰/亮判据：当前值 === F            → 灰（无可恢复，点击不产生变更）
           当前值 !== F            → 亮（可恢复）
@@ -51,7 +56,7 @@
 1. **`0` 与 `undefined` 是两个不同状态**。比较用 `===`，不得用 `||` / `??` 归并；common 侧接入时不得让 `orUndef` 把 `0` 折成 `undefined`（已有绕行先例，沿用）。
 2. **数组/对象型属性不参与本机制**（`tableColWidths`、`tableRows`、`borders`、`tablePagination`），它们的"等于出厂值"需要深比较且重置后果不可预期，一律进排除清单。
 3. **`F` 只在当前元素类型下求值**。同一 `key` 在 `text` 与 `longText` 上的 `F` 可以不同，这是规则的正常结果，不是 bug。
-4. **页面级的出厂值目前有第二处来源，须先收口**。`default-config.ts` 的纸型预设覆盖 `paperSize` / 页边距 / 210×297 这类，但 `outputRotation ?? 0`、页面背景 `'#ffffff'`、页眉页脚 `?? 10` 等是**散在 `PropertyPanel.vue` 与 common `property-panel.ts` 模板里的 UI 侧硬编码**，预设表里没有对应条目。实现时必须先把这些常量上收到 `default-config.ts` 单一出口（页面级 `base` 由它派生），否则页面属性会出现"预设表说一个值、控件显示另一个值"的第三处真源。**元素级无此问题**（`createDefaultOptions` 已是单一出口）。
+4. **页面级的出厂值目前有第二处来源——本期不解决，页面属性随之延后**。`default-config.ts` 的纸型预设覆盖 `paperSize` / 页边距 / 210×297 这类，但 `outputRotation ?? 0`、页面背景 `'#ffffff'`、页眉页脚 `?? 10` 等是**散在 `PropertyPanel.vue` 与 common `property-panel.ts` 模板里的 UI 侧硬编码**，预设表里没有对应条目。要正确做页面属性的重置，必须先把这些常量上收到 `default-config.ts` 单一出口（页面级 `base` 由它派生），否则会把"预设表说一个值、控件显示另一个值"的第三处真源固化进重置逻辑。**用户 2026-10-23 指令：该上收本期不实施**，故页面属性页签整体移出本期范围（唯一例外是第一节所述页面背景色行，它的 `F` 天然为 `undefined`，不依赖上收）。此项列为后续独立处理。**元素级与单元格级无此问题**（`createDefaultOptions` 已是单一出口）。
 
 注册表因此**只新增一个纯提示字段**：
 
@@ -77,7 +82,7 @@ export interface PropertyItem {
 **新增 `property/ResetButton.vue`**（唯一新组件）：
 
 - props：`target`（当前承载对象：`element.options` / `cell` / 页面属性对象）、`base`（该层的**出厂值对象**，由调用方传入）、`propKey`、`default?`、`defaultUnit?`、`patch(value)` 写回回调。
-- **组件不感知元素类型，只吃 `base`**：元素级传 `createDefaultOptions(type)`、页面级传纸型预设、单元格级传 `{}`（即 `F` 恒为 `undefined`）。这样三层共用一个组件，也避免组件反向依赖 factory。
+- **组件不感知元素类型，只吃 `base`**：元素级传 `createDefaultOptions(type)`、单元格级传 `{}`（即 `F` 恒为 `undefined`）、水印/拼版传 `WATERMARK_DEFAULTS` / `TILE_DEFAULTS`。页面级传纸型预设这条**本期用不上**（边界 4 延后），但接口形状已兼容。**三层共用一个组件**，且组件不反向依赖 factory。
 - 自身完成三件事：取 `F = base[propKey]`、比 `target[propKey] === F` 决定灰/亮、点击 `patch(F)`。不向上抛给各分组组件处理。
 - 渲染：`<button type="button" class="pd-reset-btn" :class="{ 'is-active': dirty }" :data-tip="tip" :aria-label="tip"><RotateCcw :size="13" /></button>`，`import { RotateCcw } from 'lucide-vue-next'`。
 - 提示语：`default` 有值 → `恢复默认值（${default}${defaultUnit ? ' ' + defaultUnit : ''}）`；无值 → `恢复默认值`。单元格级固定用「恢复默认值（跟随表格默认）」。
@@ -94,7 +99,21 @@ export interface PropertyItem {
 
 **样式**：`.pd-reset-btn`（15×15、`color: var(--pd-text-faint)`、透明边框）+ `.pd-reset-btn.is-active`（`color: var(--pd-accent)`）+ `:hover`（蓝字 + `rgba(22,93,255,.09)` 底），写在 canvas scoped style 与 `native-controls.css`，由 `gen-styles.mjs` 派生给 common。
 
-**接入面**：`AppearanceGroup`、`CodeGroup`、`BorderBgGroup`、`AdvancedGroup`、`TableRowGroup`、`TableCellGroup`、`TableSettingsGroup`、`BindingControl`、`FontSelect`、`CropAnchorField`、`WatermarkConfig`、`TilingConfig`、`DesignBackgroundConfig`，以及 `PropertyPanel.vue` 内手写的页面属性区（含替换既有 `.pd-reset`）。`PositionSizeGroup` 四项几何全在排除清单，**整组不接入**。
+**接入面**：`property/AppearanceGroup`、`property/CodeGroup`、`property/BorderBgGroup`、`property/AdvancedGroup`、`property/TableRowGroup`、`property/TableCellGroup`、`property/TableSettingsGroup`、`property/BindingControl`、`property/FontSelect`、`property/CropAnchorField`、`WatermarkConfig`、`property/TilingConfig`。
+
+**页面页签按出厂值来源拆开处理**，不是一刀切：
+
+| 页面页签内的行 | 出厂值来源 | 本期 |
+|---|---|---|
+| 纸型 / 方向 / 输出旋转 / 页边距 / 页眉页脚（直接手写在 `PropertyPanel.vue` 模板里） | `default-config.ts` 预设 **加** 组件内 `?? 0` / `'#ffffff'` / `?? 10` 硬编码，两处 | **延后**（依赖边界 4 的上收） |
+| 页面背景色（既有 `.pd-reset` 那一行） | `F` 天然为 `undefined`，不依赖任何常量 | **仅把文字按钮换成图标**，写回行为不变 |
+| `WatermarkConfig` | `WATERMARK_DEFAULTS`（组件已直接 import core 常量，单一源） | **做** |
+| `property/TilingConfig` | `TILE_DEFAULTS`（同上，单一源） | **做**，但 `enabled` 与 `columns` 两项除外（见下） |
+| `DesignBackgroundConfig` | `rotation ?? 0` 是第二处硬编码 | 该字段除外，其余不动 |
+
+拼版组两项除外的理由：`TILE_DEFAULTS.enabled` 是 `true`，而组件按"未配置过拼版即 `false`"处理（`modelValue?.enabled ?? false`）；`TILE_DEFAULTS.columns` 是 `2`，但开关写入时按纸面收敛成 `Math.min(TILE_DEFAULTS.columns, max)`。**两处口径不一致的字段没有可信的单一 `F`**，与边界 4 是同一类问题，一并延后。
+
+`PositionSizeGroup` 四项几何全在排除清单，**整组不接入**。
 
 ## 五、common 侧实现
 
@@ -118,7 +137,7 @@ export interface PropertyItem {
 
 ## 七、范围与排除清单
 
-**纳入**（按派生规则自动决定动作，不再区分 R2/R3）：外观组的字体/字号/粗细/对齐/垂直对齐/颜色/背景色/行高/字间距/文字溢出/最小字号/首行缩进/自动换行/缩放模式/裁剪倍率；条码组的 DPI/条宽/静区/条高/显示文本/文本字号/纠错级别/二维码静区/最大宽高；边框与背景组；高级组的锁定/固定/层级；表格设置组的表级默认字号/颜色/内边距；单元格组的九项；页面属性的纸型/方向/旋转/背景色/页边距/页眉页脚。
+**纳入**（按派生规则自动决定动作，不再区分 R2/R3）：外观组的字体/字号/粗细/对齐/垂直对齐/颜色/背景色/行高/字间距/文字溢出/最小字号/首行缩进/自动换行/缩放模式/裁剪倍率；条码组的 DPI/条宽/静区/条高/显示文本/文本字号/纠错级别/二维码静区/最大宽高；边框与背景组；高级组的锁定/固定/层级；表格设置组的表级默认字号/颜色/内边距；单元格组的九项；水印组（`WATERMARK_DEFAULTS` 覆盖的色/透明度/旋转/瓦片宽高）；拼版组除 `enabled`、`columns` 外的字段；页面背景色一行（仅换图标）。
 
 **排除，及理由**：
 
@@ -165,4 +184,6 @@ export interface PropertyItem {
 - 分组级 / 元素级批量恢复（G2 / G3，已明确不选）。
 - 格式工具栏（顶部选区快捷按钮）同步挂重置。
 - 宿主可编程调用的 `resetElementToDefault` API。
+- **页面属性页签的重置接入，以及随之必需的 `default-config.ts` 常量上收（第三节边界 4）**——用户 2026-10-23 指令本期不实施。上收完成后，纸型/方向/输出旋转/页边距/页眉页脚按同一派生规则接入，无需再改 `ResetButton`。
+- **拼版组的 `enabled` 与 `columns`**、**设计背景的 `rotation`**：出厂值存在两处不一致口径，与边界 4 同类，一并延后。
 - 页面级"整个版面恢复默认"。
