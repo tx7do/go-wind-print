@@ -6,7 +6,8 @@ import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
-import { tableCellGroup } from '../table-props'
+import { tableCellGroup, tableSettingsGroup } from '../table-props'
+import { createDefaultOptions } from '@worm-vue3-print/core/designer'
 import type { TableCell } from '@worm-vue3-print/core/designer'
 
 function makeCtx(cellPatches: Partial<TableCell>[]) {
@@ -98,6 +99,60 @@ describe('common 单元格组「恢复默认值」', () => {
     const host = paint(tableCellGroup(ctx, el))
     for (const l of host.querySelectorAll<HTMLElement>('.pd-label')) {
       expect(l.textContent).not.toContain('默认')
+    }
+  })
+})
+
+/** 表格级默认：C2 里最容易被做错的一层——这三项出厂就被写上字面值，删键会让
+ *  matrixCellStyle 的判空跳过整条声明、落进 CSS 继承从而改变出纸，所以必须写回字面值。 */
+describe('common 表格级默认「恢复默认值」', () => {
+  function makeTableCtx(overrides: Record<string, any> = {}) {
+    const store = new DesignerStore()
+    store.addElement('table', { ...(createDefaultOptions('table') as any), ...overrides })
+    const el = store.elements[0]!
+    store.selectOne(el.id)
+    const state: ShellState = {
+      leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
+      openDd: null, collapsedGroups: new Set(), renamingPage: null,
+    }
+    const ctx: ShellCtx = {
+      store, format: new FormatToolbar(store), state,
+      repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false, host: { fonts: [] },
+    }
+    return { store, ctx, el }
+  }
+
+  const factory = createDefaultOptions('table') as Record<string, any>
+
+  it('新建表格时三项都是灰态（出厂即被写上字面值，无物可恢复）', () => {
+    const t = makeTableCtx()
+    const host = paint(tableSettingsGroup(t.ctx, t.el))
+    for (const t of ['默认字号', '默认文字颜色', '默认内边距']) {
+      expect(rowOf(host, t).querySelector('.pd-reset-btn')!.classList.contains('is-dirty'), `应灰态：${t}`).toBe(false)
+    }
+  })
+
+  it('改过之后亮态，点击写回字面值而不是删键（删键会改出纸）', () => {
+    const { store, ctx, el } = makeTableCtx({
+      tableDefaultFontSize: 14, tableDefaultColor: '#ff0000', tableDefaultPadding: 3,
+    })
+    const host = paint(tableSettingsGroup(ctx, el))
+    const o = store.elements[0]!.options as any
+    expect(o.tableDefaultFontSize).toBe(14)
+
+    rowOf(host, '默认字号').querySelector<HTMLButtonElement>('.pd-reset-btn')!.click()
+    expect(o.tableDefaultFontSize).toBe(factory.tableDefaultFontSize)
+    expect(o.tableDefaultFontSize).not.toBeUndefined()
+
+    rowOf(host, '默认内边距').querySelector<HTMLButtonElement>('.pd-reset-btn')!.click()
+    expect(o.tableDefaultPadding).toBe(factory.tableDefaultPadding)
+  })
+
+  it('数据源字段与列宽两行不挂图标', () => {
+    const { ctx, el } = makeTableCtx()
+    const host = paint(tableSettingsGroup(ctx, el))
+    for (const t of ['列表数据源字段', '列宽']) {
+      expect(rowOf(host, t).querySelector('.pd-reset-btn')).toBeNull()
     }
   })
 })

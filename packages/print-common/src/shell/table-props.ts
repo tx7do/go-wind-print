@@ -10,7 +10,7 @@ import type {
 import {
   applyBorderPreset, canMergeReason, cellFitCapMm, cellFitWidthMm, findMainCell, mergeCells,
   resolveCellTextFit, setHeaderRepeat,
-  setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText,
+  setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText, createDefaultOptions,
 } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
@@ -127,11 +127,19 @@ export function tableSettingsGroup(ctx: ShellCtx, el: RuntimeElement): El {
     .filter(f => f.fieldType === 'list')
     .map(f => ({ value: f.fieldKey, label: f.fieldLabel }))
 
+  /** 表格级默认的出厂值就是新建表格时被写上的那组字面值：删键会让 matrixCellStyle 的判空跳过整条声明、
+   *  落进 CSS 继承从而改变出纸，所以这三项必须写回字面值而非删键——与元素级同一条派生规则自动覆盖。 */
+  const TABLE_FACTORY = createDefaultOptions('table') as Record<string, any>
+  const tableReset = (key: string): El => resetButton({
+    target: o as Record<string, any>, base: TABLE_FACTORY, propKey: key,
+    write: () => commit({ [key]: TABLE_FACTORY[key] } as never),
+  })
+
   return group(ctx, 'table-settings', '表格设置', 'Grid', [
     pdForm([
       selectRow('列表数据源字段', o.dataSource ?? '', listFields, (v) => commit({ dataSource: v || undefined }), true),
       h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '默认字体' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '默认字体' }), tableReset('tableDefaultFontFamily')]),
         renderFontSelect({
           id: 'table-default-font',
           state: ctx.state,
@@ -142,18 +150,18 @@ export function tableSettingsGroup(ctx: ShellCtx, el: RuntimeElement): El {
         }),
       ]),
       h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '默认字号 (pt)' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '默认字号 (pt)' }), tableReset('tableDefaultFontSize')]),
         stepper({
           value: optNum(o.tableDefaultFontSize), min: 0, max: 72, placeholder: '默认',
           onCommit: (v) => commit({ tableDefaultFontSize: orUndef(v) }),
         }),
       ]),
       h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '默认文字颜色' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '默认文字颜色' }), tableReset('tableDefaultColor')]),
         colorTrigger(o.tableDefaultColor, v => commit({ tableDefaultColor: v }), '默认文字颜色'),
       ]),
       h('div', { class: 'pd-field' }, [
-        h('span', { class: 'pd-label', text: '默认内边距 (mm)' }),
+        h('span', { class: 'pd-label' }, [h('span', { class: 'pd-label-t', text: '默认内边距 (mm)' }), tableReset('tableDefaultPadding')]),
         stepper({
           value: optNum(o.tableDefaultPadding), min: 0, max: 10, step: 0.5, placeholder: '默认',
           onCommit: (v) => commit({ tableDefaultPadding: orUndef(v) }),
