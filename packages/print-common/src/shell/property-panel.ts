@@ -4,7 +4,7 @@
 //  .property-search>input.pd-input / .font-select>.font-select-input+.font-select-list /
 //  .pd-form / .position-grid / .margin-grid / .pd-field>.pd-label / .pd-divider / .pd-empty）。
 // 搜索门控（filteredGroups / matchedKeys / searching）见 shell/property-search.ts，口径同 canvas。
-import { PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc } from '@worm-vue3-print/core/designer'
+import { PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import { colorTrigger, divider, field, fieldHelp, radioGroup, stepper } from './controls'
@@ -138,6 +138,8 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
     // 码制归一化大写（存量模板可能是小写 code128，不归一化下拉框匹配不到选项）
     const barcodeType = String(o.barcodeType || 'CODE128').toUpperCase()
     const dpi = o.printerDpi ? String(o.printerDpi) : ''
+    /** 条宽推荐段：只在填了分辨率时出现，只给参考不回写值（与画布元素台共用 core 文案） */
+    const barWidthRec = barcodeBarWidthRecommendText(o.printerDpi, o.barWidth)
     rows.push(group(ctx, 'code', '条码设置', 'Postcard', [
       h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, [
         isBarcode ? [
@@ -157,9 +159,9 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
           gateItem(ctx, 'cd-bar-width', numField(ctx, '条宽（倍率）', o.barWidth ?? 2, v => patch({ barWidth: v }), { min: 2, max: 8, step: 0.5 })),
           gateItem(ctx, 'cd-bar-width', h('p', {
             class: 'pd-hint',
-            text: dpi
+            text: (dpi
               ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），元素框放不下时整体等比缩小'
-              : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定',
+              : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定') + (barWidthRec ? `。${barWidthRec}` : ''),
           })),
           gateItem(ctx, 'cd-bar-quiet-zone', fieldHelp('静区 (模块)', stepper({
             value: o.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',

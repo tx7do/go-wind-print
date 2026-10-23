@@ -41,6 +41,26 @@ function selects(w: ReturnType<typeof mountGroup>) {
   return w.findAll('select')
 }
 
+describe('TableCellGroup 条宽推荐（选了分辨率后给参考，不改值）', () => {
+  const cellOf = (el: RuntimeElement) => (el.options.tableRows as any[])[0].cells[0] as TableCell
+
+  it('203dpi 的条形码单元格出推荐倍率 3 并点明当前档低于下限，且不回写 barWidth', () => {
+    const element = makeElement({ cellType: 'barcode', printerDpi: 203 })
+    const w = mountGroup(element)
+    expect(w.text()).toContain('推荐条宽倍率 3')
+    expect(w.text()).toContain('低于下限')
+    expect(w.text()).toContain('不会替你改值')
+    expect(cellOf(element).barWidth).toBeUndefined()
+  })
+
+  it('未选分辨率不给推荐；当前档已达标时改口已达标', () => {
+    expect(mountGroup(makeElement({ cellType: 'barcode' })).text()).not.toContain('推荐条宽倍率')
+    const ok = mountGroup(makeElement({ cellType: 'barcode', printerDpi: 203, barWidth: 4 }))
+    expect(ok.text()).toContain('已达标')
+    expect(ok.text()).not.toContain('低于下限')
+  })
+})
+
 describe('TableCellGroup 二维码单元格静区', () => {
   const quietField = (w: ReturnType<typeof mountGroup>) =>
     w.findAll('.pd-field').find(f => f.find('.pd-label').text() === '静区 (模块)')

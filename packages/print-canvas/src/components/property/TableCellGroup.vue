@@ -31,9 +31,7 @@
           :step="0.5"
           @update:model-value="write(c => { c.barWidth = $event })" />
       </div>
-      <p class="pd-hint" v-if="isBarcodeCell">{{ dotAligned
-        ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），单元格放不下时整体等比缩小'
-        : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定' }}</p>
+      <p class="pd-hint" v-if="isBarcodeCell">{{ barWidthHint }}</p>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="barQuietTip" aria-label="字段说明" /></span>
         <StepperInput :model-value="mainCell.barQuietZone"
           :min="0"
@@ -236,7 +234,7 @@ import type {
 } from '@worm-vue3-print/core/designer'
 import {
   canMergeReason, mergeCells, splitCells, applyBorderPreset, findMainCell, type BorderPreset,
-  resolveCellTextFit, type TextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA,
+  resolveCellTextFit, type TextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA, barcodeBarWidthRecommendText,
   cellFitCapMm, cellFitWidthMm,
 } from '@worm-vue3-print/core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
@@ -292,6 +290,15 @@ const isQrcodeCell = computed(() => mainCell.value.cellType === 'qrcode')
 const isImageCell = computed(() => mainCell.value.cellType === 'image')
 /** 条码点对齐：仅条形码单元格 + 已配打印机分辨率；此时缩放模式与最大宽高不参与 */
 const dotAligned = computed(() => isBarcodeCell.value && !!mainCell.value.printerDpi)
+
+/** 条宽提示：结算口径 + 选了打印机分辨率后的推荐倍率（只给参考，不回写 barWidth） */
+const barWidthHint = computed(() => {
+  const base = dotAligned.value
+    ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），单元格放不下时整体等比缩小'
+    : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定'
+  const rec = barcodeBarWidthRecommendText(mainCell.value.printerDpi, mainCell.value.barWidth)
+  return rec ? `${base}。${rec}` : base
+})
 
 /** 文字溢出形式仅对文本单元格有意义（码值/图片由 fit/maxWidth 控制） */
 const isTextCell = computed(() => !isBarcodeCell.value && !isQrcodeCell.value && !isImageCell.value)

@@ -10,7 +10,7 @@ import type {
 import {
   applyBorderPreset, canMergeReason, cellFitCapMm, cellFitWidthMm, findMainCell, mergeCells,
   resolveCellTextFit, setHeaderRepeat,
-  setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc,
+  setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText,
 } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
@@ -256,6 +256,8 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
   const isImageCell = cell0.cellType === 'image'
   const isTextCell = !isBarcodeCell && !isQrcodeCell && !isImageCell
   const dotAligned = isBarcodeCell && !!cell0.printerDpi
+  /** 条宽推荐段：只在填了分辨率时出现，只给参考不回写值（与画布单元格台共用 core 文案） */
+  const barWidthRec = barcodeBarWidthRecommendText(cell0.printerDpi, cell0.barWidth)
   const cellTextFit = resolveCellTextFit(cell0)
   const mergeReason = canMergeReason(rows, sel)
   let canSplit = false
@@ -303,9 +305,9 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
       isBarcodeCell
         ? numField('条宽（倍率）', cell0.barWidth ?? 2, (c, v) => { c.barWidth = v }, { min: 2, max: 8, step: 0.5 })
         : '',
-      isBarcodeCell ? hint(dotAligned
+      isBarcodeCell ? hint((dotAligned
         ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），单元格放不下时整体等比缩小'
-        : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定') : '',
+        : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定') + (barWidthRec ? `。${barWidthRec}` : '')) : '',
       // 同二维码：走 stepper 而非 numField，0 档（不留白边）是合法值不能被归并成未设置
       isBarcodeCell ? fieldHelp('静区 (模块)', stepper({
         value: cell0.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',

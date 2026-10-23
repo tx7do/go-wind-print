@@ -29,9 +29,7 @@
             :step="0.5"
             @update:model-value="element.options.barWidth = $event; emitChange()" />
         </div>
-        <p class="pd-hint" v-show="showItem('cd-bar-width')">{{ dotAligned
-          ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），元素框放不下时整体等比缩小'
-          : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定' }}</p>
+        <p class="pd-hint" v-show="showItem('cd-bar-width')">{{ barWidthHint }}</p>
         <div class="pd-field" v-show="showItem('cd-bar-quiet-zone')"><span class="pd-label">静区 (模块)<button type="button" class="pd-help" :data-tip="barQuietTip" aria-label="字段说明" /></span>
           <StepperInput :model-value="element.options.barQuietZone"
             :min="0"
@@ -106,7 +104,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { propertyTip, IMAGE_FIT_OPTIONS } from '@worm-vue3-print/core/designer'
+import { propertyTip, IMAGE_FIT_OPTIONS, barcodeBarWidthRecommendText } from '@worm-vue3-print/core/designer'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
 
@@ -140,6 +138,18 @@ const dpiValue = computed(() => (props.element.options.printerDpi ? String(props
 const hasPrinterDpi = computed(() => !!props.element.options.printerDpi)
 /** 点对齐只作用于条形码（二维码模块数固定，尺寸由 fit/最大宽高决定） */
 const dotAligned = computed(() => isBarcode.value && hasPrinterDpi.value)
+
+/**
+ * 条宽提示：结算口径 + 选了打印机分辨率后的推荐倍率。
+ * 推荐只进文案、不回写 barWidth——用户要的是给参考，不是替他们决定。
+ */
+const barWidthHint = computed(() => {
+  const base = dotAligned.value
+    ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），元素框放不下时整体等比缩小'
+    : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定'
+  const rec = barcodeBarWidthRecommendText(props.element.options.printerDpi, props.element.options.barWidth)
+  return rec ? `${base}。${rec}` : base
+})
 
 function onDpiChange(e: Event) {
   const value = Number((e.target as HTMLSelectElement).value)

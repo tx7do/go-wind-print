@@ -14,6 +14,8 @@ import { WEIGHT_LABEL_SAMPLE } from './weight-label'
 import { PRICE_LABEL_SAMPLE } from './price-label'
 import { ASSET_TAG_SAMPLE } from './asset-tag'
 import { ROLL_LABEL_SAMPLE } from './roll-label'
+import { BATTERY_MODULE_LABEL_SAMPLE } from './battery-module-label'
+import { BATTERY_MODULE_LABEL_NO_SN_SAMPLE } from './battery-module-label-no-sn'
 import { THERMAL_RECEIPT_SAMPLE } from './thermal-receipt'
 import { COMPREHENSIVE_SHOWCASE_SAMPLE } from './comprehensive-showcase'
 import { PAGINATION_EDGE_SAMPLE } from './pagination-edge'
@@ -31,6 +33,8 @@ export const SAMPLE_TEMPLATES: SampleTemplate[] = [
   PRICE_LABEL_SAMPLE,
   ASSET_TAG_SAMPLE,
   ROLL_LABEL_SAMPLE,
+  BATTERY_MODULE_LABEL_SAMPLE,
+  BATTERY_MODULE_LABEL_NO_SN_SAMPLE,
   THERMAL_RECEIPT_SAMPLE,
 ]
 

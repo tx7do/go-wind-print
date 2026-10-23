@@ -120,6 +120,27 @@ describe('CodeGroup 打印机分辨率（条宽点对齐）', () => {
     expect(aligned.text()).toContain('吸附到最近的整数打印点')
   })
 
+  it('选了分辨率后给推荐条宽档，但不回写用户设置（只当参考）', async () => {
+    const element = makeElement('barcode', {})
+    const w = mountCodeGroup(element)
+    // 未填分辨率：没有点阵可吸附，推荐无从谈起
+    expect(w.text()).not.toContain('推荐条宽倍率')
+
+    await w.findAll('select')[1]!.setValue('203')
+    expect(w.text()).toContain('推荐条宽倍率 3')
+    expect(w.text()).toContain('低于下限')
+    expect(w.text()).toContain('不会替你改值')
+    // 关键：推荐不替代用户值，barWidth 仍是未设置（出纸按缺省 2）
+    expect(element.options.barWidth).toBeUndefined()
+  })
+
+  it('当前倍率已达下限推荐改口「已达标」，仍不写值', () => {
+    const w = mountCodeGroup(makeElement('barcode', { printerDpi: 203, barWidth: 4 }))
+    expect(w.text()).toContain('推荐条宽倍率 3')
+    expect(w.text()).toContain('已达标')
+    expect(w.text()).not.toContain('低于下限')
+  })
+
   it('最大宽高始终可用：作为结算上限参与，而非事后 CSS 缩放', () => {
     const manual = mountCodeGroup(makeElement('barcode', {}))
     const aligned = mountCodeGroup(makeElement('barcode', { printerDpi: 203 }))

@@ -86,6 +86,27 @@ function quietField(host: HTMLElement): HTMLElement | undefined {
 const quietInput = (host: HTMLElement) =>
   quietField(host)?.querySelector('input[type="number"]') as HTMLInputElement | undefined
 
+/** 元素属性台：条形码 / 二维码元素走真实的 renderPropertyPanel 路径（可注入条码选项） */
+function paintElementPanel(type: 'barcode' | 'qrcode', options: Record<string, any> = {}) {
+  const store = new DesignerStore()
+  store.addElement(type, { left: 10, top: 10, width: 60, height: 20, ...options } as never)
+  const element = store.elements[0]!
+  store.selectOne(element.id)
+  const ctx: ShellCtx = {
+    store,
+    format: new FormatToolbar(store),
+    state: {
+      leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
+      openDd: null, collapsedGroups: new Set<string>(), renamingPage: null,
+    } as unknown as ShellState,
+    repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false, host: { fonts: [] },
+  } as unknown as ShellCtx
+  const host = document.createElement('div')
+  document.body.replaceChildren(host)
+  render(renderPropertyPanel(ctx), host)
+  return { host, element }
+}
+
 describe('common 元素级二维码', () => {
   it('img 显式给出 width/height:100%（只给 max-* 时停在内在像素尺寸，盒大于它就不铺满）', async () => {
     const img = qrcodeImg(await paintQrcode())
@@ -267,27 +288,6 @@ describe('common 条形码静区（元素绘制 + 两端属性台）', () => {
 
 /** 条高（barHeight，mm）：条宽优先、框高不足时由条高让位，与 core/canvas 同一份结算 */
 describe('common 条形码条高（元素绘制 + 两端属性台）', () => {
-  /** 元素属性台：条形码元素走真实的 renderPropertyPanel 路径 */
-  function paintElementPanel(type: 'barcode' | 'qrcode') {
-    const store = new DesignerStore()
-    store.addElement(type, { left: 10, top: 10, width: 60, height: 20 } as never)
-    const element = store.elements[0]!
-    store.selectOne(element.id)
-    const ctx: ShellCtx = {
-      store,
-      format: new FormatToolbar(store),
-      state: {
-        leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
-        openDd: null, collapsedGroups: new Set<string>(), renamingPage: null,
-      } as unknown as ShellState,
-      repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false, host: { fonts: [] },
-    } as unknown as ShellCtx
-    const host = document.createElement('div')
-    document.body.replaceChildren(host)
-    render(renderPropertyPanel(ctx), host)
-    return { host, element }
-  }
-
   const heightField = (host: HTMLElement) =>
     Array.from(host.querySelectorAll<HTMLElement>('.pd-field'))
       .find(f => f.querySelector('.pd-label')?.textContent?.startsWith('条高'))
@@ -345,5 +345,24 @@ describe('common 条形码条高（元素绘制 + 两端属性台）', () => {
     input!.dispatchEvent(new Event('input', { bubbles: true }))
     input!.dispatchEvent(new Event('change', { bubbles: true }))
     expect(cell().barHeight).toBe(20)
+  })
+})
+
+/** 条宽推荐：选了打印机分辨率后在条宽下方给推荐档，只提示、不替用户写值 */
+describe('common 条宽推荐提示（两端属性台）', () => {
+  it('元素台：203dpi 时出推荐倍率 3 并点明当前档低于下限，barWidth 不被写值', () => {
+    const { host, element } = paintElementPanel('barcode', { printerDpi: 203 })
+    expect(host.textContent).toContain('推荐条宽倍率 3')
+    expect(host.textContent).toContain('低于下限')
+    expect(host.textContent).toContain('不会替你改值')
+    expect(element.options.barWidth).toBeUndefined()
+  })
+
+  it('单元格台：同样给推荐且不写值；未选分辨率时不给推荐', () => {
+    const { host, cell } = paintCellProps({ printerDpi: 203 }, 'barcode')
+    expect(host.textContent).toContain('推荐条宽倍率 3')
+    expect(host.textContent).toContain('不会替你改值')
+    expect(cell().barWidth).toBeUndefined()
+    expect(paintCellProps({}, 'barcode').host.textContent).not.toContain('推荐条宽倍率')
   })
 })

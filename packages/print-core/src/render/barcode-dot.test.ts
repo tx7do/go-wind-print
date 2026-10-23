@@ -7,11 +7,13 @@ import {
   MM_PER_INCH,
   barcodeAvailableBoxMm,
   barcodeBarHeightModules,
+  barcodeBarWidthRecommendText,
   barcodePreferredModuleWidthMm,
   barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   barcodeWidthBoundModuleWidthMm,
   layoutBarcodeSize,
+  recommendBarcodeBarWidth,
   resolveBarcodeSize,
 } from './barcode-dot.js'
 
@@ -359,5 +361,41 @@ describe('layoutBarcodeSize 两趟布局：条宽优先，条高收敛', () => {
     expect(seen).toEqual([BARCODE_BAR_HEIGHT_MODULES])
     expect(layout.size).toBeNull()
     expect(layout.barHeightModules).toBe(BARCODE_BAR_HEIGHT_MODULES)
+  })
+})
+
+describe('条宽推荐档（选了打印机分辨率后给参考，不替用户写值）', () => {
+  it('取吸附后每模块 ≥ 下限的最小档：203→3 点、300→3 点、600→6 点', () => {
+    expect(recommendBarcodeBarWidth(203)).toMatchObject({ barWidth: 3, dotsPerModule: 3 })
+    // 300/600 点距更细，倍率 2 吸附后已达 0.254mm，不必再加粗
+    expect(recommendBarcodeBarWidth(300)).toMatchObject({ barWidth: 2, dotsPerModule: 3 })
+    expect(recommendBarcodeBarWidth(600)).toMatchObject({ barWidth: 2, dotsPerModule: 6 })
+    expect(recommendBarcodeBarWidth(203)!.moduleWidthMm).toBeCloseTo(3 * MM_PER_INCH / 203, 9)
+  })
+
+  it('半档吸附后与低一档同形，不能被算成"更粗一档"', () => {
+    // 203dpi：倍率 2 与 2.5 都落在 2 点（0.250mm，仍低于 0.254mm）→ 推荐只能跳到 3
+    const dots = (bw: number) => Math.max(1, Math.round(barcodePreferredModuleWidthMm(bw) * (203 / MM_PER_INCH)))
+    expect(dots(2)).toBe(2)
+    expect(dots(2.5)).toBe(2)
+    expect(recommendBarcodeBarWidth(203)!.barWidth).toBe(3)
+  })
+
+  it('未填 / 非法分辨率没有点阵可吸附 → 不给推荐', () => {
+    expect(recommendBarcodeBarWidth()).toBeNull()
+    expect(recommendBarcodeBarWidth(0)).toBeNull()
+    expect(recommendBarcodeBarWidth(Number.NaN)).toBeNull()
+    expect(barcodeBarWidthRecommendText(undefined, 2)).toBe('')
+  })
+
+  it('推荐文案：低于下限时点明差距，达标时报已达标，并声明不改值', () => {
+    const low = barcodeBarWidthRecommendText(203, 2)
+    expect(low).toContain('推荐条宽倍率 3')
+    expect(low).toContain('当前倍率 2 只有 2 点')
+    expect(low).toContain('低于下限')
+    expect(low).toContain('不会替你改值')
+    // 未填也按缺省档 2 折算：203dpi 下 0.250mm 确实卡在下限之下，该提醒
+    expect(barcodeBarWidthRecommendText(203, undefined)).toContain('低于下限')
+    expect(barcodeBarWidthRecommendText(300, 4)).toContain('已达标')
   })
 })

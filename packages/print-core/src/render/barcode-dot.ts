@@ -44,6 +44,62 @@ export const BARCODE_TEXT_FONT_SIZE_MODULES = 10
 export const BARCODE_MARGIN_BOTTOM_MODULES = 2
 /** 基础模块宽度（mm）：barWidth=2（每模块用户单位数 1）时每个模块的物理宽度 */
 export const BARCODE_MODULE_WIDTH_MM = 0.25
+/**
+ * 一维码每模块物理宽度的推荐下限（mm，业界常引 10mil）。
+ * 低于它时热敏头上单条的边缘像素占比过大，首读率明显下降；GS1 对静区另有
+ * 「2.54mm 或 10×条宽取大者」的要求，两者同向：条宽达标，静区的绝对宽度也随之达标。
+ */
+export const BARCODE_MIN_MODULE_WIDTH_MM = 0.254
+
+export interface BarcodeBarWidthRecommendation {
+  /** 推荐倍率（0.5 步进，2~8，与属性台同一档距） */
+  barWidth: number
+  /** 该倍率吸附后的每模块打印点数 */
+  dotsPerModule: number
+  /** 该倍率的每模块物理宽度（mm） */
+  moduleWidthMm: number
+}
+
+/**
+ * 按打印机分辨率推荐条宽倍率：取「吸附到整数打印点后，每模块宽 ≥ 推荐下限」的最小档。
+ * 只用于属性台提示，**不替用户写值**。未填分辨率时返回 null——没有点阵可吸附，
+ * 每模块宽就是条宽的连续毫米值，推荐也就失去意义（该文案自己已有「建议 3 及以上」的旧口径）。
+ */
+export function recommendBarcodeBarWidth(dpi?: number): BarcodeBarWidthRecommendation | null {
+  if (typeof dpi !== 'number' || !Number.isFinite(dpi) || dpi <= 0) return null
+  const dotsPerMm = dpi / MM_PER_INCH
+  for (let bw = 2; bw <= 8; bw += 0.5) {
+    // 与 dotAlignedModuleWidth 同一吸附：首选宽度折算成点后取整
+    const dotsPerModule = Math.max(1, Math.round(barcodePreferredModuleWidthMm(bw) * dotsPerMm))
+    const moduleWidthMm = dotsPerModule / dotsPerMm
+    if (moduleWidthMm >= BARCODE_MIN_MODULE_WIDTH_MM - 1e-9) {
+      return { barWidth: bw, dotsPerModule, moduleWidthMm }
+    }
+  }
+  return null
+}
+
+/**
+ * 推荐文案（单一来源，画布与 print-common 四台共用，避免各写一套数字）。
+ * 达标时只报推荐档；当前档低于下限时点明差距，并说明这里只提示不改值。
+ */
+export function barcodeBarWidthRecommendText(
+  dpi: number | undefined,
+  currentBarWidth: number | undefined,
+): string {
+  const rec = recommendBarcodeBarWidth(dpi)
+  if (!rec) return ''
+  const mm = (v: number) => String(Number(v.toFixed(3)))
+  const head = `按 ${dpi}dpi 推荐条宽倍率 ${rec.barWidth}（每模块 ${rec.dotsPerModule} 个打印点 = ${mm(rec.moduleWidthMm)}mm，取达到 ${mm(BARCODE_MIN_MODULE_WIDTH_MM)}mm 下限的最小档）`
+  const cur = barcodePreferredModuleWidthMm(currentBarWidth ?? 2)
+  const curDots = Math.max(1, Math.round(cur * (dpi as number) / MM_PER_INCH))
+  const curMm = curDots / ((dpi as number) / MM_PER_INCH)
+  // 未填也按缺省档 2 折算：203dpi 下 2 点是 0.250mm，本身就卡在下限之下，该提醒
+  const tail = curMm >= BARCODE_MIN_MODULE_WIDTH_MM - 1e-9
+    ? `当前倍率 ${currentBarWidth ?? 2} 折算为 ${curDots} 点 / ${mm(curMm)}mm，已达标`
+    : `当前倍率 ${currentBarWidth ?? 2} 只有 ${curDots} 点 / ${mm(curMm)}mm，低于下限`
+  return `${head}；${tail}。这里只提示，不会替你改值`
+}
 
 /** 每模块的用户单位数：与出图端 jsbarcode 的 width 同口径（barWidth=2 → 1，barWidth=4 → 2） */
 export function barcodeUnitsPerModule(barWidth?: number): number {
