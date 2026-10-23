@@ -1246,6 +1246,25 @@ Task 7 的 Step 2 已单独落地并验证向后兼容：`textContent` 逐字不
 
 **仍未完成**：common 条码组 11 行 / 边框与高级组 / 水印拼版页面级；canvas `BorderBgGroup` 三行（顺延）；Task 8 的四宿主浏览器实看与 CHANGELOG。
 
+## 「边框与背景」组在两侧都不是漏接（E-3 的最终结论）
+
+上一轮记的 E-3 只说了 canvas。本轮查 common 侧发现**同一结论适用于 `property-panel.ts`**：
+`bb-border-*` 整段（`borderFields()` / `applyBorderPresetTo()` / `toggleBorderEdge()` / 线型行）
+是他方未提交的新增，HEAD 里不存在。所以该组在 canvas 与 common 两侧**一并顺延**，
+等对方落地后按其最终形态统一接入——不是本设计的缺口。
+
+## 剩余工作的精确清单（续跑者照此做，不必重新勘察）
+
+| 待办 | 位置 | 状态与做法 |
+|---|---|---|
+| common 条码组 11 行 | `property-panel.ts` 的 `group(ctx,'code'…)` | 行都在 HEAD 里，可直接接。`cd-dpi`/`cd-bar-width`/`cd-ec-level`/`cd-fit` 是多行 `selectField`，`cd-bar-quiet-zone`/`cd-bar-height`/`cd-quiet-zone` 是多行 `fieldHelp`——**先取完整原文再定锚点**，别用截断行 |
+| common 水印 / 拼版 / 页面级 | `page-extras.ts`、`watermark.ts`、`pagePane` | 与 canvas 同一套 `base`（`WATERMARK_DEFAULTS` / `TILE_DEFAULTS`）；页面级仍受边界 4 约束，只做页面背景色那一行 |
+| canvas `BorderBgGroup` | — | 已确认顺延（他方重写） |
+| 四宿主浏览器实看 | `demo` + `demo-common` | **需用户同意读图**（AGENTS.md）。八条清单见 Task 8 Step 6 |
+| CHANGELOG 与指南 | `docs/中文/CHANGELOG.md`、`docs/en/CHANGELOG.en.md`、`docs/中文/指南/模板设计器.md` | 三个文件当前都载有他方未提交改动，须走同一「双跑 + 临时索引」流程 |
+
+**混改文件的标准操作顺序（本轮起固化）**：`git show HEAD:<file> > /tmp/x` → 脚本先跑 `/tmp/x` → 通过后再跑工作区 → `tsc` → `vitest` → `commit-tree` + CAS `update-ref` → `git reset -q HEAD -- <file>` → 复验 `git diff HEAD` 等于他方原有量。顺序反了会在断言失败时已经写过工作区一次。
+
 **被阻塞的剩余工作**——全部要改下列 8 个文件，而它们当前载有另一项在途功能（流式列表）的**未提交**改动，直接提交会把别人的工作打进我的 commit message：
 
 `property-search.ts`（Task 1 后半 + Task 3/4 的提示数值来源）、其 spec、`element-factory.ts` 及其 spec、`PropertyPanel.vue`（Task 6 页面背景色）、`TableCellGroup.vue` + `BorderBgGroup.vue` + `TableCellGroup.spec.ts`（Task 5）、common 的 `property-panel.ts` + `table-props.ts`（Task 7）。
