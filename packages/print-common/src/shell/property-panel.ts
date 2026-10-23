@@ -235,10 +235,10 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
   rows.push(group(ctx, 'border-bg', '边框与背景', 'Picture', [
     h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, [
       h('div', { class: 'border-row' }, [
-        gateItem(ctx, 'bb-border-width', numField(ctx, '边框宽度', o.borderWidth, v => patch({ borderWidth: v }), { min: 0, max: 20, step: 0.25 })),
-        gateItem(ctx, 'bb-border-color', field('边框颜色', colorTrigger(o.borderColor, v => patch({ borderColor: v }), '边框颜色'))),
+        gateItem(ctx, 'bb-border-width', numField(ctx, '边框宽度', o.borderWidth, v => patch({ borderWidth: v }), { min: 0, max: 20, step: 0.25 }, reset('borderWidth', 'bb-border-width'))),
+        gateItem(ctx, 'bb-border-color', field('边框颜色', colorTrigger(o.borderColor, v => patch({ borderColor: v }), '边框颜色'), undefined, reset('borderColor', 'bb-border-color'))),
       ]),
-      gateItem(ctx, 'bb-bg-color', field('背景色', colorTrigger(o.backgroundColor, v => patch({ backgroundColor: v }), '背景颜色'))),
+      gateItem(ctx, 'bb-bg-color', field('背景色', colorTrigger(o.backgroundColor, v => patch({ backgroundColor: v }), '背景颜色'), undefined, reset('backgroundColor', 'bb-bg-color'))),
     ]),
   ]))
 

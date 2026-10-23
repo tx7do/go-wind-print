@@ -117,3 +117,27 @@ describe('common 条码组「恢复默认值」', () => {
     expect(has).toBe(false)
   })
 })
+
+describe('边框与背景三行「恢复默认值」', () => {
+  /** rect 的外观组是空态，三行标签不与其他组重名，可整组断言 */
+  it('矩形：三行都挂图标（出厂 1pt/#333 ⇒ 删回字面值），背景色出厂未设 ⇒ 删键', () => {
+    const { el, host } = paint('rect', { borderWidth: 3, borderColor: '#000000', backgroundColor: '#00ff00' })
+    for (const t of ['边框宽度', '边框颜色', '背景色']) {
+      const b = btnOf(host, t)
+      expect(b.classList.contains('is-dirty'), `应为偏离态：${t}`).toBe(true)
+      expect(b.getAttribute('data-tip'), `提示不对：${t}`).toBe('恢复默认值')
+      b.click()
+    }
+    expect(el.options.borderWidth).toBe(1)
+    expect(el.options.borderColor).toBe('#333')
+    expect(el.options.backgroundColor).toBeUndefined()
+  })
+
+  it('文本元素：边框两行的出厂值未预置 ⇒ 点击删键', () => {
+    const { el, host } = paint('text', { borderWidth: 2, borderColor: '#ff0000' })
+    btnOf(host, '边框宽度').click()
+    btnOf(host, '边框颜色').click()
+    expect(el.options.borderWidth).toBeUndefined()
+    expect(el.options.borderColor).toBeUndefined()
+  })
+})
