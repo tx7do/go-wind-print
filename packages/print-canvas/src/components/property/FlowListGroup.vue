@@ -2,7 +2,7 @@
   <PropertyGroup title="流式列表" icon="Grid3x3" group-key="flowList">
     <form class="pd-form" @submit.prevent>
       <div class="pd-field" v-show="showItem('fl-columns')">
-        <span class="pd-label">每行列数</span>
+        <span class="pd-label"><span class="pd-label-t">每行列数<button type="button" class="pd-help" :data-tip="columnsTip" aria-label="字段说明" /></span></span>
         <StepperInput
           :model-value="columns"
           :min="1"
@@ -11,7 +11,7 @@
         />
       </div>
       <div class="pd-field" v-show="showItem('fl-row-height')">
-        <span class="pd-label">行高 (mm)</span>
+        <span class="pd-label"><span class="pd-label-t">行高 (mm)<button type="button" class="pd-help" :data-tip="rowHeightTip" aria-label="字段说明" /></span></span>
         <StepperInput
           :model-value="rowHeight"
           :min="3"
@@ -21,7 +21,7 @@
         />
       </div>
       <div class="pd-field" v-show="showItem('fl-gap-x')">
-        <span class="pd-label">单元横向间距 (mm)</span>
+        <span class="pd-label"><span class="pd-label-t">单元横向间距 (mm)<button type="button" class="pd-help" :data-tip="gapXTip" aria-label="字段说明" /></span></span>
         <StepperInput
           :model-value="gapX"
           :min="0"
@@ -40,7 +40,7 @@
         />
       </div>
       <div class="pd-field" v-show="autoSpan && showItem('fl-max-span')">
-        <span class="pd-label">最多跨几列</span>
+        <span class="pd-label"><span class="pd-label-t">最多跨几列<button type="button" class="pd-help" :data-tip="maxSpanTip" aria-label="字段说明" /></span></span>
         <StepperInput
           :model-value="maxSpan"
           :min="1"
@@ -58,6 +58,7 @@
 import { computed } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import {
+  propertyTip,
   resolveFlowColumns,
   resolveFlowGapX,
   resolveFlowMaxSpan,
@@ -66,6 +67,12 @@ import {
 } from '@worm-vue3-print/core/designer'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
+
+/** 字段说明的唯一来源是 core 的属性注册表，与 print-common 外壳同一份文案 */
+const columnsTip = propertyTip('fl-columns')
+const rowHeightTip = propertyTip('fl-row-height')
+const gapXTip = propertyTip('fl-gap-x')
+const maxSpanTip = propertyTip('fl-max-span')
 
 const props = defineProps<{
   element: RuntimeElement

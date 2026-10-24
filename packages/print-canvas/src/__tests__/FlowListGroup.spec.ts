@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import FlowListGroup from '../components/property/FlowListGroup.vue'
+import { propertyTip } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 
 function makeElement(options: Record<string, any> = {}): RuntimeElement {
@@ -87,5 +88,41 @@ describe('FlowListGroup 属性台', () => {
     expect(element.options.flowRowHeight).toBe(3)
     commitStepper(wrapper, '单元横向间距', '80')
     expect(element.options.flowGapX).toBe(50)
+  })
+
+  it('四行挂 `.pd-help` 且文案取自 core 注册表；跨列开关行不挂（与 print-common 同四条）', () => {
+    const wrapper = mount(FlowListGroup, { props: { element: makeElement({ flowAutoSpan: true }) } })
+    const rowOf = (text: string) => wrapper.findAll('.pd-field')
+      .find(f => f.find('.pd-label').text().includes(text))!
+    for (const [label, key] of [
+      ['每行列数', 'fl-columns'], ['行高 (mm)', 'fl-row-height'],
+      ['单元横向间距', 'fl-gap-x'], ['最多跨几列', 'fl-max-span'],
+    ] as const) {
+      const help = rowOf(label).find('.pd-help')
+      expect(help.exists(), `${label} 应有字段说明`).toBe(true)
+      expect(help.attributes('data-tip')).toBe(propertyTip(key))
+      expect(propertyTip(key), `${key} 的注册表文案不应为空`).toBeTruthy()
+    }
+    // 反面对照：开关行两侧都不挂说明图标
+    expect(rowOf('内容过长时跨列').find('.pd-help').exists()).toBe(false)
+  })
+
+  it('缺字段时步进框显示 core 解析出的出厂值（不留空框）', () => {
+    const element = makeElement({ flowColumns: undefined, flowRowHeight: undefined, flowGapX: undefined })
+    const wrapper = mount(FlowListGroup, { props: { element } })
+    const valueOf = (label: string) => wrapper.findAll('.pd-field')
+      .find(f => f.find('.pd-label').text().includes(label))!
+      .find('input.pd-step-input').element as HTMLInputElement
+    expect(valueOf('每行列数').value).toBe('4')
+    expect(valueOf('行高').value).toBe('8')
+    expect(valueOf('单元横向间距').value).toBe('4')
+  })
+
+  it('关掉跨列开关不凭空写 flowMaxSpan（只有打开那一支补钳）', () => {
+    const element = makeElement({ flowAutoSpan: true, flowMaxSpan: undefined })
+    const wrapper = mount(FlowListGroup, { props: { element } })
+    wrapper.find('input.pd-switch').setValue(false)
+    expect(element.options.flowAutoSpan).toBe(false)
+    expect(element.options.flowMaxSpan).toBeUndefined()
   })
 })

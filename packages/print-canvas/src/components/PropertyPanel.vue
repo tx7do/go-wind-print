@@ -122,7 +122,7 @@
             <p class="pd-hint">整页内容旋转对应角度出纸；90°/270° 时纸张长宽互换以贴合内容，内容不变形不裁切；0° 为不旋转（默认）</p>
           </div>
           <div class="pd-field"><span class="pd-label"><span class="pd-label-t">页面背景色</span>
-            <ResetButton :target="{ pageBackground: pageBackgroundModel }" :base="{ pageBackground: undefined }"
+            <ResetButton :target="{ pageBackground: templateData?.pageBackground }" :base="{ pageBackground: undefined }"
               prop-key="pageBackground" :write="() => onPageBackgroundReset()" />
           </span>
             <div class="page-bg-row">

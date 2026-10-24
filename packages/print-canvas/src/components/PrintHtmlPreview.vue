@@ -36,7 +36,10 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { PrintTemplateData } from '@worm-vue3-print/core'
 import { renderHtmlPages } from '@worm-vue3-print/core/browser'
 import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
-import { defaultZoomKey, paperWidthPx, resolvePrinterDpi, zoomPresets } from '../composables/usePreviewZoom'
+import {
+  applyPreviewViewZoom, defaultZoomKey, paperWidthPx, resolvePrinterDpi,
+  resolveZoomKey, zoomPresets, zoomValueOf,
+} from '@worm-vue3-print/core/designer'
 
 const props = defineProps<{
   /** 模板 JSON（设计器 TemplateData 结构兼容） */
@@ -67,9 +70,7 @@ const errorMsg = ref('')
 /** 渲染序列：过期的渲染结果丢弃，避免快速重渲染竞态 */
 let renderSeq = 0
 
-/** 注入 iframe 的缩放守卫样式 id：重渲染会换文档，靠它判断是否需要重新注入 */
-const ZOOM_GUARD_ID = 'print-preview-zoom-guard'
-
+/** 档位、纸宽与点阵倍率的结算全在 core 的 preview-zoom（四个宿主复刻预览层共用同一份） */
 const printerDpi = computed(() => resolvePrinterDpi(props.templateJson))
 /** 容器宽（px）：适配档据此算整数倍，渲染后与窗口变化时重新量 */
 const containerPx = ref(0)
@@ -77,36 +78,19 @@ const presets = computed(() =>
   zoomPresets(printerDpi.value, containerPx.value, paperWidthPx(props.templateJson)),
 )
 const zoomKey = ref(defaultZoomKey(printerDpi.value))
-const zoomValue = computed(
-  () => presets.value.find(p => p.key === zoomKey.value)?.value ?? 1,
-)
+const zoomValue = computed(() => zoomValueOf(presets.value, zoomKey.value))
 
 function measureContainer(): void {
   containerPx.value = rootRef.value?.clientWidth ?? 0
 }
 
-/** 档位因模板变化（如删掉最后一处 printerDpi）而消失时，落回默认档 */
 function syncZoomKey(): void {
-  if (!presets.value.some(p => p.key === zoomKey.value)) {
-    zoomKey.value = defaultZoomKey(printerDpi.value)
-  }
+  zoomKey.value = resolveZoomKey(presets.value, zoomKey.value, printerDpi.value)
 }
 
-/**
- * 缩放只写进预览文档，不改渲染产物：
- * 一条带 `@media print` 复位的规则——`print()` 走 iframe 自身排版与 @page 分页，
- * 屏幕放大必须在打印媒介下打回 1，否则会连带改掉分页。
- */
+/** 缩放只写进预览文档，不改渲染产物：规则自带 `@media print` 复位，打印媒介下打回 1 */
 function applyViewZoom(): void {
-  const doc = iframeRef.value?.contentWindow?.document
-  if (!doc?.documentElement) return
-  let guard = doc.getElementById(ZOOM_GUARD_ID) as HTMLStyleElement | null
-  if (!guard) {
-    guard = doc.createElement('style')
-    guard.id = ZOOM_GUARD_ID
-    ;(doc.head ?? doc.documentElement).appendChild(guard)
-  }
-  guard.textContent = `html{zoom:${zoomValue.value}}@media print{html{zoom:1 !important}}`
+  applyPreviewViewZoom(iframeRef.value?.contentWindow?.document, zoomValue.value)
 }
 
 function onWindowResize(): void {

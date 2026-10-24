@@ -67,6 +67,7 @@ const elementIconMap: Record<string, string> = {
   text: 'T',
   longText: '¶',
   table: '⊞',
+  flowList: '⊟',
   image: '🖼',
   barcode: '≡',
   qrcode: '▣',

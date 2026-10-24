@@ -6,7 +6,7 @@ import {
   paperWidthPx,
   resolvePrinterDpi,
   zoomPresets,
-} from '../composables/usePreviewZoom'
+} from '@worm-vue3-print/core/designer'
 
 const MM_TO_PX = 96 / 25.4
 
@@ -30,7 +30,7 @@ const TEMPLATE_WITH_DPI = {
   ],
 }
 
-describe('usePreviewZoom 档位计算', () => {
+describe('预览缩放档位计算（判据在 core 的 designer/utils/preview-zoom）', () => {
   it('从元素与表格单元格收集 printerDpi，多档取最细点距', () => {
     expect(resolvePrinterDpi(TEMPLATE_WITH_DPI)).toBe(300)
     expect(resolvePrinterDpi({ elements: [{ options: {} }] })).toBeNull()
