@@ -79,3 +79,194 @@ describe('单元格台边框草稿提示', () => {
     expect(rowOf(host, '内边距')).toBeTruthy()
   })
 })
+
+describe('单元格台边框回显：勾选框反映选区真实边位', () => {
+  const border = (w = 0.75) => ({ width: w, style: 'solid' as const, color: '#333333' })
+
+  /** 可指定多格与选区右端；每次写盘后需手动 repaint（真实壳层由 store 触发） */
+  function harness(cells: Array<Partial<TableCell>>, c2 = 0) {
+    const store = new DesignerStore()
+    store.addElement('table', { left: 10, top: 10, width: 60, height: 10 })
+    const el: RuntimeElement = store.elements[0]!
+    el.options.tableColWidths = cells.map(() => 50)
+    el.options.tableRows = [{ id: 'r1', type: 'data', height: 10, cells } as never]
+    store.setTableSelection({ elementId: el.id, r1: 0, c1: 0, r2: 0, c2 })
+    const host = document.createElement('div')
+    const state: ShellState = {
+      leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
+      openDd: null, collapsedGroups: new Set(), renamingPage: null,
+    }
+    const ctx: ShellCtx = {
+      store, format: new FormatToolbar(store), state,
+      repaint: () => { host.replaceChildren(); render(tableCellGroup(ctx, el), host) },
+      fire: () => {}, showHelp: true, isEdit: false, host: {},
+    }
+    ctx.repaint()
+    document.body.replaceChildren(host)
+    return { host, ctx, boxes: () => Array.from(host.querySelectorAll<HTMLInputElement>('.pd-checkbox-group input[type="checkbox"]')) }
+  }
+
+  const checked = (boxes: HTMLInputElement[]) => boxes.map(b => b.checked)
+  const indeterminate = (boxes: HTMLInputElement[]) => boxes.map(b => b.indeterminate)
+
+  it('四边都有边框 ⇒ 四个勾选框全亮；只上边 ⇒ 只「上」亮；无边框 ⇒ 全不亮', () => {
+    const full = harness([{ borders: { top: border(), right: border(), bottom: border(), left: border() } }])
+    expect(checked(full.boxes())).toEqual([true, true, true, true])
+    const topOnly = harness([{ borders: { top: border() } }])
+    expect(checked(topOnly.boxes())).toEqual([true, false, false, false])
+    const none = harness([{ borders: undefined }])
+    expect(checked(none.boxes())).toEqual([false, false, false, false])
+  })
+
+  it('勾一条边只动那一条：其余三边不得被整组覆盖删掉', () => {
+    const cell: Partial<TableCell> = { borders: { right: border(), bottom: border(), left: border() } }
+    const { ctx, boxes } = harness([cell])
+    expect(checked(boxes())).toEqual([false, true, true, true])
+    const top = boxes()[0]!
+    top.checked = true
+    top.dispatchEvent(new Event('change'))
+    expect(Object.keys(cell.borders!).sort()).toEqual(['bottom', 'left', 'right', 'top'])
+    ctx.repaint()
+    expect(checked(boxes())).toEqual([true, true, true, true])
+  })
+
+  it('选区里只有一格有上边 ⇒ 半选；点它是补齐两边，不动其它边位', () => {
+    const a: Partial<TableCell> = { borders: { top: border(), left: border() } }
+    const b: Partial<TableCell> = { borders: { left: border() } }
+    const { ctx, boxes } = harness([a, b], 1)
+    expect(checked(boxes())).toEqual([false, false, false, true])
+    expect(indeterminate(boxes())).toEqual([true, false, false, false])
+
+    const top = boxes()[0]!
+    top.checked = true
+    top.dispatchEvent(new Event('change'))
+    ctx.repaint()
+    expect(Object.keys(a.borders!).sort()).toEqual(['left', 'top'])
+    expect(Object.keys(b.borders!).sort()).toEqual(['left', 'top'])
+    expect(checked(boxes())).toEqual([true, false, false, true])
+    expect(indeterminate(boxes())).toEqual([false, false, false, false])
+  })
+})
+
+describe('单元格台三行待应用规格取自选区（方案 B）', () => {
+  const b = (w: number, style: 'solid' | 'dashed' | 'dotted' = 'solid', color = '#333333') => ({ width: w, style, color })
+
+  function harness(cells: Array<Partial<TableCell>>, c2 = 0) {
+    const store = new DesignerStore()
+    store.addElement('table', { left: 10, top: 10, width: 60, height: 10 })
+    const el: RuntimeElement = store.elements[0]!
+    el.options.tableColWidths = cells.map(() => 50)
+    el.options.tableRows = [{ id: 'r1', type: 'data', height: 10, cells } as never]
+    store.setTableSelection({ elementId: el.id, r1: 0, c1: 0, r2: 0, c2 })
+    const host = document.createElement('div')
+    const state: ShellState = {
+      leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
+      openDd: null, collapsedGroups: new Set(), renamingPage: null,
+    }
+    const ctx: ShellCtx = {
+      store, format: new FormatToolbar(store), state,
+      repaint: () => { host.replaceChildren(); render(tableCellGroup(ctx, el), host) },
+      fire: () => {}, showHelp: true, isEdit: false, host: {},
+    }
+    ctx.repaint()
+    document.body.replaceChildren(host)
+    const rows = () => ({
+      style: host.querySelector<HTMLSelectElement>('.border-style-row select')!.value,
+      width: host.querySelector<HTMLInputElement>('.border-style-row input[type="number"]')!.value,
+      color: (host.querySelector('.border-style-row .preset-color-swatch') as HTMLElement).style.background,
+    })
+    const move = (c1: number, c2: number) => {
+      store.setTableSelection({ elementId: el.id, r1: 0, c1, r2: 0, c2 })
+      ctx.repaint()
+    }
+    return { host, ctx, store, rows, move }
+  }
+
+  it('选区里边的规格一致 ⇒ 线型 / 宽度 / 颜色回显该规格', () => {
+    const { rows } = harness([{ borders: { top: b(2, 'dashed', '#123456'), left: b(2, 'dashed', '#123456') } }])
+    expect(rows()).toEqual({ style: 'dashed', width: '2', color: '#123456' })
+  })
+
+  it('一条边都没画 ⇒ 回到缺省档（实线 0.75），点预设照样出框', () => {
+    expect(harness([{ borders: undefined }]).rows()).toEqual({ style: 'solid', width: '0.75', color: '#333333' })
+  })
+
+  it('选区里边规格不一 ⇒ 不谎报，整组回到缺省档', () => {
+    const { rows } = harness([{ borders: { top: b(2, 'dashed') } }, { borders: { top: b(3, 'dotted') } }], 1)
+    expect(rows()).toEqual({ style: 'solid', width: '0.75', color: '#333333' })
+  })
+
+  it('改宽度只暂存不落盘；换选区即作废，切回来也不复活', () => {
+    const a: Partial<TableCell> = { borders: { top: b(2, 'dashed', '#123456') } }
+    const c: Partial<TableCell> = { borders: { top: b(1) } }
+    const { host, rows, move } = harness([a, c])
+    const input = host.querySelector<HTMLInputElement>('.border-style-row input[type="number"]')!
+    input.value = '4'
+    input.dispatchEvent(new Event('change'))
+    expect(host.querySelector<HTMLInputElement>('.border-style-row input[type="number"]')!.value).toBe('4')
+    expect(a.borders!.top?.width, '仅改值不落盘').toBe(2)
+
+    move(1, 1)
+    expect(rows().width, '换选区给的是该格自己的 1').toBe('1')
+    move(0, 0)
+    expect(rows().width, '切回来重新派生，不残留敲过的 4').toBe('2')
+  })
+})
+
+describe('单元格台线型可设为「无」', () => {
+  const b = (w: number, style: 'solid' | 'dashed' = 'solid', color = '#333333') => ({ width: w, style, color })
+
+  function harness(cells: Array<Partial<TableCell>>) {
+    const store = new DesignerStore()
+    store.addElement('table', { left: 10, top: 10, width: 60, height: 10 })
+    const el: RuntimeElement = store.elements[0]!
+    el.options.tableColWidths = [50]
+    el.options.tableRows = [{ id: 'r1', type: 'data', height: 10, cells } as never]
+    store.setTableSelection({ elementId: el.id, r1: 0, c1: 0, r2: 0, c2: 0 })
+    const host = document.createElement('div')
+    const state: ShellState = {
+      leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
+      openDd: null, collapsedGroups: new Set(), renamingPage: null,
+    }
+    const ctx: ShellCtx = {
+      store, format: new FormatToolbar(store), state,
+      repaint: () => { host.replaceChildren(); render(tableCellGroup(ctx, el), host) },
+      fire: () => {}, showHelp: true, isEdit: false, host: {},
+    }
+    ctx.repaint()
+    document.body.replaceChildren(host)
+    return { host, ctx }
+  }
+
+  it('选项含「无」；区里边全写着 none 就回显「无」', () => {
+    const solid = harness([{ borders: { top: b(1, 'solid') } }])
+    const sel = solid.host.querySelector<HTMLSelectElement>('.border-style-row select')!
+    expect(Array.from(sel.options).map(o => o.textContent)).toEqual(['无', '实线', '虚线', '点线', '双线'])
+    expect(sel.value, '实线边照实回显').toBe('solid')
+    const none = harness([{ borders: { top: { width: 1, style: 'none', color: '#333333' }, left: { width: 1, style: 'none', color: '#333333' } } }])
+    expect(none.host.querySelector<HTMLSelectElement>('.border-style-row select')!.value).toBe('none')
+  })
+
+  it('线型＝无时勾一条边不会出线（按没有这条边处理）', () => {
+    const cell: Partial<TableCell> = { borders: { top: b(1, 'solid') } }
+    const { host } = harness([cell])
+    const sel = host.querySelector<HTMLSelectElement>('.border-style-row select')!
+    sel.value = 'none'
+    sel.dispatchEvent(new Event('change'))
+    const boxes = Array.from(host.querySelectorAll<HTMLInputElement>('.pd-checkbox-group input'))
+    boxes[1]!.checked = true
+    boxes[1]!.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(cell.borders?.right).toBeUndefined()
+  })
+
+  it('选「无」后点「全部」＝清掉边框（不写一条隐形的 none 边）', () => {
+    const cell: Partial<TableCell> = { borders: { top: b(2, 'dashed') } }
+    const { host } = harness([cell])
+    const sel = host.querySelector<HTMLSelectElement>('.border-style-row select')!
+    sel.value = 'none'
+    sel.dispatchEvent(new Event('change'))
+    Array.from(host.querySelectorAll<HTMLElement>('.border-presets button')).find(b => b.textContent === '全部')!
+      .dispatchEvent(new Event('click'))
+    expect(cell.borders).toBeUndefined()
+  })
+})

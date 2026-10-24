@@ -197,17 +197,17 @@
 
       <h3 class="pd-divider">边框</h3>
       <div class="border-style-row">
-        <select class="pd-select" v-model="borderStyle" style="width: 90px">
-          <option value="solid">实线</option>
-          <option value="dashed">虚线</option>
-          <option value="dotted">点线</option>
-          <option value="double">双线</option>
+        <select class="pd-select" :value="draftBorder.style" style="width: 90px"
+          @change="overrideBorder('style', ($event.target as HTMLSelectElement).value as TableCellBorder['style'])">
+          <option v-for="s in BORDER_LINE_STYLES" :key="s.value" :value="s.value">{{ s.label }}</option>
         </select>
-        <div style="width: 112px; flex-shrink: 0"><StepperInput v-model="borderWidth"
+        <div style="width: 112px; flex-shrink: 0"><StepperInput :model-value="draftBorder.width"
           :min="0.25"
           :max="5"
-          :step="0.25" /></div>
-        <PresetColorPicker v-model="borderColor" :clearable="false" />
+          :step="0.25"
+          @update:model-value="overrideBorder('width', $event ?? DEFAULT_BORDER.width)" /></div>
+        <PresetColorPicker :model-value="draftBorder.color" :clearable="false"
+          @update:model-value="overrideBorder('color', $event)" />
       </div>
       <div class="pd-button-group border-presets">
         <button type="button" class="pd-button small" @click="preset('all')">全部</button>
@@ -216,10 +216,11 @@
         <button type="button" class="pd-button small" @click="preset('none')">无</button>
       </div>
       <div class="pd-checkbox-group">
-        <label class="pd-checkbox"><input type="checkbox" v-model="edgeChecks" value="top" @change="onEdgesChange($event)"><span>上</span></label>
-        <label class="pd-checkbox"><input type="checkbox" v-model="edgeChecks" value="right" @change="onEdgesChange($event)"><span>右</span></label>
-        <label class="pd-checkbox"><input type="checkbox" v-model="edgeChecks" value="bottom" @change="onEdgesChange($event)"><span>下</span></label>
-        <label class="pd-checkbox"><input type="checkbox" v-model="edgeChecks" value="left" @change="onEdgesChange($event)"><span>左</span></label>
+        <label class="pd-checkbox" v-for="e in BORDER_EDGES" :key="e.value">
+          <input type="checkbox" :checked="edgeStates[e.value] === 'on'"
+            :indeterminate.prop="edgeStates[e.value] === 'mixed'"
+            @change="onEdgeChange(e.value, $event)"><span>{{ e.label }}</span>
+        </label>
       </div>
       <p class="pd-hint">{{ CELL_BORDER_APPLY_HINT }}</p>
 
@@ -275,13 +276,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
 import type {
-  RuntimeElement, TableSelection, TableCell, TableCellBorder, TableCellBorders, TableCellType, TextAlign,
+  ElementBorderSide, RuntimeElement, TableSelection, TableCell, TableCellBorder, TableCellType, TextAlign,
   PrintBusinessField,
 } from '@worm-vue3-print/core/designer'
 import {
-  canMergeReason, mergeCells, splitCells, applyBorderPreset, findMainCell, type BorderPreset,
+  canMergeReason, mergeCells, splitCells, applyBorderPreset, setCellBorderEdge, findMainCell,
+  resolveBorderEdgeStates, resolveCellBorderDisplay, BORDER_LINE_STYLES, DEFAULT_BORDER, type BorderPreset,
   resolveCellTextFit, type TextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA, barcodeBarWidthRecommendText,
   cellFitCapMm, cellFitWidthMm, CELL_BORDER_APPLY_HINT,
 } from '@worm-vue3-print/core/designer'
@@ -415,35 +417,64 @@ function write(fn: (c: TableCell) => void) {
   ctx.recordHistory()
 }
 
-const borderStyle = ref<TableCellBorder['style']>('solid')
-const borderWidth = ref(0.75)
-const borderColor = ref('#333333')
-const edgeChecks = ref<string[]>([])
+/** 待应用规格（线型 / 宽度 / 颜色）：初值取自选区真实边框；用户改动只在本选区暂存，换选区即作废 */
+const borderOverride = ref<Partial<TableCellBorder>>({})
+const borderDisplay = computed(() => resolveCellBorderDisplay(rows.value, props.selection))
+const draftBorder = computed<TableCellBorder>(() => {
+  const d = borderDisplay.value
+  return {
+    width: typeof d.width === 'number' ? d.width : DEFAULT_BORDER.width,
+    style: (typeof d.style === 'string' && d.style !== 'mixed' ? d.style : DEFAULT_BORDER.style) as TableCellBorder['style'],
+    color: typeof d.color === 'string' && d.color !== 'mixed' ? d.color : DEFAULT_BORDER.color,
+    ...borderOverride.value,
+  }
+})
+
+const selectionKey = computed(() => {
+  const s = props.selection
+  return `${s.r1}:${s.c1}:${s.r2}:${s.c2}`
+})
+watch(selectionKey, () => { borderOverride.value = {} })
+
+function overrideBorder<K extends keyof TableCellBorder>(key: K, value: TableCellBorder[K]) {
+  borderOverride.value = { ...borderOverride.value, [key]: value }
+}
+
+/** 四条边：勾选框的状态由选区派生，不再用本地草稿 */
+const BORDER_EDGES: { value: ElementBorderSide; label: string }[] = [
+  { value: 'top', label: '上' }, { value: 'right', label: '右' },
+  { value: 'bottom', label: '下' }, { value: 'left', label: '左' },
+]
+
+/** 选区内可写格的真实边位状态：全有＝勾选、部分＝半选、全无＝不勾（与顶部工具栏同一判据） */
+const edgeStates = computed(() => {
+  const s = props.selection
+  const borders: Array<TableCell['borders']> = []
+  for (let r = s.r1; r <= s.r2; r++) {
+    for (let c = s.c1; c <= s.c2; c++) {
+      const cell = rows.value[r]!.cells[c]!
+      if (!cell.merged) borders.push(cell.borders)
+    }
+  }
+  return resolveBorderEdgeStates(borders)
+})
 
 function currentBorder(): TableCellBorder {
-  return { width: borderWidth.value, style: borderStyle.value, color: borderColor.value }
+  return draftBorder.value
 }
 
 function preset(p: BorderPreset) {
-  applyBorderPreset(rows.value, props.selection, p, currentBorder())
+  // 线型＝无 ⇒ 预设就是清边框（不写一条隐形的 none 边，否则勾选框亮着却看不见线）
+  applyBorderPreset(rows.value, props.selection, draftBorder.value.style === 'none' ? 'none' : p, currentBorder())
   ctx.recordHistory()
 }
 
-function onEdgesChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const edges = new Set(edgeChecks.value)
-  if (input.checked) edges.add(input.value)
-  else edges.delete(input.value)
-  edgeChecks.value = [...edges]
-  const b = currentBorder()
-  write(c => {
-    const nb = { ...(c.borders ?? {}) } as Record<string, TableCellBorder | undefined>
-    for (const side of ['top', 'right', 'bottom', 'left']) {
-      if (edges.has(side)) nb[side] = { ...b }
-      else delete nb[side]
-    }
-    c.borders = nb as TableCellBorders
-  })
+/** 单边只切那一条：半选态点下去是补齐（与工具栏单边按钮一致），不能整组覆盖掉其余三边 */
+function onEdgeChange(side: ElementBorderSide, event: Event) {
+  const on = (event.target as HTMLInputElement).checked
+  // 线型＝无时勾边不会出线：一律按"没有这条边"处理（与工具栏取消态同口径）
+  const visible = on && draftBorder.value.style !== 'none'
+  write(c => { setCellBorderEdge(c, side, visible ? currentBorder() : null) })
 }
 
 const mergeReason = computed(() => canMergeReason(rows.value, props.selection))

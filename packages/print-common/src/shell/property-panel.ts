@@ -7,11 +7,12 @@
 import {
   PAPER_PRESETS, isContinuousPaperSize, resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS,
   resolveDesignImageSrc, barcodeBarWidthRecommendText,
-  acceptsElementBorder, applyElementBorderPreset, elementBorderEdgeOn, resolveElementBorderSpec,
-  setElementBorderEdge, ELEMENT_BORDER_APPLY_HINT,
+  acceptsElementBorder, applyElementBorderPreset, elementBorderEdgeVisible, effectiveElementBorderSpec,
+  resolveElementBorderDisplay, setElementBorderEdgeVisible, setElementBorderField, BORDER_LINE_STYLES,
+  ELEMENT_BORDER_APPLY_HINT,
   resolveFlowColumns, resolveFlowGapX, resolveFlowMaxSpan, resolveFlowRowHeight, suggestFlowColumns,
 } from '@worm-vue3-print/core/designer'
-import type { BorderPreset, ElementBorderSide, ElementOptions, RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { BorderPreset, ElementBorderFieldKey, ElementBorderSide, ElementOptions, RuntimeElement } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import { colorTrigger, divider, field, fieldHelp, radioGroup, resetButton, stepper } from './controls'
@@ -28,7 +29,7 @@ import type { ShellCtx } from './controls'
 
 /** 数字属性行：label + 步进框（undefined 透传给 stepper → 留空显示占位，与 canvas 的 v-model 未设置态一致） */
 function numField(_ctx: ShellCtx, label: string, value: number | undefined, onCommit: (v: number) => void,
-  opts: { min?: number; max?: number; step?: number } = {}, reset?: El) {
+  opts: { min?: number; max?: number; step?: number; placeholder?: string } = {}, reset?: El) {
   return field(label, stepper({ value, ...opts, onCommit }), undefined, reset)
 }
 
@@ -62,11 +63,6 @@ function switchField(_ctx: ShellCtx, label: string, checked: boolean, onCommit: 
 }
 
 /** 元素边框入口：档位、边位与文案与 canvas 的 BorderBgGroup.vue 逐项一致 */
-const BORDER_STYLE_OPTIONS = [
-  { value: 'solid', label: '实线' }, { value: 'dashed', label: '虚线' },
-  { value: 'dotted', label: '点线' }, { value: 'double', label: '双线' },
-]
-
 const ELEMENT_BORDER_PRESETS: { value: BorderPreset; label: string }[] = [
   { value: 'all', label: '全部' }, { value: 'outer', label: '外侧' },
   { value: 'inner', label: '内部' }, { value: 'none', label: '无' },
@@ -302,22 +298,41 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
   })
   const applyBorderPresetTo = (preset: BorderPreset) => {
     const next = borderFields()
-    applyElementBorderPreset(next, preset, resolveElementBorderSpec(next))
+    applyElementBorderPreset(next, preset, effectiveElementBorderSpec(next))
     patch(next)
   }
+  /** 勾/撤单边：整圈生效时撤一边会把其余三边展开成分边（否则整圈照样盖住那条边） */
   const toggleBorderEdge = (side: ElementBorderSide) => {
     const next = borderFields()
-    setElementBorderEdge(next, side, elementBorderEdgeOn(next, side) ? null : resolveElementBorderSpec(next))
+    setElementBorderEdgeVisible(next, side, !elementBorderEdgeVisible(next, side))
     patch(next)
   }
 
+  /** 三行显示「当前生效规格」（方案 B）：mixed／未设都留空，宽度与线型用「混合」占位说破各边不一 */
+  const borderDisplay = resolveElementBorderDisplay(o)
+  const styleMixed = borderDisplay.style === 'mixed'
+  const displayWidth = typeof borderDisplay.width === 'number' ? borderDisplay.width : undefined
+  const displayStyle = styleMixed || borderDisplay.style === undefined ? '' : borderDisplay.style
+  const displayColor = typeof borderDisplay.color === 'string' ? borderDisplay.color : undefined
+  const patchBorderField = (key: ElementBorderFieldKey, value: number | string | undefined) => {
+    const next = borderFields()
+    setElementBorderField(next, key, value)
+    patch(next)
+  }
+  const styleOptions = styleMixed
+    ? [{ value: '', label: '混合' }, ...BORDER_LINE_STYLES]
+    : [...BORDER_LINE_STYLES]
+
   rows.push(group(ctx, 'border-bg', '边框与背景', 'Picture', [
     h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, [
-      gateItem(ctx, 'bb-border-style', selectField(ctx, '线型', o.borderStyle || 'solid', BORDER_STYLE_OPTIONS,
-        v => patch({ borderStyle: v }))),
+      gateItem(ctx, 'bb-border-style', selectField(ctx, '线型', displayStyle, styleOptions,
+        v => patchBorderField('borderStyle', v))),
       h('div', { class: 'border-row' }, [
-        gateItem(ctx, 'bb-border-width', numField(ctx, '边框宽度', o.borderWidth, v => patch({ borderWidth: v }), { min: 0, max: 20, step: 0.25 }, reset('borderWidth', 'bb-border-width'))),
-        gateItem(ctx, 'bb-border-color', field('边框颜色', colorTrigger(o.borderColor, v => patch({ borderColor: v }), '边框颜色'), undefined, reset('borderColor', 'bb-border-color'))),
+        gateItem(ctx, 'bb-border-width', numField(ctx, '边框宽度', displayWidth,
+          v => patchBorderField('borderWidth', v),
+          { min: 0, max: 20, step: 0.25, placeholder: borderDisplay.width === 'mixed' ? '混合' : undefined },
+          reset('borderWidth', 'bb-border-width'))),
+        gateItem(ctx, 'bb-border-color', field('边框颜色', colorTrigger(displayColor, v => patchBorderField('borderColor', v), '边框颜色'), undefined, reset('borderColor', 'bb-border-color'))),
       ]),
       // rect/oval/hline/vline/table 用 border 画自身本体，写分边不出效果（与出纸 resolveElementBorder 同一排除表）
       ...(acceptsElementBorder(type) ? [
@@ -327,7 +342,7 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
         }))),
         h('div', { class: 'pd-checkbox-group' }, ELEMENT_BORDER_EDGES.map(edge => h('label', { class: 'pd-checkbox' }, [
           h('input', {
-            type: 'checkbox', checked: elementBorderEdgeOn(o, edge.value),
+            type: 'checkbox', checked: elementBorderEdgeVisible(o, edge.value),
             onChange: () => toggleBorderEdge(edge.value),
           }),
           h('span', { text: edge.label }),

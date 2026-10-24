@@ -40,6 +40,8 @@ function parseBorder(
   color: string | undefined,
 ): ElementBorderCss | null {
   if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0) return null
+  // 线型「无」= 明确不画（与单元格 TableCellBorder.style='none' 同一语义）；非法线型才回落实线
+  if (style === 'none') return null
   return {
     borderWidth: `${width}pt`,
     borderStyle: typeof style === 'string' && VALID_STYLES.has(style) ? style : 'solid',

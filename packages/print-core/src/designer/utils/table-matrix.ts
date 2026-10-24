@@ -1,7 +1,8 @@
 // web/src/components/print/utils/table-matrix.ts
 // Excel 风格表格矩阵结构操作纯函数库。
 // 约定：函数原地修改传入的 rows/colWidths；返回 string 的函数以非空字符串为拒绝原因。
-import type { TableRow, TableRowType, TableCell, TableCellBorder, ElementOptions } from '../types.js'
+import type { TableRow, TableRowType, TableCell, TableCellBorder, TableCellBorders, ElementOptions } from '../types.js'
+import type { BorderSpecDisplay } from './element-border-edit.js'
 
 export interface CellRect { r1: number; c1: number; r2: number; c2: number }
 
@@ -27,7 +28,8 @@ function createRowIdGenerator() {
 const genCellId = createCellIdGenerator()
 const genRowId = createRowIdGenerator()
 
-const DEFAULT_BORDER: TableCellBorder = { width: 0.75, style: 'solid', color: '#333333' }
+/** 单元格边框的缺省档：新建表格每格四边都是它；属性台取不到规格时也落回这一档 */
+export const DEFAULT_BORDER: TableCellBorder = { width: 0.75, style: 'solid', color: '#333333' }
 
 /** JSON 深拷贝：兼容 Vue reactive Proxy（structuredClone 对 Proxy 抛 DataCloneError） */
 function deepClone<T>(v: T): T {
@@ -387,9 +389,53 @@ export function applyBorderPreset(
   }
 }
 
-/** 线型/宽度/颜色只是待应用草稿，必须点预设或勾单边才落盘；文案画布与 common 单元格台共用一条 */
+/** 线型/宽度/颜色是待应用规格（初值取自选区真实边框），必须点预设或勾单边才落盘；文案画布与 common 单元格台共用一条 */
 export const CELL_BORDER_APPLY_HINT
-  = '改完线型 / 宽度 / 颜色后，要点「全部 / 外侧 / 内部」或勾选上、下、左、右某条边才会写入选中的单元格；「无」是清除边框'
+  = '线型 / 宽度 / 颜色是待应用规格：选中格已有的边框规格一致时会填进这三行，规格不一或还没画过框时回到缺省档（实线 0.75pt）。改完点「全部 / 外侧 / 内部」或勾选上、下、左、右某条边才会写入选中的单元格；「无」是清除边框'
+
+/**
+ * 单边写入：只动那一条边，其余三边原样保留。
+ * 属性台勾选框与工具栏单边按钮共用此口径——早先属性台按「本地勾选集合」整组覆盖，
+ * 勾一条边会把模型里已有的另外三条边删掉。
+ * border 传 null 即撤掉该边；四条边撤空后不留空对象。
+ */
+export function setCellBorderEdge(
+  cell: TableCell, side: keyof TableCellBorders, border: TableCellBorder | null,
+): void {
+  const nb = { ...(cell.borders ?? {}) } as TableCellBorders
+  if (border) nb[side] = { ...border }
+  else delete nb[side]
+  cell.borders = nb.top || nb.right || nb.bottom || nb.left ? nb : undefined
+}
+
+/**
+ * 单元格台「线型 / 宽度 / 颜色」三行的待应用规格（方案 B：跟着选区走，不再存本地草稿）。
+ * 取选区内所有可写格已存在的边：规格全一致就回显该值，不一致逐字段给 mixed（界面留空报「混合」），
+ * 一条边都没有给 undefined——由界面落回缺省档，保证点预设真的出框。
+ */
+export function resolveCellBorderDisplay(rows: TableRow[], rect: CellRect): BorderSpecDisplay {
+  const edges: TableCellBorder[] = []
+  for (let r = rect.r1; r <= rect.r2; r++) {
+    for (let c = rect.c1; c <= rect.c2; c++) {
+      const cell = rows[r]?.cells[c]
+      if (!cell || cell.merged) continue
+      for (const side of ['top', 'right', 'bottom', 'left'] as const) {
+        const b = cell.borders?.[side]
+        if (b) edges.push(b)
+      }
+    }
+  }
+  const pick = (get: (b: TableCellBorder) => string | number | undefined) => {
+    if (!edges.length) return undefined
+    const first = get(edges[0]!)
+    return edges.every(b => get(b) === first) ? first : 'mixed'
+  }
+  return {
+    width: pick(b => b.width) as BorderSpecDisplay['width'],
+    style: pick(b => b.style) as BorderSpecDisplay['style'],
+    color: pick(b => b.color) as BorderSpecDisplay['color'],
+  }
+}
 
 /** 设计态下无边框单元格的辅助虚线：与背景网格线同风格（浅灰虚线），略深保证可读 */
 export const GHOST_BORDER_CSS = '1px dashed rgba(0,0,0,0.18)'

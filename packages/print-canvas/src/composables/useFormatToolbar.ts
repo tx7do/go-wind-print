@@ -5,8 +5,9 @@ import type {
   ElementBorderSide,
 } from '@worm-vue3-print/core/designer'
 import {
-  applyBorderPreset, type BorderPreset,
-  applyElementBorderPreset, elementBorderEdgeOn, setElementBorderEdge, type ElementBorderSpec,
+  applyBorderPreset, setCellBorderEdge, type BorderPreset,
+  applyElementBorderPreset, setElementBorderEdgeVisible, elementVisibleBorders, resolveBorderEdgeStates,
+  type BorderEdgeState, type ElementBorderSpec,
 } from '@worm-vue3-print/core/designer'
 
 /** 多选目标间字段值不一致的哨兵 */
@@ -207,29 +208,30 @@ export function useFormatToolbar(deps: FormatToolbarDeps) {
     sides: Array<'top' | 'right' | 'bottom' | 'left'>, border: TableCellBorder, on: boolean,
   ) {
     writeCells(c => {
-      const nb = { ...(c.borders ?? {}) } as Record<string, TableCellBorder | undefined>
-      for (const side of sides) {
-        if (on) nb[side] = { ...border }
-        else delete nb[side]
-      }
-      c.borders = nb as TableCell['borders']
+      for (const side of sides) setCellBorderEdge(c, side, on ? border : null)
     })
   }
 
   type BorderSide = 'top' | 'right' | 'bottom' | 'left'
   const BORDER_SIDES: BorderSide[] = ['top', 'right', 'bottom', 'left']
 
+  /** core 的三态（on/off/mixed）翻成按钮按下态：mixed 用 MIXED 哨兵，界面按"未按下但可补齐"处理 */
+  const EDGE_FLAG: Record<BorderEdgeState, boolean | typeof MIXED> = { on: true, off: false, mixed: MIXED }
+  function edgeFlags(
+    borders: Array<Partial<Record<ElementBorderSide, unknown>> | undefined>,
+  ): Record<BorderSide, boolean | typeof MIXED> {
+    const states = resolveBorderEdgeStates(borders)
+    const out = {} as Record<BorderSide, boolean | typeof MIXED>
+    for (const side of BORDER_SIDES) out[side] = EDGE_FLAG[states[side]]
+    return out
+  }
+
   /** 单元格选区四边激活态（WPS 式单边按钮的按下态）；非单元格上下文或选区为空为 null */
   const cellEdges = computed<Record<BorderSide, boolean | typeof MIXED> | null>(() => {
     if (context.value !== 'cells') return null
     const t = targetCells.value
     if (!t.length) return null
-    const out = {} as Record<BorderSide, boolean | typeof MIXED>
-    for (const side of BORDER_SIDES) {
-      const flags = t.map(c => !!c.borders?.[side])
-      out[side] = flags.every(Boolean) ? true : flags.some(Boolean) ? MIXED : false
-    }
-    return out
+    return edgeFlags(t.map(c => c.borders))
   })
 
   /** 单边切换：未全有则补齐该边，全有再点则移除该边（与 Word/WPS 一致） */
@@ -238,25 +240,28 @@ export function useFormatToolbar(deps: FormatToolbarDeps) {
     applyCellBorderEdges([side], border, on)
   }
 
-  /** 元素选中集的分边激活态（options.borders）；非元素上下文或无可选元素为 null */
+  /** 元素选中集的分边激活态：看「这条边到底有没有线」（整圈生效＝四边都有），与属性台勾选框同一判据 */
   const elementEdges = computed<Record<BorderSide, boolean | typeof MIXED> | null>(() => {
     if (context.value !== 'elements') return null
     const t = selectedElements.value
     if (!t.length) return null
-    const out = {} as Record<BorderSide, boolean | typeof MIXED>
-    for (const side of BORDER_SIDES) {
-      const flags = t.map(e => elementBorderEdgeOn(e.options, side))
-      out[side] = flags.every(Boolean) ? true : flags.some(Boolean) ? MIXED : false
-    }
-    return out
+    return edgeFlags(t.map(e => elementVisibleBorders(e.options)))
   })
 
-  /** 元素分边切换：写入/移除 options.borders[side]，不影响整圈三字段 */
+  /** 元素分边切换：勾上用面板草稿，整圈生效时撤一边会把其余三边展开成分边 */
   function toggleElementEdge(side: ElementBorderSide, border: ElementBorderSpec) {
     const targets = selectedElements.value
     if (!targets.length) return
     const on = elementEdges.value?.[side] !== true
-    targets.forEach(e => setElementBorderEdge(e.options, side, on ? border : null))
+    targets.forEach(e => setElementBorderEdgeVisible(e.options, side, on, border))
+    recordHistory()
+  }
+
+  /** 撤掉一条边（线型＝无时工具栏的「上/右/下/左」走这条）：整圈生效时其余三边展开成单边 */
+  function clearElementEdge(side: ElementBorderSide) {
+    const t = selectedElements.value
+    if (!t.length) return
+    t.forEach(e => setElementBorderEdgeVisible(e.options, side, false))
     recordHistory()
   }
 
@@ -264,7 +269,7 @@ export function useFormatToolbar(deps: FormatToolbarDeps) {
     context, fontEditable, values,
     applyStyle, toggleBold, toggleUnderline, toggleStrike,
     applyElementBorder, applyCellBorderPreset, applyCellBorderEdges,
-    cellEdges, toggleCellEdge, elementEdges, toggleElementEdge,
+    cellEdges, toggleCellEdge, elementEdges, toggleElementEdge, clearElementEdge,
   }
 }
 

@@ -246,3 +246,27 @@ export function radioGroup(name: string, options: { value: string; label: string
     h('span', { text: o.label }),
   ])))
 }
+
+/**
+ * 裸下拉（无 label 包裹，用于 .border-style-row 这类横向控件行）。
+ * 不能只靠 <option selected> 属性：happy-dom/部分内核在"首项未选中、第三项选中"时会回落到第二项，
+ * 必须建真节点后显式 select.value = 当前值（与 selectField 同一套可靠赋值）。
+ */
+export function plainSelect(
+  value: string, options: { value: string; label: string }[], onChange: (v: string) => void,
+  attrs: { className?: string; width?: string } = {},
+) {
+  const sel = document.createElement('select')
+  sel.className = attrs.className ?? 'pd-select'
+  if (attrs.width) sel.style.width = attrs.width
+  for (const o of options) {
+    const opt = document.createElement('option')
+    opt.value = o.value
+    opt.textContent = o.label
+    sel.appendChild(opt)
+  }
+  sel.value = value
+  if (!options.some(o => o.value === value)) sel.selectedIndex = -1
+  sel.addEventListener('change', () => onChange(sel.value))
+  return sel
+}

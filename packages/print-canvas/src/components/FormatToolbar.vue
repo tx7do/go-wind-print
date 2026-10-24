@@ -171,7 +171,9 @@
             <button
               v-for="s in LINE_STYLES" :key="s.key"
               type="button" class="ft-style-btn" :class="{ on: borderStyle === s.key }"
-              :data-test="`style-${s.key}`" :data-tip="s.label" @click="borderStyle = s.key"
+              :data-test="`style-${s.key}`"
+              :data-tip="borderStyle === s.key ? `${s.label}（再点一次取消，线型＝无）` : s.label"
+              @click="toggleStyle(s.key)"
             >
               <span class="ft-style-line" :style="{ borderTop: s.preview }"></span>
             </button>
@@ -200,7 +202,7 @@ import {
   ArrowUpToLine, ChevronsUpDown, ArrowDownToLine, Grid3x3,
   PaintBucket, Paintbrush,
 } from 'lucide-vue-next'
-import type { BorderPreset } from '@worm-vue3-print/core/designer'
+import type { BorderPreset, TableCellBorder } from '@worm-vue3-print/core/designer'
 import type { FormatToolbar } from '../composables/useFormatToolbar'
 import { MIXED } from '../composables/useFormatToolbar'
 import type { FormatPainter } from '../composables/useFormatPainter'
@@ -277,7 +279,8 @@ function decoTip(base: string): string {
   return base
 }
 /* 边框面板（WPS 式）：线型/粗细/颜色为面板内草稿，点预设/单边时整体落盘 */
-const borderStyle = ref<'solid' | 'dashed' | 'dotted' | 'double'>('solid')
+/** 线型草稿：null = 一个格式都没选中（线型＝无，点预设/单边即按「无」落盘） */
+const borderStyle = ref<'solid' | 'dashed' | 'dotted' | 'double' | null>('solid')
 const borderWidth = ref(0.75)
 const borderColor = ref('#333333')
 
@@ -292,15 +295,22 @@ const LINE_STYLES = [
 
 type BorderSide = 'top' | 'right' | 'bottom' | 'left'
 
-function borderSpec() {
-  return { width: borderWidth.value, style: borderStyle.value, color: borderColor.value }
+function borderSpec(): TableCellBorder {
+  // 取消选中时按「无」落盘（此时只会走"清边框/撤边"分支）
+  return { width: borderWidth.value, style: borderStyle.value ?? 'none', color: borderColor.value }
+}
+
+/** 再点已选中的线型＝取消该格式（图标全不亮＝线型无） */
+function toggleStyle(key: 'solid' | 'dashed' | 'dotted' | 'double') {
+  borderStyle.value = borderStyle.value === key ? null : key
 }
 
 function onPreset(p: BorderPreset) {
+  // 线型＝无时预设等于清边框（单元格/元素同口径）
   if (isCells.value) {
-    props.format.applyCellBorderPreset(p, borderSpec())
+    props.format.applyCellBorderPreset(borderStyle.value === null ? 'none' : p, borderSpec())
   } else {
-    props.format.applyElementBorder(p === 'none' ? 'none' : 'all', borderSpec())
+    props.format.applyElementBorder(borderStyle.value === null || p === 'none' ? 'none' : 'all', borderSpec())
   }
 }
 
@@ -311,6 +321,12 @@ function edgeOn(side: BorderSide): boolean {
 }
 
 function onEdge(side: BorderSide) {
+  // 线型＝无时点某条边＝撤掉那条边
+  if (borderStyle.value === null) {
+    if (isCells.value) props.format.applyCellBorderEdges([side], borderSpec(), false)
+    else props.format.clearElementEdge(side)
+    return
+  }
   if (isCells.value) props.format.toggleCellEdge(side, borderSpec())
   else props.format.toggleElementEdge(side, borderSpec())
 }

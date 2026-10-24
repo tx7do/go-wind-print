@@ -139,6 +139,29 @@ describe('FormatToolbar 边框下拉（WPS 式菜单）', () => {
     expect(a.options.borderStyle).toBe('dashed')
   })
 
+  it('线型图标再点一次即取消：四个格式全不亮，此时预设按「无」清边框', async () => {
+    const a = el('a', 'text', { borderWidth: 2, borderStyle: 'solid', borderColor: '#333333' })
+    const w = mountToolbar([a], ['a'])
+    await w.find('[data-test=border]').trigger('click')
+    await w.find('[data-test=style-solid]').trigger('click')
+    for (const k of ['solid', 'dashed', 'dotted', 'double']) {
+      expect(w.find(`[data-test=style-${k}]`).classes(), `${k} 不应再呈按下态`).not.toContain('on')
+    }
+    await w.find('[data-test=preset-all]').trigger('click')
+    expect(a.options.borderWidth, '线型无 ⇒ 预设等于清边框').toBe(0)
+  })
+
+  it('线型取消态下点单边＝撤掉那条边', async () => {
+    const a = el('a', 'text', { borderWidth: 1.5, borders: { top: { width: 1.5, style: 'solid', color: '#333333' } } })
+    const w = mountToolbar([a], ['a'])
+    await w.find('[data-test=border]').trigger('click')
+    await w.find('[data-test=style-solid]').trigger('click')
+    await w.find('[data-test=edge-top]').trigger('click')
+    expect(a.options.borderWidth).toBe(0)
+    expect(a.options.borders?.top).toBeUndefined()
+    expect(a.options.borders?.right, '其余三边展开成单边').toBeTruthy()
+  })
+
   it('单元格上下文单边按钮可用：点击补齐上边框并呈按下态，再点清除', async () => {
     const t = tableEl([[{ id: 'c' } as TableCell]])
     const w = mountToolbar([t], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })

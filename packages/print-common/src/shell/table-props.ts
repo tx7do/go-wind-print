@@ -4,19 +4,21 @@
 // 矩阵/边框/合并等操作一律走 @worm-vue3-print/core/designer 纯函数，
 // 历史与重绘统一经 store.updateElement 收口（canvas 侧靠 Vue 响应式，这里必须显式 emit）。
 import type {
-  BorderPreset, ElementOptions, RuntimeElement, TableCell, TableCellBorder, TableCellBorders,
+  BorderPreset, ElementOptions, RuntimeElement, TableCell, TableCellBorder,
   TableCellType, TextAlign, TextFit, TableRow, TableRowType,
 } from '@worm-vue3-print/core/designer'
 import {
   applyBorderPreset, canMergeReason, cellFitCapMm, cellFitWidthMm, findMainCell, mergeCells,
-  resolveCellTextFit, setHeaderRepeat,
+  resolveBorderEdgeStates, resolveCellBorderDisplay, resolveCellTextFit, setCellBorderEdge, setHeaderRepeat,
+  BORDER_LINE_STYLES,
+  DEFAULT_BORDER,
   setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText, createDefaultOptions,
   CELL_BORDER_APPLY_HINT,
 } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import type { DesignerStore } from '../core/store'
-import { colorTrigger, divider, fieldHelp, radioGroup, resetButton, stepper } from './controls'
+import { colorTrigger, divider, fieldHelp, plainSelect, radioGroup, resetButton, stepper } from './controls'
 import type { ShellCtx } from './controls'
 import { renderFontSelect } from './font-select'
 import { gateItem } from './property-search'
@@ -213,25 +215,10 @@ export function paginationGroup(ctx: ShellCtx, el: RuntimeElement): El {
   return group(ctx, 'pagination', '分页配置', 'Document', [pdForm(items)], false)
 }
 
-/** 边框草稿：canvas 存在组件 ref 上，Common 每次重绘重建 DOM，故按 store 持久化同一份 */
-interface BorderDraft {
-  style: TableCellBorder['style']
-  width: number
-  color: string
-  edges: string[]
-}
-const draftByStore = new WeakMap<DesignerStore, BorderDraft>()
-
-function borderDraft(store: DesignerStore): BorderDraft {
-  let d = draftByStore.get(store)
-  if (!d) { d = { style: 'solid', width: 0.75, color: '#333333', edges: [] }; draftByStore.set(store, d) }
-  return d
-}
-
-const BORDER_STYLE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'solid', label: '实线' }, { value: 'dashed', label: '虚线' },
-  { value: 'dotted', label: '点线' }, { value: 'double', label: '双线' },
-]
+/** 待应用规格（线型/宽度/颜色）：初值取自选区真实边框，用户改动只在本选区暂存（Common 每次重绘重建 DOM，故按 store 存）。
+ *  换选区即作废——连切回原选区也不复活，与画布 TableCellGroup 的 watch 归零同语义。四条边的勾选态一律从选区派生。 */
+interface BorderPatch { key: string; patch: Partial<TableCellBorder> }
+const patchByStore = new WeakMap<DesignerStore, BorderPatch>()
 
 const BORDER_EDGES: { value: 'top' | 'right' | 'bottom' | 'left'; label: string }[] = [
   { value: 'top', label: '上' }, { value: 'right', label: '右' },
@@ -248,17 +235,41 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
   const cell0 = rows[main.r]?.cells[main.c]
   if (!cell0) return group(ctx, 'table-cell', '单元格', 'Menu', [])
 
-  const draft = borderDraft(s)
-  const write = (fn: (c: TableCell) => void) => {
+  const writableCells = (): TableCell[] => {
+    const out: TableCell[] = []
     for (let r = sel.r1; r <= sel.r2; r++) {
       for (let c = sel.c1; c <= sel.c2; c++) {
         const cell = rows[r]?.cells[c]
-        if (cell && !cell.merged) fn(cell)
+        if (cell && !cell.merged) out.push(cell)
       }
     }
+    return out
+  }
+  const write = (fn: (c: TableCell) => void) => {
+    writableCells().forEach(fn)
     s.updateElement(el.id, { tableRows: rows })
   }
-  const currentBorder = (): TableCellBorder => ({ width: draft.width, style: draft.style, color: draft.color })
+  /** 三行的待应用规格：选区里边规格一致就填进这三行，不一或没画过框回到缺省档；用户改动叠在派生值上 */
+  const selectionKey = `${sel.r1}:${sel.c1}:${sel.r2}:${sel.c2}`
+  const stored = patchByStore.get(s)
+  const borderPatch = stored?.key === selectionKey ? stored.patch : {}
+  if (!stored || stored.key !== selectionKey) patchByStore.set(s, { key: selectionKey, patch: {} })
+  const setBorderPatch = <K extends keyof TableCellBorder>(key: K, value: TableCellBorder[K]) => {
+    patchByStore.set(s, { key: selectionKey, patch: { ...borderPatch, [key]: value } })
+    ctx.repaint()
+  }
+  const cellBorderDisplay = resolveCellBorderDisplay(rows, sel)
+  const draft: TableCellBorder = {
+    width: typeof cellBorderDisplay.width === 'number' ? cellBorderDisplay.width : DEFAULT_BORDER.width,
+    style: (typeof cellBorderDisplay.style === 'string' && cellBorderDisplay.style !== 'mixed'
+      ? cellBorderDisplay.style : DEFAULT_BORDER.style) as TableCellBorder['style'],
+    color: typeof cellBorderDisplay.color === 'string' && cellBorderDisplay.color !== 'mixed'
+      ? cellBorderDisplay.color : DEFAULT_BORDER.color,
+    ...borderPatch,
+  }
+  const currentBorder = (): TableCellBorder => ({ ...draft })
+  /** 四条边的按下态取自选区真实边框：全有＝勾选、部分＝半选、全无＝不勾（与顶部工具栏同一判据） */
+  const edgeStates = resolveBorderEdgeStates(writableCells().map(c => c.borders))
 
   const isBarcodeCell = cell0.cellType === 'barcode'
   const isQrcodeCell = cell0.cellType === 'qrcode'
@@ -431,44 +442,35 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
 
       divider('边框'),
       h('div', { class: 'border-style-row' }, [
-        h('select', {
-          class: 'pd-select', style: { width: '90px' },
-          onChange: (ev: Event) => {
-            draft.style = (ev.target as HTMLSelectElement).value as TableCellBorder['style']
-            ctx.repaint()
-          },
-        }, BORDER_STYLE_OPTIONS.map(o => h('option', {
-          value: o.value, text: o.label, selected: o.value === draft.style,
-        }))),
+        // 裸下拉必须显式赋值当前值（只靠 <option selected> 在内核不一致时会回落到第二项）
+        plainSelect(draft.style, [...BORDER_LINE_STYLES], v => setBorderPatch('style', v as TableCellBorder['style']),
+          { width: '90px' }),
         h('div', { style: { width: '112px', flexShrink: '0' } }, [stepper({
           value: draft.width, min: 0.25, max: 5, step: 0.25,
-          onCommit: (v) => { draft.width = v; ctx.repaint() },
+          onCommit: v => setBorderPatch('width', v),
         })]),
-        colorTrigger(draft.color, v => { draft.color = v; ctx.repaint() }, '边框颜色'),
+        colorTrigger(draft.color, v => setBorderPatch('color', v), '边框颜色'),
       ]),
       h('div', { class: 'pd-button-group border-presets' }, ([
         ['all', '全部'], ['outer', '外侧'], ['inner', '内部'], ['none', '无'],
       ] as [BorderPreset, string][]).map(([p, label]) => h('button', {
         type: 'button', class: 'pd-button small', text: label,
-        onClick: () => { applyBorderPreset(rows, sel, p, currentBorder()); s.updateElement(el.id, { tableRows: rows }) },
+        // 线型＝无 ⇒ 预设就是清边框（不写一条隐形的 none 边）
+        onClick: () => {
+          applyBorderPreset(rows, sel, draft.style === 'none' ? 'none' : p, currentBorder())
+          s.updateElement(el.id, { tableRows: rows })
+        },
       }))),
       h('div', { class: 'pd-checkbox-group' }, BORDER_EDGES.map(edge => h('label', { class: 'pd-checkbox' }, [
         h('input', {
-          type: 'checkbox', value: edge.value, checked: draft.edges.includes(edge.value),
+          type: 'checkbox', value: edge.value,
+          checked: edgeStates[edge.value] === 'on',
+          indeterminate: edgeStates[edge.value] === 'mixed',
           onChange: (ev: Event) => {
-            const input = ev.target as HTMLInputElement
-            const edges = new Set(draft.edges)
-            if (input.checked) edges.add(input.value); else edges.delete(input.value)
-            draft.edges = [...edges]
-            const b = currentBorder()
-            write(c => {
-              const nb: TableCellBorders = { ...(c.borders ?? {}) }
-              for (const side of BORDER_EDGES) {
-                if (edges.has(side.value)) nb[side.value] = { ...b }
-                else delete nb[side.value]
-              }
-              c.borders = nb
-            })
+            // 单边只切那一条：半选态点下去是补齐（与工具栏单边按钮一致），不能整组覆盖掉其余三边
+            const on = (ev.target as HTMLInputElement).checked
+            // 线型＝无时勾边不会出线：一律按"没有这条边"处理
+            write(c => { setCellBorderEdge(c, edge.value, on && draft.style !== 'none' ? currentBorder() : null) })
           },
         }),
         h('span', { text: edge.label }),

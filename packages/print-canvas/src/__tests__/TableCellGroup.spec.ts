@@ -300,7 +300,7 @@ describe('TableCellGroup 边框草稿：预设与单边才落盘', () => {
     expect(hint, '应有边框草稿说明').toBeGreaterThan(-1)
     expect(hint).toBeGreaterThan(nodes.indexOf('pd-checkbox-group'))
     expect(mountGroup(makeElement({ formatter: '文本' })).text())
-      .toContain('改完线型 / 宽度 / 颜色后，要点「全部 / 外侧 / 内部」')
+      .toContain('选中格已有的边框规格一致时会填进这三行')
   })
 
   it('只改宽度不写边框，点「全部」才按新宽度落盘', async () => {
@@ -315,5 +315,174 @@ describe('TableCellGroup 边框草稿：预设与单边才落盘', () => {
     await all.trigger('click')
     const borders = cellOf(element).borders!
     expect(['top', 'right', 'bottom', 'left'].map(s => (borders as any)[s].width)).toEqual([2, 2, 2, 2])
+  })
+})
+
+describe('TableCellGroup 边框回显：勾选框反映选区真实边位', () => {
+  const border = (
+    w = 0.75, style: 'solid' | 'dashed' | 'dotted' | 'double' = 'solid', color = '#333333',
+  ) => ({ width: w, style, color })
+
+  /** 单格 / 双格都能挂：cells 原样进矩阵，选区可覆盖整行 */
+  function mountCells(cells: Array<Partial<TableCell>>, c2 = 0) {
+    const element = reactive({
+      id: 'el-table',
+      options: {
+        tableColWidths: cells.map(() => 50),
+        tableRows: [{ id: 'r1', type: 'data', height: 10, cells }],
+      },
+      printElementType: { type: 'table', title: '表格' },
+    }) as unknown as RuntimeElement
+    return mount(TableCellGroup, {
+      props: { element, selection: { elementId: 'el-table', r1: 0, c1: 0, r2: 0, c2 }, fields: [] },
+      global: {
+        provide: {
+          [TABLE_EDIT_KEY as symbol]: { tableSelection: { value: null }, setTableSelection: () => {}, recordHistory: () => {} },
+        },
+      },
+    })
+  }
+
+  const checked = (w: ReturnType<typeof mountCells>) =>
+    w.findAll('.pd-checkbox-group input[type="checkbox"]').map(b => (b.element as HTMLInputElement).checked)
+  const indeterminate = (w: ReturnType<typeof mountCells>) =>
+    w.findAll('.pd-checkbox-group input[type="checkbox"]').map(b => (b.element as HTMLInputElement).indeterminate)
+
+  it('四边都有边框的单元格：勾选框全亮（此前恒为本地草稿，模型状态不回显）', () => {
+    const w = mountCells([{ borders: { top: border(), right: border(), bottom: border(), left: border() } }])
+    expect(checked(w)).toEqual([true, true, true, true])
+  })
+
+  it('只有上边的单元格：只有「上」亮；完全无边框的单元格：全不亮——三种状态在面板上必须可区分', () => {
+    expect(checked(mountCells([{ borders: { top: border() } }]))).toEqual([true, false, false, false])
+    expect(checked(mountCells([{ borders: undefined }]))).toEqual([false, false, false, false])
+  })
+
+  it('勾一条边只动那一条：不得把模型里其余三边删掉', async () => {
+    const cell: Partial<TableCell> = { borders: { right: border(), bottom: border(), left: border() } }
+    const w = mountCells([cell])
+    expect(checked(w)).toEqual([false, true, true, true])
+    await w.findAll('.pd-checkbox-group input[type="checkbox"]')[0]!.setValue(true)
+    expect(Object.keys(cell.borders!).sort()).toEqual(['bottom', 'left', 'right', 'top'])
+    expect(checked(w)).toEqual([true, true, true, true])
+  })
+
+  it('取消勾选只撤那一条边，其余留着', async () => {
+    const cell: Partial<TableCell> = { borders: { top: border(), right: border() } }
+    const w = mountCells([cell])
+    await w.findAll('.pd-checkbox-group input[type="checkbox"]')[0]!.setValue(false)
+    expect(cell.borders!.top).toBeUndefined()
+    expect(cell.borders!.right).toBeTruthy()
+  })
+
+  it('选区里只有一格有上边 ⇒ 半选（indeterminate），点它是补齐而不是清空', async () => {
+    const a: Partial<TableCell> = { borders: { top: border(), left: border() } }
+    const b: Partial<TableCell> = { borders: { left: border() } }
+    const w = mountCells([a, b], 1)
+    expect(checked(w)).toEqual([false, false, false, true])
+    expect(indeterminate(w)).toEqual([true, false, false, false])
+
+    await w.findAll('.pd-checkbox-group input[type="checkbox"]')[0]!.setValue(true)
+    expect(a.borders!.top).toBeTruthy()
+    expect(b.borders!.top).toBeTruthy()
+    expect([a.borders!.left, b.borders!.left].every(Boolean), '补齐上边不得动其它边位').toBe(true)
+    expect(Object.keys(a.borders!).sort()).toEqual(['left', 'top'])
+    expect(Object.keys(b.borders!).sort()).toEqual(['left', 'top'])
+  })
+
+  it('切换选区后勾选框跟着变（不残留上一格的状态）', async () => {
+    const a: Partial<TableCell> = { borders: { top: border(), right: border(), bottom: border(), left: border() } }
+    const b: Partial<TableCell> = { borders: undefined }
+    const w = mountCells([a, b])
+    expect(checked(w)).toEqual([true, true, true, true])
+    await w.setProps({ selection: { elementId: 'el-table', r1: 0, c1: 1, r2: 0, c2: 1 } })
+    expect(checked(w)).toEqual([false, false, false, false])
+  })
+
+  describe('三行待应用规格取自选区（方案 B）', () => {
+    const rows3 = (w: ReturnType<typeof mountCells>) => ({
+      style: (w.find('.border-style-row select').element as HTMLSelectElement).value,
+      width: (w.find('.border-style-row input[type="number"]').element as HTMLInputElement).value,
+      color: w.find('.border-style-row .preset-color-trigger').attributes('title'),
+    })
+
+    it('选区里的边规格一致 ⇒ 线型 / 宽度 / 颜色回显该规格', () => {
+      const w = mountCells([{
+        borders: { top: border(2, 'dashed', '#123456'), left: border(2, 'dashed', '#123456') },
+      }])
+      expect(rows3(w)).toEqual({ style: 'dashed', width: '2', color: '#123456' })
+    })
+
+    it('一条边都还没画 ⇒ 回到缺省档（实线 0.75），点预设照样能出框', () => {
+      expect(rows3(mountCells([{ borders: undefined }]))).toEqual({ style: 'solid', width: '0.75', color: '#333333' })
+    })
+
+    it('选区里边规格不一 ⇒ 不谎报，整组回到缺省档', () => {
+      const w = mountCells([
+        { borders: { top: border(2, 'dashed') } },
+        { borders: { top: border(3, 'dotted') } },
+      ], 1)
+      expect(rows3(w)).toEqual({ style: 'solid', width: '0.75', color: '#333333' })
+    })
+
+    it('改宽度只暂存不落盘；切到别的选区后暂存作废、两格各自回到自己的规格', async () => {
+      const a: Partial<TableCell> = { borders: { top: border(2, 'dashed', '#123456') } }
+      const b: Partial<TableCell> = { borders: { top: border(1) } }
+      const w = mountCells([a, b])
+      const input = () => (w.find('.border-style-row input[type="number"]').element as HTMLInputElement).value
+      await w.find('.border-style-row input[type="number"]').setValue('4')
+      expect(input()).toBe('4')
+      expect(a.borders!.top!.width, '仅改值不落盘').toBe(2)
+
+      await w.setProps({ selection: { elementId: 'el-table', r1: 0, c1: 1, r2: 0, c2: 1 } })
+      expect(input(), '换选区给的是该格自己的 1，不残留敲过的 4').toBe('1')
+      await w.setProps({ selection: { elementId: 'el-table', r1: 0, c1: 0, r2: 0, c2: 0 } })
+      expect(input(), '切回来也重新派生').toBe('2')
+
+      const all = w.findAll('.border-presets button').find(x => x.text() === '全部')!
+      await all.trigger('click')
+      expect(a.borders!.top!.width, '没敲新值就按派生规格落盘').toBe(2)
+    })
+  })
+})
+
+describe('TableCellGroup 线型可设为「无」', () => {
+  function mountCells(cells: Array<Partial<TableCell>>) {
+    const element = reactive({
+      id: 'el-table',
+      options: { tableColWidths: [50], tableRows: [{ id: 'r1', type: 'data', height: 10, cells }] },
+      printElementType: { type: 'table', title: '表格' },
+    }) as unknown as RuntimeElement
+    return mount(TableCellGroup, {
+      props: { element, selection: { elementId: 'el-table', r1: 0, c1: 0, r2: 0, c2: 0 }, fields: [] },
+      global: {
+        provide: {
+          [TABLE_EDIT_KEY as symbol]: { tableSelection: { value: null }, setTableSelection: () => {}, recordHistory: () => {} },
+        },
+      },
+    })
+  }
+
+  it('线型下拉含「无」；选区里边全是 none 时回显「无」', () => {
+    const w = mountCells([{ borders: { top: { width: 1, style: 'none', color: '#333333' } } }])
+    const sel = w.find('.border-style-row select').element as HTMLSelectElement
+    expect(Array.from(sel.options).map(o => o.textContent)).toEqual(['无', '实线', '虚线', '点线', '双线'])
+    expect(sel.value).toBe('none')
+  })
+
+  it('选「无」后点「全部」＝清掉边框（不写一条隐形的 none 边）', async () => {
+    const cell: Partial<TableCell> = { borders: { top: { width: 2, style: 'dashed', color: '#333333' } } }
+    const w = mountCells([cell])
+    await w.find('.border-style-row select').setValue('none')
+    await w.findAll('.border-presets button').find(b => b.text() === '全部')!.trigger('click')
+    expect(cell.borders).toBeUndefined()
+  })
+
+  it('线型＝无时勾一条边不会出线（按没有这条边处理）', async () => {
+    const cell: Partial<TableCell> = { borders: { top: { width: 1, style: 'solid', color: '#333333' } } }
+    const w = mountCells([cell])
+    await w.find('.border-style-row select').setValue('none')
+    await w.findAll('.pd-checkbox-group input[type="checkbox"]')[1]!.setValue(true)
+    expect(cell.borders?.right).toBeUndefined()
   })
 })

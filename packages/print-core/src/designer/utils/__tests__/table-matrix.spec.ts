@@ -4,7 +4,7 @@ import type { TableRow, TableRowType } from '../../types.js'
 import {
   createDefaultTable, createCell,
   normalizeSelection, canMergeReason, mergeCells, splitCells,
-  insertRow, deleteRow, insertCol, deleteCol, setRowType, applyBorderPreset,
+  insertRow, deleteRow, insertCol, deleteCol, setRowType, applyBorderPreset, setCellBorderEdge, resolveCellBorderDisplay,
   syncTableElementSize, resolveCellBorderCss, GHOST_BORDER_CSS,
   clampResizedColumnWidth, MIN_COL_WIDTH_MM, setHeaderRepeat,
 } from '../table-matrix.js'
@@ -361,5 +361,69 @@ describe('表头区「每页重复」继承与联动', () => {
     setHeaderRepeat(rows, true)
     expect(rows[0]!.repeatOnPage).toBe(true)
     expect(rows[2]!.repeatOnPage).toBeUndefined()
+  })
+})
+
+describe('setCellBorderEdge：单边写入只动那一条边', () => {
+  const b = (w = 2) => ({ width: w, style: 'dashed' as const, color: '#ff0000' })
+
+  it('补齐上边时右/下/左原样留着（属性台勾一条边不得删掉其余三边）', () => {
+    const cell = createCell({ borders: { right: b(1), bottom: b(1), left: b(1) } })
+    setCellBorderEdge(cell, 'top', b())
+    expect(cell.borders!.top).toEqual(b())
+    expect(['right', 'bottom', 'left'].map(s => (cell.borders as any)[s].width)).toEqual([1, 1, 1])
+  })
+
+  it('撤掉一条边只删那一条，四条边全撤后不留空对象', () => {
+    const cell = createCell()
+    setCellBorderEdge(cell, 'top', null)
+    expect(cell.borders!.top).toBeUndefined()
+    expect(Object.keys(cell.borders!)).toHaveLength(3)
+    for (const s of ['right', 'bottom', 'left'] as const) setCellBorderEdge(cell, s, null)
+    expect(cell.borders).toBeUndefined()
+  })
+
+  it('写入的是副本：后续改草稿不会追改已落盘的边', () => {
+    const cell = createCell()
+    const draft = b()
+    setCellBorderEdge(cell, 'top', draft)
+    draft.width = 4
+    expect(cell.borders!.top!.width).toBe(2)
+  })
+})
+
+describe('resolveCellBorderDisplay：单元格台三行的待应用规格取自选区（方案 B）', () => {
+  const b = (w: number, style: 'solid' | 'dashed' = 'solid', color = '#333333') => ({ width: w, style, color })
+  const rect = { r1: 0, c1: 0, r2: 0, c2: 1 }
+
+  it('选区里边的规格全一致 ⇒ 逐字回显该规格', () => {
+    const rows = [{ id: 'r', type: 'data', height: 8, cells: [
+      createCell({ borders: { top: b(2, 'dashed'), left: b(2, 'dashed') } }),
+      createCell({ borders: { top: b(2, 'dashed') } }),
+    ] }] as never
+    expect(resolveCellBorderDisplay(rows, rect)).toEqual({ width: 2, style: 'dashed', color: '#333333' })
+  })
+
+  it('各边规格不一 ⇒ 逐字段 mixed（不许挑一条代表全部）', () => {
+    const rows = [{ id: 'r', type: 'data', height: 8, cells: [
+      createCell({ borders: { top: b(2, 'dashed', '#ff0000') } }),
+      createCell({ borders: { top: b(3, 'dashed', '#00ff00') } }),
+    ] }] as never
+    expect(resolveCellBorderDisplay(rows, rect)).toEqual({ width: 'mixed', style: 'dashed', color: 'mixed' })
+  })
+
+  it('选区一条边都没有 ⇒ 三值 undefined，由界面落回缺省档', () => {
+    const rows = [{ id: 'r', type: 'data', height: 8, cells: [
+      createCell({ borders: undefined }), createCell({ borders: undefined }),
+    ] }] as never
+    expect(resolveCellBorderDisplay(rows, rect)).toEqual({ width: undefined, style: undefined, color: undefined })
+  })
+
+  it('被合并占位的格子不计入选区', () => {
+    const rows = [{ id: 'r', type: 'data', height: 8, cells: [
+      createCell({ borders: { top: b(2) } }),
+      createCell({ merged: true, borders: { top: b(5, 'dotted', '#123456') } }),
+    ] }] as never
+    expect(resolveCellBorderDisplay(rows, rect)).toEqual({ width: 2, style: 'solid', color: '#333333' })
   })
 })

@@ -88,3 +88,18 @@ describe('resolveElementBorder：分边边框解析', () => {
     expect(resolveElementBorder('text', { borders: {} })).toBeNull()
   })
 })
+
+describe('resolveElementBorder：线型 none 表示无边框（与单元格 TableCellBorder.style 同口径）', () => {
+  it('整圈线型为 none → 不出线，即使给了宽度', () => {
+    expect(resolveElementBorder('text', { borderWidth: 2, borderStyle: 'none' })).toBeNull()
+  })
+
+  it('某条分边线型为 none → 只丢那一条，其余照常', () => {
+    const r = resolveElementBorder('text', {
+      borderWidth: 1.5, borderStyle: 'solid',
+      borders: { top: { width: 2, style: 'none' } },
+    })!
+    expect(r.all?.borderWidth).toBe('1.5pt')
+    expect(r.edges.top, 'none 的分边被跳过，回落到整圈').toBeUndefined()
+  })
+})

@@ -269,15 +269,24 @@ describe('useFormatToolbar 元素分边边框', () => {
     expect(toolbar.elementEdges.value!.top).toBe(true)
   })
 
-  it('toggleElementEdge 无到有写入该边、全有再点移除该边，整圈字段不受影响', () => {
-    const a = el('a', 'text', { borderWidth: 1 })
+  it('toggleElementEdge 整圈未生效时勾/撤该边只动分边；整圈生效时撤一边会展开其余三边', () => {
+    const a = el('a', 'text', { borderWidth: 0, borders: { top: { width: 1, style: 'solid', color: '#333' } } })
     const { toolbar, recordHistory } = setup([a], ['a'])
-    toolbar.toggleElementEdge('top', spec)
-    expect(a.options.borders?.top).toEqual({ width: 2, style: 'dashed', color: '#f00' })
-    expect(a.options.borderWidth).toBe(1)
+    expect(toolbar.elementEdges.value!.top).toBe(true)
     toolbar.toggleElementEdge('top', spec)
     expect(a.options.borders?.top).toBeUndefined()
+    expect(a.options.borders?.right, '整圈没生效，撤一边不牵扯其余').toBeUndefined()
+    toolbar.toggleElementEdge('top', spec)
+    // 勾回来用的是面板草稿（宽 2 虚线红）
+    expect(a.options.borders?.top).toEqual({ width: 2, style: 'dashed', color: '#f00' })
+    expect(a.options.borderWidth).toBe(0)
     expect(recordHistory).toHaveBeenCalledTimes(2)
+
+    const b = el('b', 'text', { borderWidth: 1.5, borderStyle: 'solid', borderColor: '#333333' })
+    setup([b], ['b']).toolbar.toggleElementEdge('top', spec)
+    expect(b.options.borderWidth).toBe(0)
+    expect(Object.keys(b.options.borders ?? {}).sort()).toEqual(['bottom', 'left', 'right'])
+    expect(b.options.borders!.right).toEqual({ width: 1.5, style: 'solid', color: '#333333' })
   })
 
   it('部分元素有该边时 elementEdges 为 MIXED，再点补齐全部', () => {

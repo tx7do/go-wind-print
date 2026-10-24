@@ -2,24 +2,28 @@
   <PropertyGroup title="边框与背景" icon="Picture" default-expanded group-key="border-bg">
     <form class="pd-form" @submit.prevent>
       <div class="pd-field" v-show="showItem('bb-border-style')"><span class="pd-label">线型</span>
-        <select class="pd-select" :value="element.options.borderStyle || 'solid'"
-          @change="patch({ borderStyle: ($event.target as HTMLSelectElement).value })">
-          <option v-for="s in BORDER_STYLES" :key="s.value" :value="s.value">{{ s.label }}</option>
+        <select class="pd-select" :value="display.style === 'mixed' ? '' : display.style"
+          @change="patchField('borderStyle', ($event.target as HTMLSelectElement).value)">
+          <option v-if="display.style === 'mixed'" value="" disabled>混合</option>
+          <option v-for="s in BORDER_LINE_STYLES" :key="s.value" :value="s.value">{{ s.label }}</option>
         </select>
       </div>
       <div class="border-row">
         <div class="pd-field" v-show="showItem('bb-border-width')"><span class="pd-label"><span class="pd-label-t">边框宽度</span>
           <ResetButton :target="element.options" :base="factoryOptions" prop-key="borderWidth" :tip-value="def('bb-border-width')?.value" :tip-unit="def('bb-border-width')?.unit" />
         </span>
-          <StepperInput v-model="element.options.borderWidth"
+          <StepperInput :model-value="display.width === 'mixed' ? undefined : display.width"
+            :placeholder="display.width === 'mixed' ? '混合' : undefined"
             :min="0"
             :max="20"
-            :step="0.25" />
+            :step="0.25"
+            @update:model-value="patchField('borderWidth', $event)" />
         </div>
         <div class="pd-field" v-show="showItem('bb-border-color')"><span class="pd-label"><span class="pd-label-t">边框颜色</span>
           <ResetButton :target="element.options" :base="factoryOptions" prop-key="borderColor" :tip-value="def('bb-border-color')?.value" :tip-unit="def('bb-border-color')?.unit" />
         </span>
-          <PresetColorPicker v-model="element.options.borderColor" />
+          <PresetColorPicker :model-value="display.color === 'mixed' ? undefined : display.color"
+            @update:model-value="patchField('borderColor', $event)" />
         </div>
       </div>
       <!-- 分边只有「画自身本体的形状之外」的元素才有意义：rect/oval/hline/vline/table 的边框是本体，写 borders 不出效果 -->
@@ -49,11 +53,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type {
-  BorderPreset, ElementBorderSide, ElementOptions, RuntimeElement,
+  BorderPreset, ElementBorderFieldKey, ElementBorderSide, RuntimeElement,
 } from '@worm-vue3-print/core/designer'
 import {
-  acceptsElementBorder, applyElementBorderPreset, elementBorderEdgeOn,
-  resolveElementBorderSpec, setElementBorderEdge, ELEMENT_BORDER_APPLY_HINT,
+  acceptsElementBorder, applyElementBorderPreset, effectiveElementBorderSpec, elementBorderEdgeVisible,
+  resolveElementBorderDisplay, setElementBorderEdgeVisible, setElementBorderField, BORDER_LINE_STYLES,
+  ELEMENT_BORDER_APPLY_HINT,
   createDefaultOptions, propertyDefault,
 } from '@worm-vue3-print/core/designer'
 import PresetColorPicker from '../PresetColorPicker.vue'
@@ -70,11 +75,6 @@ const props = defineProps<{
 /** 预设与单边写完要进历史（与「条码设置」组同口径，由属性面板收口） */
 const emit = defineEmits<{ (e: 'change'): void }>()
 
-const BORDER_STYLES = [
-  { value: 'solid', label: '实线' }, { value: 'dashed', label: '虚线' },
-  { value: 'dotted', label: '点线' }, { value: 'double', label: '双线' },
-]
-
 const BORDER_EDGES: { value: ElementBorderSide; label: string }[] = [
   { value: 'top', label: '上' }, { value: 'right', label: '右' },
   { value: 'bottom', label: '下' }, { value: 'left', label: '左' },
@@ -89,26 +89,28 @@ const factoryOptions = computed(() => createDefaultOptions(props.element.printEl
 /** 注册表纯提示字段：只喂文案 */
 const def = (key: string) => propertyDefault(key)
 
-function patch(next: Partial<ElementOptions>) {
-  Object.assign(props.element.options, next)
+/** 三行显示「当前生效规格」：整圈生效取整圈，整圈没生效取可见分边的一致值（方案 B） */
+const display = computed(() => resolveElementBorderDisplay(props.element.options))
+
+/** 改任一行都按新规格重铺四边并清掉单边覆盖；元素本来没框时只写这一键 */
+function patchField(key: ElementBorderFieldKey, value: number | string | undefined) {
+  setElementBorderField(props.element.options, key, value)
   emit('change')
 }
 
-/** 预设与单边都取元素当前整圈三字段当规格：属性台没有草稿态，所见即所写 */
+/** 预设与单边都拿当前生效规格当源：分边做的框不会被缺省档顶成 0.75pt */
 function applyPreset(preset: BorderPreset) {
-  applyElementBorderPreset(props.element.options, preset, resolveElementBorderSpec(props.element.options))
+  applyElementBorderPreset(props.element.options, preset, effectiveElementBorderSpec(props.element.options))
   emit('change')
 }
 
 function edgeOn(side: ElementBorderSide): boolean {
-  return elementBorderEdgeOn(props.element.options, side)
+  return elementBorderEdgeVisible(props.element.options, side)
 }
 
+/** 撤一边时整圈会被展开成其余三条分边（否则整圈照样盖住那条边，点了没反应） */
 function toggleEdge(side: ElementBorderSide) {
-  setElementBorderEdge(
-    props.element.options, side,
-    edgeOn(side) ? null : resolveElementBorderSpec(props.element.options),
-  )
+  setElementBorderEdgeVisible(props.element.options, side, !edgeOn(side))
   emit('change')
 }
 

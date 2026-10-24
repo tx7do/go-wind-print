@@ -2,7 +2,7 @@
 // 元素台边框入口 Common 端契约：与 canvas 的 BorderBgGroup.vue 同位同文案，
 // 写入统一经 store.updateElement 收口，落盘口径由 core 的 element-border-edit 保证（两宿主同一条）。
 import { describe, it, expect } from 'vitest'
-import type { ElementType, RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { ElementBorderSide, ElementType, RuntimeElement } from '@worm-vue3-print/core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'
@@ -112,21 +112,28 @@ describe('元素台预设与单边落盘', () => {
     expect(el.options.borders).toBeUndefined()
   })
 
-  it('勾上边写 borders.top，取消勾选只撤那一条边，按下态随重绘回显', () => {
-    const { host, ctx, el } = paintElement('text', {
-      borderWidth: 1.5, borders: { bottom: { width: 1.5, style: 'solid', color: '#333333' } },
-    })
-    expect(edgeBoxes(host)[0].checked, '上边未设 → 未勾').toBe(false)
-    expect(edgeBoxes(host)[2].checked, '下边已设 → 回显勾选').toBe(true)
+  it('整圈生效时四条边都算可见；撤「上」把其余三边展开成分边、整圈宽度归零', () => {
+    const { host, ctx, el } = paintElement('text', { borderWidth: 1.5, borderStyle: 'solid', borderColor: '#333333' })
+    expect(edgeBoxes(host).map(b => b.checked), '整圈 1.5pt ⇒ 四边都有线').toEqual([true, true, true, true])
 
     edgeBoxes(host)[0].click()
-    expect(el.options.borders!.top).toEqual({ width: 1.5, style: 'solid', color: '#333333' })
+    expect(el.options.borderWidth).toBe(0)
+    expect(el.options.borders!.top).toBeUndefined()
+    expect(['right', 'bottom', 'left'].map(s => el.options.borders![s as ElementBorderSide])).toEqual([
+      { width: 1.5, style: 'solid', color: '#333333' },
+      { width: 1.5, style: 'solid', color: '#333333' },
+      { width: 1.5, style: 'solid', color: '#333333' },
+    ])
     ctx.repaint()
-    expect(edgeBoxes(host)[0].checked).toBe(true)
+    expect(edgeBoxes(host).map(b => b.checked)).toEqual([false, true, true, true])
+  })
 
-    edgeBoxes(host)[2].click()
-    expect(el.options.borders!.bottom).toBeUndefined()
-    expect(el.options.borders!.top).toBeTruthy()
+  it('整圈没生效时勾一条边只写那条分边，规格取已有分边（不动整圈三字段）', () => {
+    const { host, el } = paintElement('text', { borders: { bottom: { width: 2, style: 'dashed', color: '#123456' } } })
+    expect(edgeBoxes(host).map(b => b.checked)).toEqual([false, false, true, false])
+    edgeBoxes(host)[0].click()
+    expect(el.options.borders!.top).toEqual({ width: 2, style: 'dashed', color: '#123456' })
+    expect(el.options.borderWidth).toBeUndefined()
   })
 
   it('单边不改整圈三字段，也不要求先点预设', () => {
@@ -134,5 +141,72 @@ describe('元素台预设与单边落盘', () => {
     edgeBoxes(host)[1].click()
     expect(el.options.borders!.right).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
     expect(el.options.borderWidth).toBeUndefined()
+  })
+})
+
+describe('元素台三行回显当前生效规格（方案 B）', () => {
+  const widthInput = (host: HTMLElement) =>
+    host.querySelector<HTMLInputElement>('[data-prop-key="bb-border-width"] input[type="number"]')!
+  const colorTitle = (host: HTMLElement) =>
+    (host.querySelector('[data-prop-key="bb-border-color"] .preset-color-swatch') as HTMLElement).style.background
+
+  it('整圈未设、只有一条分边 ⇒ 三行回显该分边规格（此前是空的）', () => {
+    const { host } = paintElement('text', { borders: { right: { width: 1.5, style: 'dotted', color: '#abcdef' } } })
+    expect(styleSelect(host).value).toBe('dotted')
+    expect(widthInput(host).value).toBe('1.5')
+    expect(colorTitle(host)).toMatch(/abcdef|rgb\(171,\s*205,\s*239\)/i)
+  })
+
+  it('分边规格不一 ⇒ 宽度留空并显示「混合」占位，线型行出「混合」项', () => {
+    const { host } = paintElement('text', {
+      borders: { top: { width: 1, style: 'solid', color: '#000000' }, right: { width: 2, style: 'dashed', color: '#fff' } },
+    })
+    expect(widthInput(host).value).toBe('')
+    expect(widthInput(host).placeholder).toContain('混合')
+    expect(styleSelect(host).value).toBe('')
+    expect(Array.from(styleSelect(host).options).map(o => o.textContent)).toContain('混合')
+  })
+
+  it('已有边框时改宽度：整圈化并清掉分边覆盖（不留"改了没反应"的分边）', () => {
+    const { host, el } = paintElement('text', {
+      borderWidth: 1, borderStyle: 'solid', borderColor: '#333333',
+      borders: { top: { width: 1, style: 'solid', color: '#333333' } },
+    })
+    const input = widthInput(host)
+    input.value = '3'
+    input.dispatchEvent(new Event('change'))
+    expect(el.options.borderWidth).toBe(3)
+    expect(el.options.borders, '分边覆盖一并清掉').toBeUndefined()
+    expect(el.options.borderColor).toBe('#333333')
+  })
+
+  it('完全无边框的元素选一个线型＝开一条缺省宽度的框（线型就是"有没有框"的开关）', () => {
+    const { host, el } = paintElement('text')
+    const select = styleSelect(host)
+    select.value = 'dashed'
+    select.dispatchEvent(new Event('change'))
+    expect(el.options.borderStyle).toBe('dashed')
+    expect(el.options.borderWidth).toBe(0.75)
+    expect(el.options.borderColor, '颜色仍留未设').toBeUndefined()
+  })
+})
+
+describe('元素台线型可设为「无」', () => {
+  it('线型下拉含「无」；完全没有边框的元素线型显示「无」', () => {
+    const { host } = paintElement('text')
+    expect(Array.from(styleSelect(host).options).map(o => o.textContent)).toEqual(['无', '实线', '虚线', '点线', '双线'])
+    expect(styleSelect(host).value).toBe('none')
+  })
+
+  it('已有边框时选「无」＝清边框：宽度归零、分边清空、线型记成 none', () => {
+    const { host, el } = paintElement('text', {
+      borderWidth: 2, borderStyle: 'dashed', borders: { top: { width: 2, style: 'dashed', color: '#333333' } },
+    })
+    const select = styleSelect(host)
+    select.value = 'none'
+    select.dispatchEvent(new Event('change'))
+    expect(el.options.borderWidth).toBe(0)
+    expect(el.options.borders).toBeUndefined()
+    expect(el.options.borderStyle).toBe('none')
   })
 })

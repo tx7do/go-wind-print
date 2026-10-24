@@ -7,7 +7,8 @@ import type {
 } from '@worm-vue3-print/core/designer'
 import {
   applyBorderPreset, acceptsElementBorder, ELEMENT_BORDER_SIDES, type BorderPreset,
-  applyElementBorderPreset, elementBorderEdgeOn, setElementBorderEdge, type ElementBorderSpec,
+  applyElementBorderPreset, setCellBorderEdge, setElementBorderEdgeVisible, elementVisibleBorders,
+  resolveBorderEdgeStates, type BorderEdgeState, type ElementBorderSpec,
 } from '@worm-vue3-print/core/designer'
 import type { DesignerStore } from './store'
 
@@ -33,6 +34,18 @@ export type { ElementBorderSpec }
 type BorderSide = 'top' | 'right' | 'bottom' | 'left'
 const BORDER_SIDES: BorderSide[] = ['top', 'right', 'bottom', 'left']
 
+/** core 的三态（on/off/mixed）→ 按钮按下态：mixed 用 MIXED 哨兵，界面按「未按下但可补齐」处理。
+ *  边位状态一律由 core 从目标集合派生，属性台勾选框与工具栏按钮共用同一判据。 */
+const EDGE_FLAG: Record<BorderEdgeState, MixedOr<boolean>> = { on: true, off: false, mixed: MIXED }
+function edgeFlags(
+  borders: Array<Partial<Record<ElementBorderSide, unknown>> | undefined>,
+): Record<BorderSide, MixedOr<boolean>> {
+  const states = resolveBorderEdgeStates(borders)
+  const out = {} as Record<BorderSide, MixedOr<boolean>>
+  for (const side of BORDER_SIDES) out[side] = EDGE_FLAG[states[side]]
+  return out
+}
+
 /** 随文本组一起复制的字段（与格式工具栏可写集一致；textFit/行距等属性面板字段不纳入） */
 const TEXT_KEYS = [
   'fontFamily', 'fontSize', 'fontWeight', 'color', 'textAlign', 'verticalAlign', 'textDecoration',
@@ -56,7 +69,8 @@ interface FormatSnapshot {
 
 export class FormatToolbar {
   // ─── 边框面板草稿（Vue 版为 FormatToolbar.vue 内的 ref，点预设/单边时整体落盘） ───
-  borderStyle: 'solid' | 'dashed' | 'dotted' | 'double' = 'solid'
+  /** 线型草稿：null = 一个格式都没选中（线型＝无，点预设/单边即按「无」落盘） */
+  borderStyle: 'solid' | 'dashed' | 'dotted' | 'double' | null = 'solid'
   borderWidth = 0.75
   borderColor = '#333333'
 
@@ -241,7 +255,13 @@ export class FormatToolbar {
   // ─── 边框 ───
   /** 当前面板草稿对应的边框规格（Vue 版组件内 borderSpec()） */
   borderSpec(): TableCellBorder {
-    return { width: this.borderWidth, style: this.borderStyle, color: this.borderColor }
+    return { width: this.borderWidth, style: this.borderStyle ?? 'none', color: this.borderColor }
+  }
+
+  /** 再点已选中的线型＝取消该格式（图标全不亮＝线型无） */
+  toggleBorderStyle(key: 'solid' | 'dashed' | 'dotted' | 'double') {
+    // 只改草稿，不动模板：不产生历史条目（与工具栏其它草稿控件一致，重绘由 shell 负责）
+    this.borderStyle = this.borderStyle === key ? null : key
   }
 
   private applyElementBorder(mode: 'all' | 'none', border: ElementBorderSpec) {
@@ -266,12 +286,7 @@ export class FormatToolbar {
     sides: Array<'top' | 'right' | 'bottom' | 'left'>, border: TableCellBorder, on: boolean,
   ) {
     this.writeCells(c => {
-      const nb = { ...(c.borders ?? {}) } as Record<string, TableCellBorder | undefined>
-      for (const side of sides) {
-        if (on) nb[side] = { ...border }
-        else delete nb[side]
-      }
-      c.borders = nb as TableCell['borders']
+      for (const side of sides) setCellBorderEdge(c, side, on ? border : null)
     })
   }
 
@@ -280,12 +295,7 @@ export class FormatToolbar {
     if (this.context !== 'cells') return null
     const t = this.targetCells
     if (!t.length) return null
-    const out = {} as Record<BorderSide, MixedOr<boolean>>
-    for (const side of BORDER_SIDES) {
-      const flags = t.map(c => !!c.borders?.[side])
-      out[side] = flags.every(Boolean) ? true : flags.some(Boolean) ? MIXED : false
-    }
-    return out
+    return edgeFlags(t.map(c => c.borders))
   }
 
   /** 单边切换：未全有则补齐该边，全有再点则移除该边（与 Word/WPS 一致） */
@@ -294,38 +304,49 @@ export class FormatToolbar {
     this.applyCellBorderEdges([side], border, on)
   }
 
-  /** 元素选中集的分边激活态（options.borders）；非元素上下文或无可选元素为 null */
+  /** 元素选中集的分边激活态：看「这条边到底有没有线」（整圈生效＝四边都有），与属性台勾选框同一判据 */
   get elementEdges(): Record<BorderSide, MixedOr<boolean>> | null {
     if (this.context !== 'elements') return null
     const t = this.selectedElements
     if (!t.length) return null
-    const out = {} as Record<BorderSide, MixedOr<boolean>>
-    for (const side of BORDER_SIDES) {
-      const flags = t.map(e => elementBorderEdgeOn(e.options, side))
-      out[side] = flags.every(Boolean) ? true : flags.some(Boolean) ? MIXED : false
-    }
-    return out
+    return edgeFlags(t.map(e => elementVisibleBorders(e.options)))
   }
 
-  /** 元素分边切换：写入/移除 options.borders[side]，不影响整圈三字段 */
+  /** 元素分边切换：勾上用面板草稿；整圈生效时撤一边会把其余三边展开成分边 */
   private toggleElementEdge(side: ElementBorderSide, border: ElementBorderSpec) {
     const targets = this.selectedElements
     if (!targets.length) return
     const on = this.elementEdges?.[side] !== true
-    targets.forEach(e => setElementBorderEdge(e.options, side, on ? border : null))
+    targets.forEach(e => setElementBorderEdgeVisible(e.options, side, on, border))
     this.commit()
   }
 
   /** 边框预设（Vue 版组件 onPreset 的路由口径）：单元格上下文走表格预设，否则走元素整圈 */
   applyBorderPreset(preset: BorderPreset) {
-    if (this.context === 'cells') this.applyCellBorderPreset(preset, this.borderSpec())
-    else this.applyElementBorder(preset === 'none' ? 'none' : 'all', this.borderSpec())
+    // 线型＝无时预设等于清边框（单元格/元素同口径）
+    const withNone = this.borderStyle === null
+    if (this.context === 'cells') this.applyCellBorderPreset(withNone ? 'none' : preset, this.borderSpec())
+    else this.applyElementBorder(withNone || preset === 'none' ? 'none' : 'all', this.borderSpec())
   }
 
   /** 单边按钮（Vue 版组件 onEdge 的路由口径）：按上下文落到单元格边或元素分边 */
   applyEdge(side: BorderSide) {
+    // 线型＝无时点某条边＝撤掉那条边
+    if (this.borderStyle === null) {
+      if (this.context === 'cells') this.applyCellBorderEdges([side], this.borderSpec(), false)
+      else this.clearElementEdge(side)
+      return
+    }
     if (this.context === 'cells') this.toggleCellEdge(side, this.borderSpec())
     else this.toggleElementEdge(side, this.borderSpec())
+  }
+
+  /** 撤掉一条边（线型＝无时工具栏的单边走这条）：整圈生效时其余三边展开成单边 */
+  private clearElementEdge(side: ElementBorderSide) {
+    const targets = this.selectedElements
+    if (!targets.length) return
+    targets.forEach(e => setElementBorderEdgeVisible(e.options, side, false))
+    this.commit()
   }
 
   /** 单边按下态（Vue 版组件 edgeOn 口径） */

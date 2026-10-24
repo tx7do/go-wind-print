@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import BorderBgGroup from '../components/property/BorderBgGroup.vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { ElementBorderSide, RuntimeElement } from '@worm-vue3-print/core/designer'
 
 function makeElement(type: string, options: Record<string, unknown> = {}): RuntimeElement {
   return reactive({
@@ -99,20 +99,30 @@ describe('BorderBgGroup 预设与单边落盘', () => {
     expect(element.options.borders).toBeUndefined()
   })
 
-  it('勾上边写 borders.top，取消勾选只撤那一条边', async () => {
-    const element = makeElement('text', {
-      borderWidth: 1.5, borderStyle: 'solid', borderColor: '#333333', borders: { bottom: { width: 1.5, style: 'solid', color: '#333333' } },
-    })
+  it('整圈生效时四条边都算可见；撤「上」把其余三边展开成分边、整圈宽度归零', async () => {
+    const element = makeElement('text', { borderWidth: 1.5, borderStyle: 'solid', borderColor: '#333333' })
     const w = mountGroup(element)
     const boxes = w.findAll('.pd-checkbox-group input[type="checkbox"]')
-    expect(boxes[0].element.checked, '上边未设 → 未勾').toBe(false)
-    expect(boxes[2].element.checked, '下边已设 → 回显勾选').toBe(true)
+    expect(boxes.map(b => (b.element as HTMLInputElement).checked), '整圈 1.5pt ⇒ 四边都有线').toEqual([true, true, true, true])
 
+    await boxes[0].setValue(false)
+    expect(element.options.borderWidth, '整圈宽度归零').toBe(0)
+    expect(element.options.borders!.top).toBeUndefined()
+    expect(['right', 'bottom', 'left'].map(k => element.options.borders![k as ElementBorderSide])).toEqual([
+      { width: 1.5, style: 'solid', color: '#333333' },
+      { width: 1.5, style: 'solid', color: '#333333' },
+      { width: 1.5, style: 'solid', color: '#333333' },
+    ])
+  })
+
+  it('整圈没生效时勾一条边只写那条分边，规格取已有分边（不动整圈三字段）', async () => {
+    const element = makeElement('text', { borders: { bottom: { width: 2, style: 'dashed', color: '#123456' } } })
+    const w = mountGroup(element)
+    const boxes = w.findAll('.pd-checkbox-group input[type="checkbox"]')
+    expect(boxes.map(b => (b.element as HTMLInputElement).checked)).toEqual([false, false, true, false])
     await boxes[0].setValue(true)
-    expect(element.options.borders.top).toEqual({ width: 1.5, style: 'solid', color: '#333333' })
-    await boxes[2].setValue(false)
-    expect(element.options.borders.bottom).toBeUndefined()
-    expect(element.options.borders.top).toBeTruthy()
+    expect(element.options.borders!.top).toEqual({ width: 2, style: 'dashed', color: '#123456' })
+    expect(element.options.borderWidth).toBeUndefined()
   })
 
   it('单边不改整圈三字段，也不要求先点预设', async () => {
@@ -121,5 +131,78 @@ describe('BorderBgGroup 预设与单边落盘', () => {
     await w.findAll('.pd-checkbox-group input[type="checkbox"]')[1].setValue(true)
     expect(element.options.borders.right).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
     expect(element.options.borderWidth).toBeUndefined()
+  })
+})
+
+describe('BorderBgGroup 三行回显当前生效规格（方案 B）', () => {
+  const field = (w: ReturnType<typeof mountGroup>, label: string) =>
+    w.findAll('.pd-field').find(f => (f.find('.pd-label').text().replace(/\s/g, '')).startsWith(label))!
+  const numInput = (w: ReturnType<typeof mountGroup>) =>
+    field(w, '边框宽度').find('input[type="number"]').element as HTMLInputElement
+  const styleSelect = (w: ReturnType<typeof mountGroup>) =>
+    field(w, '线型').find('select').element as HTMLSelectElement
+  const colorTitle = (w: ReturnType<typeof mountGroup>) =>
+    field(w, '边框颜色').find('.preset-color-trigger').attributes('title')
+
+  it('整圈未设、只有一条分边 ⇒ 三行回显该分边规格（此前三行是空的）', () => {
+    const w = mountGroup(makeElement('text', { borders: { right: { width: 1.5, style: 'dotted', color: '#abcdef' } } }))
+    expect(styleSelect(w).value).toBe('dotted')
+    expect(numInput(w).value).toBe('1.5')
+    expect(colorTitle(w)).toBe('#abcdef')
+  })
+
+  it('分边规格不一 ⇒ 宽度留空并显示「混合」占位，线型行出「混合」项', () => {
+    const w = mountGroup(makeElement('text', {
+      borders: { top: { width: 1, style: 'solid', color: '#000000' }, right: { width: 2, style: 'dashed', color: '#ffffff' } },
+    }))
+    expect(numInput(w).value).toBe('')
+    expect(numInput(w).placeholder, '宽度应报混合而不是假充某个数').toContain('混合')
+    expect(styleSelect(w).value).toBe('')
+    expect(field(w, '线型').findAll('option').map(o => o.text())).toContain('混合')
+  })
+
+  it('已有边框时改宽度：按新规格整圈化并清掉分边覆盖（不留"改了没反应"的分边）', async () => {
+    const element = makeElement('text', {
+      borderWidth: 1, borderStyle: 'solid', borderColor: '#333333', borders: { top: { width: 1, style: 'solid', color: '#333333' } },
+    })
+    const w = mountGroup(element)
+    await w.find('.border-row input[type="number"]').setValue('3')
+    expect(element.options.borderWidth).toBe(3)
+    expect(element.options.borders, '分边覆盖一并清掉').toBeUndefined()
+    expect(element.options.borderColor, '颜色沿用现值，不替作者改').toBe('#333333')
+    expect(w.emitted('change'), '整圈化要进历史').toBeTruthy()
+  })
+
+  it('完全无边框的元素选一个线型＝开一条缺省宽度的框（线型就是"有没有框"的开关）', async () => {
+    const element = makeElement('text')
+    const w = mountGroup(element)
+    await field(w, '线型').find('select').setValue('dashed')
+    expect(element.options.borderStyle).toBe('dashed')
+    expect(element.options.borderWidth).toBe(0.75)
+    expect(element.options.borderColor, '颜色仍留未设').toBeUndefined()
+    expect(w.emitted('change')).toBeTruthy()
+  })
+})
+
+describe('元素台线型可设为「无」', () => {
+  const field = (w: ReturnType<typeof mountGroup>, label: string) =>
+    w.findAll('.pd-field').find(f => (f.find('.pd-label').text().replace(/\s/g, '')).startsWith(label))!
+
+  it('线型下拉含「无」；完全没有边框的元素线型就显示「无」（不再假充实线）', () => {
+    const w = mountGroup(makeElement('text'))
+    expect(field(w, '线型').findAll('option').map(o => o.text())).toEqual(['无', '实线', '虚线', '点线', '双线'])
+    expect((field(w, '线型').find('select').element as HTMLSelectElement).value).toBe('none')
+  })
+
+  it('已有边框时选「无」＝清边框：宽度归零、分边清空、线型记成 none', async () => {
+    const element = makeElement('text', {
+      borderWidth: 2, borderStyle: 'dashed', borderColor: '#123456', borders: { top: { width: 2, style: 'dashed', color: '#123456' } },
+    })
+    const w = mountGroup(element)
+    await field(w, '线型').find('select').setValue('none')
+    expect(element.options.borderWidth).toBe(0)
+    expect(element.options.borders).toBeUndefined()
+    expect(element.options.borderStyle).toBe('none')
+    expect(w.emitted('change')).toBeTruthy()
   })
 })

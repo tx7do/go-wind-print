@@ -90,14 +90,21 @@ describe('格式栏边框预设的路由', () => {
     expect(innerInCells.dataset.tip).toBe('内部边框')
   })
 
-  it('元素上下文单边：只写 options.borders[side]，再点一次撤掉该边，整圈三字段不动', () => {
-    const { format, el } = elementHarness('text', { borderWidth: 1, borderStyle: 'solid' })
+  it('元素上下文单边：整圈未生效时勾/撤只动那条边（用面板草稿）；整圈生效时撤一边会展开其余三边', () => {
+    const { format, el } = elementHarness('text', { borderWidth: 0, borderStyle: 'solid' })
     format.applyEdge('top')
     expect(el.options.borders?.top?.width).toBe(2)
-    expect(el.options.borderWidth).toBe(1)
+    expect(el.options.borderWidth).toBe(0)
     expect(format.edgeOn('top')).toBe(true)
     format.applyEdge('top')
     expect(el.options.borders?.top).toBeUndefined()
+
+    const on = elementHarness('text', { borderWidth: 1.5, borderStyle: 'solid', borderColor: '#333333' })
+    expect(on.format.edgeOn('top'), '整圈 1.5pt ⇒ 四边都算有线').toBe(true)
+    on.format.applyEdge('top')
+    expect(on.el.options.borderWidth).toBe(0)
+    expect(Object.keys(on.el.options.borders ?? {}).sort()).toEqual(['bottom', 'left', 'right'])
+    expect(on.el.options.borders!.right).toEqual({ width: 1.5, style: 'solid', color: '#333333' })
   })
 
   it('单元格上下文：预设落进选区单元格边，元素整圈不接手，且 elementEdges 为 null', () => {
@@ -123,5 +130,29 @@ describe('格式栏边框预设的路由', () => {
     expect(c.borders?.top).toBeUndefined()
     expect(c.borders?.left).toBeUndefined()
     expect(el.options.borderWidth).toBeUndefined()
+  })
+})
+
+describe('格式栏线型可全不选中（线型＝无）', () => {
+  it('再点已选中的线型＝取消；取消态下预设按「无」清边框', () => {
+    const { format, el } = elementHarness('text', { borderWidth: 2, borderStyle: 'solid', borderColor: '#333333' })
+    format.toggleBorderStyle('dashed')
+    expect(format.borderStyle, '再点已选中的那一档＝取消').toBeNull()
+    format.toggleBorderStyle('dotted')
+    expect(format.borderStyle).toBe('dotted')
+    format.toggleBorderStyle('dotted')
+    expect(format.borderStyle).toBeNull()
+    format.applyBorderPreset('all')
+    expect(el.options.borderWidth, '线型无 ⇒ 预设等于清边框').toBe(0)
+  })
+
+  it('取消态下点单边＝撤掉那条边（整圈生效时其余三边展开）', () => {
+    const { format, el } = elementHarness('text', { borderWidth: 1.5, borderStyle: 'solid', borderColor: '#333333' })
+    format.toggleBorderStyle('dashed')
+    expect(format.borderStyle).toBeNull()
+    format.applyEdge('top')
+    expect(el.options.borderWidth).toBe(0)
+    expect(el.options.borders?.top).toBeUndefined()
+    expect(Object.keys(el.options.borders ?? {}).sort()).toEqual(['bottom', 'left', 'right'])
   })
 })

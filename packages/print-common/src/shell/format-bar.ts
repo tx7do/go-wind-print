@@ -75,9 +75,12 @@ export function renderFormatBar(ctx: FormatCtx) {
       h('div', { class: 'ft-style-row' }, LINE_STYLES.map(s => h('button', {
         type: 'button',
         class: `ft-style-btn${f.borderStyle === s.key ? ' on' : ''}`,
-        dataset: { test: `style-${s.key}`, tip: s.label },
-        // 线型/粗细/颜色只暂存为「待应用规格」，点击预设或单边才落盘（与 canvas 口径一致）
-        onClick: () => { f.borderStyle = s.key as typeof f.borderStyle; ctx.repaint() },
+        dataset: {
+          test: `style-${s.key}`,
+          tip: f.borderStyle === s.key ? `${s.label}（再点一次取消，线型＝无）` : s.label,
+        },
+        // 线型/粗细/颜色只暂存为「待应用规格」，点击预设或单边才落盘（与 canvas 口径一致）；再点已选中＝取消
+        onClick: () => { f.toggleBorderStyle(s.key as 'solid' | 'dashed' | 'dotted' | 'double'); ctx.repaint() },
       }, [h('span', { class: 'ft-style-line', style: { borderTop: s.preview } })]))),
       h('div', { class: 'ft-border-style-row' }, [
         h('span', { class: 'ft-edge-label', text: '粗细' }),

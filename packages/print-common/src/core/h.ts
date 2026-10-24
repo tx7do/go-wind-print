@@ -19,6 +19,9 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
 /** 这几个属性是「枚举型布尔」，写成空串会被解析成 false，必须显式 true */
 const ENUM_BOOLEAN_ATTRS = new Set(['draggable', 'contenteditable', 'spellcheck'])
 
+/** 只有 DOM 属性、没有对应 HTML attribute 的布尔态：setAttribute 到不了，必须直写属性（半选边框勾选框靠它） */
+const PROPERTY_ONLY_BOOLS = new Set(['indeterminate'])
+
 function isSvg(tag: string) {
   return tag === 'svg' || tag === 'path' || tag === 'circle' || tag === 'rect' || tag === 'line' || tag === 'g'
 }
@@ -48,6 +51,8 @@ export function render(node: El | string | Node, parent: Element | ShadowRoot): 
       el.addEventListener(key.slice(2).toLowerCase(), raw as EventListener)
     } else if (key === 'dataset') {
       for (const [dk, dv] of Object.entries(raw as Record<string, string>)) (el as HTMLElement).dataset[dk] = dv
+    } else if (PROPERTY_ONLY_BOOLS.has(key)) {
+      (el as unknown as Record<string, boolean>)[key] = true
     } else if (typeof raw === 'boolean') {
       if (raw) el.setAttribute(key, ENUM_BOOLEAN_ATTRS.has(key) ? 'true' : '')
     } else el.setAttribute(key, String(raw))
