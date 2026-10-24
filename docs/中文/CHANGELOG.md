@@ -20,15 +20,47 @@
 
 - 元素台「边框与背景」补齐到与表格单元格同一形态（起因：分边边框此前只有顶部工具栏能设，属性台连「线型」都没有，`borderStyle` 只能由工具栏或单元格预设写进模板）。新增**线型**下拉（实线 / 虚线 / 点线 / 双线，未设时显示实线、用户不动就不写入），以及按 `acceptsElementBorder` 给出的「**全部 / 外侧 / 内部 / 无**」预设行与上、右、下、左**单边勾选**（rect / oval / hline / vline / table 用 border 画自身本体，写分边不出效果，故这两行不给）。**「内部」对元素恒置灰**——元素只有一圈边，没有相邻格共用的内部线，与工具栏既有禁用口径一致，原因写在常驻提示行里而不是靠悬停找。**元素台没有照抄单元格的「草稿 → 点预设才应用」**：元素自带整圈三字段，它本身就是规格来源，所以线型 / 宽度 / 颜色改了立即生效，预设与单边只是把当前规格铺到指定边位，不会再出现「改了没反应」那类坑；宽度为 0 时点「全部 / 外侧」兜到缺省 `0.75pt`（按钮不空转），「无」只把宽度归零、线型与颜色留着便于改回。落盘逻辑收编进 core 的 `applyElementBorderPreset` / `setElementBorderEdge` / `resolveElementBorderSpec` / `elementBorderEdgeOn`（原先 canvas 的 `useFormatToolbar` 与 common 的 `core/format.ts` 各写一份，现在工具栏与属性台共用），`ElementBorderSpec` 类型同步归 core。**存量模板与三条出纸链路零变化**：没有新字段，`borders` / `borderStyle` 早已进 schema 并被出纸消费；属性搜索新增「线型 / 边框线型 / 实线 / 虚线 / 点线 / 双线」关键词。
 
+- **预览查看缩放的判据下沉 core，四个 Common 宿主 demo 补上缩放档位条**（起因：1.3.10 的档位只做在 canvas 的 `PrintHtmlPreview` 里，而 `demo-common` 四宿主自行复刻预览层，至今没有档位条——热敏标签在屏幕上仍表现为条粘连）。core 新增 `designer/utils/preview-zoom.ts`：`MM_TO_PX` / `ZOOM_MIN` / `ZOOM_MAX` / `resolvePrinterDpi` / `paperWidthPx`（纸宽走 `getPaperDimensions`，不再有第二份纸型表）/ `fitZoom` / `zoomPresets` / `defaultZoomKey`，另把守卫写入与档位回退抽成 `PREVIEW_ZOOM_GUARD_ID` / `applyPreviewViewZoom`（写 `html{zoom:N}@media print{html{zoom:1 !important}}` 进预览文档）/ `resolveZoomKey` / `zoomValueOf`，一并由 `/designer` 导出。画布 `PrintHtmlPreview.vue` 改为直接消费 core（组件行为不变），四宿主各出一个 `createPreviewZoom({getTemplate, measureContainer})` 小封装并渲染与 canvas 同类名的档位条 `.print-html-preview-zoom` / `-btn(.active)` / `-note`；直挂（jQuery）形态所需的函数由 `packages/print-common/src/browser-bundle.ts` 挂进全局 `WormPrintCommon`（与既有 `getPaperDimensions` 同列）。实测五张页面（9303/9331/9332/9335/9334）载入同一份 203dpi 电池标签示例：五档齐、默认落「点阵 203dpi」、iframe `zoom=2.11458`、切 100% 回到 1、`@media print` 复位在位、预览产物 12716 字符逐页一致。
+- **core 的字体目录纯函数补为公共导出**：`print/fonts.ts` 新增 `findFontOption` / `fontOptionLabel` / `normalizeFontQuery` / `filterFontOptions`（族名与展示名取更优档：相等 > 前缀 > 子串 > 子序列，同档保持宿主声明顺序）。此前这套分档在画布与 print-common 各存一份，现两处共用同一实现。
+- **技能 `print-template-json` 补上流式列表**：`references/template-schema.md` 此前已登记 `flowList`，但 `scripts/build_template.py` 的元素类型表没有它，脚本编不出这种元素。现补入类型中文名、简写映射（`cols/rowHeight/gapX/autoSpan/maxSpan/source` → `flowColumns/flowRowHeight/flowGapX/flowAutoSpan/flowMaxSpan/dataSource`）与编译期出厂值（4/8/4/false/2，与设计器 `createDefaultOptions('flowList')` 同值），并把「跨列上限钳到每行列数」这条全案唯一改用户值的规则实现进脚本（`cols: 4` + `maxSpan: 9` 编译成 4）；单元模板缺失时报编译失败而非静默出空元素。实测脚本产物在 print-common 宿主 `loadTemplate` 后画布出 4 列网格、属性台四行显 4/8/4 且跨列开关点亮。
+
 ### 变更
 
 - **表格单元格文本按换行符断行，英文单词不再被逐字拆开**（起因：单元格表达式编辑器里的多行文本，出纸被压成一行）。可换行档（`wordWrap` 缺省 `true`）三端统一由 `white-space: normal` + `word-break: break-all` 改为 `white-space:pre-wrap;word-break:normal;overflow-wrap:break-word`：`\n` 真的换行、连续空格与行首空格原样保留、英文按整词换行（中文仍按字断行），只有当一个词本身就比列宽还长、独占一行也放不下时才在行末兜底切一次（Word/WPS 口径）。落点：core 的 `matrixCellStyle` 内联与 `.print-table` 全局规则、画布 `TableElement` 的内联与 scoped 规则、print-common 的 `cellStyle`（`designer.css` 由画布构建产物重新派生）；`.cell-fit` 定高容器靠继承同口径，测量趟按 `scrollHeight` 判溢出，二分逻辑无需改。**这是出纸行为变更**：数据里带 `\n` 的字段（ERP 地址、备注）以前折叠成一行，现在断成多行 → 行自动撑高、表格变长、**分页位移**；断点也变了（`MODEL-ABC-123` 一类串以前逐字硬切，现在只在空格/连字符处切），「截断」档裁得更多、「自动缩小」档字号可能压得更低。`wordWrap: false` 档逐字保持强制单行 + 省略号（该档 `\n` 仍折叠，其语义就是单行）。电池模块标签示例据此适配：「注意事项」格原文两处 `\n\n` 现断成多行，7pt 档 Chromium 实测整表 71.52mm，越过「纸内区 71mm − 表格 top 2.5mm = 68.5mm」的分页预算，会把该行整行推到第二张标签，故该格字号定为 6pt（实测 64.44mm、单枚一页、0 个单词被拆），行高声明按实测取 22.7mm；无 SN 变体由该模板深拷贝派生，同步生效，demo-common 四宿主 `templates.js` 已重生成。表达式编辑器预览区一并补 `pre-wrap`，多行结果在编辑器内就能看到。
 - **取消字体预置：设计器不再写默认字体，字体下拉不再列出内置字体档**（起因：字体版权。`SimHei` / `Microsoft YaHei` / `PingFang SC` 等都是厂商授权字体，项目替每个新建元素预置族名，等于替用户决定了产出物用谁的字体）。core 的 `createDefaultOptions` 去掉 `fontFamily` 与新表格的 `tableDefaultFontFamily` 注入，字体框回到空值（显示「默认」）；出图端本来就只对显式值输出 `font-family`，所以未配置的元素落纸交还渲染端系统默认字体。候选只来自宿主 `fonts` prop 声明的模板字体（随模板分发、授权由宿主自负），清单外字体名仍可手工键入并写入模板。单元格继承序「单元格自身 → 表格默认 → 交还 CSS 继承」与 `tableDefaultFontFamily` 字段都保留。**存量模板逐字不变**——已写入的族名照旧生效，不做 migrate、不改 schema（否则打开再保存会静默改版式，字宽变化牵动换行与分页）。代价如实写明：1.3.10 为「热敏 203dpi 笔画发虚」而默认黑体的那层补偿随之撤掉，未配字体的模板会退到各端系统默认字（Windows 中文大概率落雅黑/宋体系），需要更实笔画请自行声明字体文件或键入本机已装族名。**全局兜底栈 `FALLBACK_FONT_STACK` 未动**：CSS 里引用族名不构成分发字体文件，风险线在「随包/随镜像带字体文件」，而改这条栈会波及所有既有模板的回落表现与跨端字宽。
 - 技能 `print-template-json` 同口径收编：`build_template.py` 不再编译期补默认字体（`family` 简写仍映射 `fontFamily`、表格映射 `tableDefaultFontFamily`，未写就不产出该键），`references/template-schema.md` 的「字体档位」小节改为「不预置字体」并写明授权归属；电池模块标签示例去掉 `tableDefaultFontFamily: 'SimHei'`，四宿主 `templates.js` 已重生成。
+- **画布侧三处按用户裁决改 Vue3 本体**（common↔canvas 对账 10-24 的结论，print-common 不动）：① 属性台「页面背景色」的恢复默认值图标**由未设色也恒点亮改为未设色呈灰**——此前 `:target` 传的是带 `|| '#ffffff'` 兜底的取色器模型，而 `base` 是 `undefined`，判据比出「脏」，点一下却只把 `undefined` 写回 `undefined`（亮着空操作的显示陷阱）；现改传原始 `templateData.pageBackground`，与 print-common 同判据。**不改出纸也不改模板**（写回值本就相同）。② 图层面板补 `flowList` 的类型图标 `⊟`——此前流式列表元素在图层里显示 `'?'` 兜底（工具箱与属性台都有名有图标，唯独这里漏了）。③ 元素台「流式列表」的列数/行高/间距/最多跨几列四行补上 `button.pd-help` 说明气泡，文案取 core 注册表里那五条 `fl-*` tip（此前它们只在 print-common 被消费，画布端是死文案）；跨列开关行两侧都不挂。**存量模板零变化**，三处都是引导层。
+- **print-common 的静区两行与字体候选按画布判据收口**：① 条码 `barQuietZone` 与二维码 `qrQuietZone`（元素台 + 单元格台共三处）不再回填缺省值——未设置时两侧都**留空靠占位提示**（「默认 10」/「默认 0」）。连带把「把缺省值原样再敲一次要不要落键」统一到画布：画布 `StepperInput` 比的是原始值，所以留空态下敲 10 会写键、清空不写；本包此前的回填会让同一次操作被 `next !== current` 短路掉，**导出 JSON 的键存在性两侧不同**（出纸一直一致）。② 字体候选不再接受裸字符串条目（与画布/core 同判据，非声明对象条目静默丢弃），`host.fonts` 类型同步收紧；③ 候选整理与模糊匹配改调 core 单点，本包那份等价实现删除。断言：`code.spec.ts` +2 条（留空靠占位、显式敲 10 落键、0 档不被归并）+ 改写 1 条原锁「显 0」的旧断言，`font-select.spec.ts` +1 条，core `fonts.test.ts` +1 条含正对照。
+- **四个 Common 宿主 demo 的顶部收纳判定改调 core 同一函数**：`apps/*/src/topbar-overflow.js` 此前就地重写了一遍收纳算法，本轮改为直接调 `resolveToolbarOverflow`（画布 `useToolbarOverflow` 用的也是它），并把输入口径照画布抄齐——可用宽扣左右内边距、弹性占位不计自然宽、「更多」钮按固定 74px 预算、自然宽只在「全展开」那一帧取。1440/900/700/560 四档实测：四个宿主的收起数逐档一致（2/7/8/9），560 档 `is-tight` 与 demo 同步为真；demo 与宿主剩下的差异只是**顶栏内容本身**（demo 7 个收纳单元、宿主 9 个），不再是算法分叉。同批还掉一处易踩的坑：**Vue2 宿主的档位条必须用 `v-show` 不能用 `v-if`**——它出现的那一帧会与同级「渲染中」格互相错配，Vue2 的无 key diff 直接重建整棵子树，刚 `doc.write` 进 iframe 的预览产物被清空（实测 12716 → 0 字符，加 `key` 也救不回）。
 
 ### 移除（破坏性）
 
 - core 移除 `DEFAULT_PRINT_FONT_FAMILY` 与 `SYSTEM_FONT_OPTIONS` 两个导出；`withSystemFontOptions` 改名 `normalizeFontCatalog`，行为收窄为「整理宿主声明 + 族名大小写不敏感去重」，不再追加系统字体候选。三者都是 1.3.10 才引入的，画布 `useFontCatalog` 与 print-common `shell/font-select` 两处调用点已同步；下游引用需改到 `normalizeFontCatalog`。
+- **画布移除内部 `composables/usePreviewZoom.ts`**：预览缩放的档位与纸宽结算已下沉 `@worm-vue3-print/core/designer`（新增 `designer/utils/preview-zoom`），该文件不再有任何实现内容。它从未进 `@worm-vue3-print/canvas` 的公共导出（入口只导出 `PrintHtmlPreview` 组件），文档与 demo 也无引用；深路径引用它的外部代码需改引 core。`PreviewZoom.spec.ts` 已改到 core，9 项仍全绿。
+- **print-common 移除 `core/font-catalog.ts` 及其 `buildFontCatalog`**：字体候选的整理与模糊匹配已单点到 core `print/fonts.ts`（`normalizeFontCatalog` / `filterFontOptions` / `findFontOption` / `fontOptionLabel` / `normalizeFontQuery`），本包不再有第二套分档算法。该模块未进本包公共导出。
+- **print-common 的 `fonts` 契约由 `readonly (string | PrintFontDeclaration)[]` 收紧为 `readonly PrintFontDeclaration[]`**（与画布 `PrintDesigner` 的 `fonts` prop 同类型）：向 `<print-designer>` 传裸字符串数组（`fonts='["SimSun"]'`）此前只有本包出候选、画布出空，现两侧都**静默丢弃**非声明条目——要出候选必须写成 `{ family, label?, files }`。导出 JSON 与出纸不受影响（该字段本就只进候选）。
+
+### 修复
+
+- **print-common 的「流式列表」分组四处对齐画布**（本条修的是尚未发布的 `flowList` 元素，画布侧无改动）：
+  ① 步进框改显 core `resolveFlowColumns/resolveFlowRowHeight/resolveFlowGapX/resolveFlowMaxSpan` 的解析值——手写或存量模板
+  缺这些字段时画布显 4/8/4/2，本包此前留空框；② 「列数挤不下」提示行补上句末句号，与画布逐字同串；
+  ③ **关掉「内容过长时跨列」开关不再凭空写 `flowMaxSpan`**（画布只在打开那一支补钳，本包此前开与关都写，
+  未填过该字段的模板会被落一个 `min(2, 列数)`）；④ 分组键由 `flow-list` 改为与画布 `group-key` 同串的 `flowList`，
+  折叠偏好才真的读写同一个 `property-group-flowList`（此前两侧各存一份，违背本包「偏好互通」的既有声明）。
+  新增 4 条契约断言（`shell/__tests__/flow-list.spec.ts`），并补 `__tests__/format-border.spec.ts` 6 条
+  锁住顶部格式栏边框预设「按上下文分流」与「内部」那一格仅单元格上下文可点（画布侧此前只测内层方法）。
+- **四个 Common 宿主 demo 的顶栏自适应收纳回到与 demo 同源**（`demo-common`，不影响 npm 产物）：
+  宿主样式产物 `demo-ui.css` 由 `sync-demo-styles.mjs` 生成，而该脚本的抽取清单漏了
+  `demo/src/components/DemoTopbarMore.vue`，且自 V1.3.7 起未再重跑 ⇒ 已入库产物对 `.demo-ou`/`.demo-spacer`
+  /`.demo-topbar.is-tight`/`.demo-more-*` **零规则**，宿主代码却在渲染这些类（收纳单元被压回 `flex-shrink:1`，
+  自然宽量不准）。补齐四条：① 抽取清单补入该组件并重跑派生（886 → 977 行，四份仍同 MD5）；
+  ② 顶栏补上弹性占位 `<span class="demo-spacer" data-overflow-spacer />`（demo 靠它承担左右分隔，
+  旧的 `:first-of-type{margin-left:auto}` 已删）——1440 视口实测右组距右沿由 **71px 回到 16px**，与 demo 相同；
+  ③ 「更多」的开合补挂与 demo 同三条状态类（`is-open` / 触发钮 `on` / 折角 `up`），此前只切 `hidden`
+  导致钮不高亮、折角不翻；④ 溢出兜底类名由全仓零引用的 `is-toolbar-overflow` 改为 CSS 真正使用的 `is-tight`，
+  并按 canvas `useToolbarOverflow` 的判据把弹性占位排除在自然宽之外；触发钮撤掉多挂的 `demo-print-btn`
+  （顶栏按钮数由 7 回到与 demo 一致的 6）。五档视口 × 五页 computed style 实测逐项相同，四宿主 `verify-demo` 仍 36/36。
 
 ## V1.3.10(2026-10-22)
 

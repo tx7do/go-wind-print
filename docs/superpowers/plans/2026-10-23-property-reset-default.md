@@ -1577,3 +1577,18 @@ spec 第 88 行的**规范条款**是：提示语只有当 `PROPERTY_REGISTRY` �
 (b) 让提示语直接读派生值 `base[propKey]`——不新增存储，但要为布尔/枚举值定文案规则（`恢复默认值（true）` 不能上界面）。
 两案都要改两端 + 更新断言；(b) 与 [[feedback-derive-dont-duplicate]] 更贴，但新增的文案规则未经用户批准，故停在此处请示。
 
+
+## 第 22 轮（2026-10-24）：三处「按 vue3 为准会改坏 common」判为改 canvas 侧，已落地
+
+用户裁决：本轮 common↔canvas 对账里剩下的分歧「三处修改 vue3」。三条都改 canvas，本包不动，逐条留判据：
+
+| # | 点位 | canvas 改动 | 反面对照（先红后绿） |
+|---|---|---|---|
+| 1 | 页面背景色的图标点亮判据 | `PropertyPanel.vue:125` 的 `:target` 由带 `\|\| '#ffffff'` 兜底的 `pageBackgroundModel` 改为原始 `templateData?.pageBackground`。原形态下未设色也 `'#ffffff' !== undefined` ⇒ 恒点亮，点一下走 `onPageBackgroundReset()` 写 `undefined`，是「亮着但空操作」的显示陷阱 | 新增 `__tests__/PropertyResetPageBackground.spec.ts` 2 条（未设色必灰 + 设过才亮且点击删键）。把 `:target` 改回旧表达式后第一条转红，其余不动 ⇒ 断言真的锁住这一处 |
+| 2 | 图层面板 `flowList` 图标 | `LayerPanel.vue` 的 `elementIconMap` 补 `flowList: '⊟'`（与 common `panels.LAYER_ICON` 同字面量）。改前该类型落到 `layerIcon` 的 `'?'` 兜底 | 新增 `__tests__/LayerPanelIcon.spec.ts`：12 类图标逐类比对且断言不含 `'?'`；删掉那一行即红 |
+| 3 | 流式列表四行的字段说明 | `FlowListGroup.vue` 给列数/行高/间距/最多跨几列四行补 `button.pd-help`，文案取 core `propertyTip('fl-*')`；跨列开关行不补（与 common 同为四条）。改前注册表里那五条 `fl-*` tip 在 canvas 端无人消费 | `FlowListGroup.spec.ts` 补 3 条（四条 help 的 `data-tip` 逐个等于 `propertyTip(key)` + 开关行反面对照；关开关不写 `flowMaxSpan`；缺字段时步进框显解析值）。去掉任一 tip 或改回「开关关掉也写值」即红 |
+
+同一轮的其余收口记在 `TODO.md`：T-19 走方案 A（预览缩放档位下沉 core `designer/utils/preview-zoom`，四宿主补档位条）、
+T-19b（宿主顶栏收纳四条，含改调 core `resolveToolbarOverflow`）、T-21（静区留空靠占位 + 显式敲值才写键、
+字体目录算法单点化并撤裸字符串容差、技能脚本补 `flowList`、common 测试文件类型清零）。
+本节第 1 条修的正是「两套外壳点亮判据不同」，修完后属性台 75 行的判据两侧逐行同构，`reset-default-parity` 契约不受影响。

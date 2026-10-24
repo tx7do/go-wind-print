@@ -541,6 +541,129 @@ npm run styles -w @worm-vue3-print/common
 - 对外已结（10-22）：#IKPAGV 回帖告知验证方式（评论 id `51742665`）后**关闭 issue**，匿名复核 `state=closed`、comments 由 1 增到 2。仓库配置「已完成状态不允许评论」，报告人若要补充需先重开。
 - 关前取证：npm `@worm-vue3-print/canvas` `latest=1.3.9`；`1.3.8` 与 `1.3.9` 的 `dist/canvas.css` 都含 `.node-meta{…flex-wrap:wrap…}` 与 `.node-key{min-width:0;max-width:100%;…ellipsis}`——**功能修复确在 1.3.8 包内生效**；内置「更新记录」那条文案只在 `1.3.9` 的 `dist/index.js` 命中（`1.3.8` 为 0 次）。`@worm-vue3-print/common` 在 npm 仍只有 `1.3.7-beta.0`（早于本修复），故回帖未涉及该包。
 
+### T-19 【已按方案 A 落地，2026-10-24】demo-common 四宿主没有「预览缩放档位」（10-24 对账 v1.3.9→HEAD 查出）
+
+- 背景：V1.3.10 给打印预览加了缩放档位（`ee26da6`），实现在 canvas 的 `PrintHtmlPreview.vue:19-30`（档位条 DOM）
+  与 `composables/usePreviewZoom.ts:78`（`zoomPresets`）、`:98`（`defaultZoomKey`：模板填了 `printerDpi` 即默认落「点阵」档），
+  缩放规则注入在 `PrintHtmlPreview.vue:100-110`（`html{zoom:N}@media print{html{zoom:1 !important}}`）。
+  PARITY §六 声明 `PrintHtmlPreview` 属「不移植」，但四个宿主各自复刻了 `.print-html-preview*` 预览层，
+  于是复刻件只到 loading/error/iframe 三件：`apps/vue3/src/App.vue:75`、`apps/vue2/src/App.vue:558`、
+  `apps/react/src/App.jsx:332`、`apps/jquery/index.html:85`——**缩放条与点阵档一处都没有**，
+  而四份 `browser-render.js` 的注释（如 `apps/vue3/src/browser-render.js:20`）仍自称「DOM 结构与类名一致」。
+- 硬证据：`node demo-common/scripts/class-audit.mjs` 未命中类名里新增的 `print-html-preview-zoom{,-btn,-note}` 三件，
+  与 §六「不移植」的 4 件一起共 7 件；`npm run styles:demo-common` 重跑即产生 diff，已入库产物此前**完全没有**这三条规则。
+- 复用障碍：`usePreviewZoom` 未从包入口导出（`packages/print-canvas/src/index.ts` 只导出 `PrintHtmlPreview`），
+  四个宿主又不依赖 canvas（react/vue2/jquery 更不可能引 SFC），所以纯逻辑要么下沉 core，要么宿主各写一份。
+- 可选方案（**待用户拍板**）：
+  - **A（推荐）**：把 `MM_TO_PX/ZOOM_MIN/ZOOM_MAX/resolvePrinterDpi/paperWidthPx/fitZoom/zoomPresets/defaultZoomKey`
+    下沉 `packages/print-core/src/designer/utils/preview-zoom.ts`，canvas 的 `usePreviewZoom.ts` 改为从 core 转导（现有
+    `PreviewZoom.spec.ts` 与公共导出零破坏）；`src/browser-bundle.ts` 的 UMD 命名空间补挂这几个函数（直挂宿主拿不到裸包名）；
+    四宿主各补一条与 canvas 同类的档位条 + `zoom` 守卫注入。代价：core 新增一组公共导出（minor），改动面 core+canvas+4 宿主。
+  - **B**：只在四宿主各写一份结算——正被 1.3.10「预览不再维护第二份纸型表」那次修法否定，不推荐。
+  - **C**：缩放档位记为待办、宿主预览维持现状，同时把四份 `browser-render.js` 那句「DOM 结构与类名一致」改成实话。零 API 变化。
+- **落地（用户选 A，2026-10-24）**：判据新增 `packages/print-core/src/designer/utils/preview-zoom.ts`（`MM_TO_PX/ZOOM_MIN/ZOOM_MAX/
+  resolvePrinterDpi/paperWidthPx/fitZoom/zoomPresets/defaultZoomKey` 原样上收，另把 canvas 组件里的守卫写入与档位回退
+  抽成 `applyPreviewViewZoom`/`resolveZoomKey`/`zoomValueOf`/`PREVIEW_ZOOM_GUARD_ID`），由 `/designer` 导出；
+  canvas 的 `PrintHtmlPreview.vue` 改为直接引 core，**`composables/usePreviewZoom.ts` 整份删除**（未进公共导出、
+  文档与 demo 全无引用，`PreviewZoom.spec.ts` 的 import 同步改到 core，9 项仍全绿）；
+  `packages/print-common/src/browser-bundle.ts` 的 UMD 命名空间补挂这七个函数（直挂宿主拿不到裸包名）；
+  四宿主 `browser-render.js` 各出 `createPreviewZoom({getTemplate, measureContainer})`（同步/写文档/切档三件事，档位表仍来自 core），
+  预览层补 `.print-html-preview-zoom` 档位条（类名同 canvas）。**vue2 宿主有一个必须记的坑**：档位条若用 `v-if`，
+  它出现的那一帧会与同级「渲染中」格互相错配，Vue2 无 key 的 diff 直接**重建整棵子树**，刚 `doc.write` 进去的 iframe
+  被换成空白节点（实测预览产物 12716 → 0 字符，加 `key` 也救不回）；改用 `v-show`（节点常驻、只切 display）后正常，
+  已在源码注释里写破。实测五张页面（9303/9331/9332/9335/9334）用同一份 203dpi 电池标签示例：五档齐、
+  默认 active=「点阵 203dpi」、iframe `zoom=2.11458`、切 100% 回到 1、`@media print` 复位规则在位、预览产物 12716 字符逐页一致；
+  `verify-demo` 仍 36/36 ×4（该脚本暂不含缩放档位断言，档位由这轮的五页实测覆盖）。
+
+### T-19b 宿主顶栏「自适应收纳」与 demo 的四处不同步（10-24 浏览器实测查出并修复；**分叉起于 `61d1631`（V1.3.7 期），不在 v1.3.9→HEAD 区间内**）
+
+- 查出方式：先因 T-19 重跑 `npm run styles:demo-common` 产生 diff，再用 Playwright 在 1440/900/880/700/560 五档实测五张页面。
+- 四条真实缺口（前一条是产物过期，后三条是宿主自己写的顶栏件没跟上 demo）：
+  1. **派生产物过期**：已入库的 `apps/*/src/styles/demo-ui.css` 对 `.demo-ou`/`.demo-spacer`/`.demo-topbar.is-tight`
+     **零规则**（`git show HEAD:...demo-ui.css | grep -c 'demo-ou\|demo-spacer\|is-tight'` = 0），而宿主代码在渲染这些类
+     ⇒ 收纳单元按默认 `flex-shrink:1` 被压缩，「自然宽」量不准，判定失真（canvas 侧同一规则是 `flex-shrink:0;white-space:nowrap`）。
+     根因还有一层：`sync-demo-styles.mjs` 的抽取清单（`:13-20`）**漏了 `demo/src/components/DemoTopbarMore.vue`**，
+     所以 `.demo-more-*` 一组规则从来没进过宿主 CSS（重跑后 `grep -c demo-more` 由 0 → 12，产物 886 → 977 行，四份仍同 MD5）。
+  2. **弹性占位缺失**：demo 顶栏有 `<span class="demo-spacer" data-overflow-spacer />`（`demo/src/App.vue:30`），
+     四宿主一个都没有；而派生 CSS 那条 `:first-of-type{margin-left:auto}` 已被 demo 删掉（改由 spacer 承担分隔）
+     ⇒ 1440 视口实测：demo 右组距右沿 **16px**，宿主 **71px**（差 55px）。四宿主各补一行 spacer 后实测回到 **16px**。
+  3. **状态类三条没落**：demo 的触发钮带 `on`、折角带 `up`、组带 `is-open`（`DemoTopbarMore.vue:5-17`），
+     CSS 也确实按这三条出效果（`.demo-more-trigger.on{background:rgba(22,93,255,.07)}`、`.demo-more-caret.up`）；
+     宿主只切 `hidden` 与 `aria-expanded` ⇒ 点开「更多」后触发钮不高亮、折角不翻。现由 `setOpen()` 一并挂这三条。
+  4. **溢出兜底类名写错**：宿主脚本切的是 `is-toolbar-overflow`（四份 `topbar-overflow.js:90`），
+     而这个类名**全仓没有任何 CSS 引用**（只在各宿主 dist 产物里出现）；demo 与 CSS 用的是 `is-tight`
+     ⇒ 极窄视口下品牌区永远拿不到省略号兜底。另补一条同源修正：宿主 `pinnedWidth()` 不认识
+     `data-overflow-spacer`，会把被拉伸的占位当自然宽计入；canvas 的 `useToolbarOverflow.ts:83` 明确跳过它，
+     现按同一判据补跳过。触发钮此前多挂了 `demo-print-btn`（宿主 7 个 vs demo 6 个），撤掉后两侧同为 6。
+- 实测收口（五档视口 × 五个页面，探针取 computed style 而非看图）：`.demo-ou` 的 `flex-shrink=0`、`white-space=nowrap`，
+  1440 右组距右沿 16px，560 展开「更多」后 `triggerBg=rgba(22, 93, 255, 0.07)`、`is-open`/`caretUp`/`panelVisible` 三条状态
+  四个宿主与 `canvas-9303` 逐项相同；`is-toolbar-overflow` 在源码里已归零。
+- **原「仍未归一的一条」已随 T-19 方案 A 一并收口（10-24）**：四份 `topbar-overflow.js` 不再自带 `decide()` 循环，
+  改为**直接调 core 的 `resolveToolbarOverflow`**（vue2/vue3/react 引 `@worm-vue3-print/core/designer`，
+  jQuery 从 `window.WormPrintCommon` 取），输入口径也照 canvas `useToolbarOverflow.measureToolbar` 抄齐：
+  `available = clientWidth - padL - padR`、`moreTriggerWidth = 74`、`gap = 2`、`pinned = naturalTotal - Σ(单元宽 + 2)`、
+  自然宽只在「全展开」那一帧取（回到全展开后再重量一次）。实测 1440/900/700/560 四档，四个宿主的收起数
+  逐档完全一致（2/7/8/9）且 560 档 `is-tight` 与 demo 同步为真；demo 与宿主的收起数差异只剩**内容本身**
+  （demo 顶栏 7 个收纳单元、宿主 9 个），不再是算法分叉。
+- **仍未做的一条（如实记）**：`verify-demo.mjs` 的 36 项不含顶栏收纳与预览缩放档位断言，以上结论来自本轮
+  一次性 Playwright 探针（五页 × 四档量 computed style / DOM 状态类），脚本本身未入库；要长期防回归需把它做成第 37-38 项。
+
+
+### T-20 【已裁决：三条都改 Vue3 侧，2026-10-24 落地】三处「按 vue3 为准会改坏 common」的对账结论（10-24）
+
+| # | 点位 | Vue3（canvas）侧 | Common 侧 | 备注 |
+|---|---|---|---|---|
+| 1 | 属性台页面背景色的「恢复默认值」点亮判据 | `PropertyPanel.vue:125` 把 `pageBackgroundModel` 当 `target` 传入，而该 computed 是 `props.templateData?.pageBackground \|\| '#ffffff'`（`:356-359`），`base` 却是 `{ pageBackground: undefined }` ⇒ **未设置时也点亮**，点一下走 `onPageBackgroundReset()`（`:443-445`）写 `undefined`，属「亮着但空操作」 | `shell/property-panel.ts:401-404` 直接拿原始 `t` 作 `target` ⇒ 未设置即灰态，并由 `property-panel-reset.spec.ts` 固定该态 | 灰态是更合理的形态；照搬 canvas 等于把显示陷阱搬过来。建议改 canvas 侧（`target` 传原始值），代价是 canvas 一处显示行为变更 |
+| 2 | 图层面板 `flowList` 图标 | `LayerPanel.vue:66-80` 的 `elementIconMap` **没有 `flowList` 条目** ⇒ 走 `layerIcon` 兜底显示 `'?'` | `shell/panels.ts:25-27` 的 `LAYER_ICON` 有 `flowList: '⊟'` | 同上，canvas 反而缺。建议给 canvas 补 `'⊟'`（与工具箱 `Grid3x3` 同形），不动 common |
+| 3 | 流式列表四行的帮助气泡 | `property/FlowListGroup.vue` 全文无 `.pd-help`、不调 `propertyTip` ⇒ core 注册表里 `fl-*` 五条 `tip` 在 canvas 端是**没人消费的死文案** | `shell/property-panel.ts:272/276/280/288` 四行都挂 `fieldHelp(propertyTip('fl-*'))` | 撤 common 会丢说明，补 canvas 才符合「文案单点在 `PROPERTY_REGISTRY`」的既有口径。PARITY §五 已把这条标成未收口 |
+
+**裁决与落地（用户 10-24 判「三处修改 vue3」）**：三条全部改 canvas，本包不动，改完两侧逐行同形同值——
+① `PropertyPanel.vue:125` 的 `:target` 改传原始 `templateData?.pageBackground`（不再拿带 `|| '#ffffff'` 兜底的取色器模型），
+新增 `PropertyResetPageBackground.spec.ts` 2 条并把旧表达式改回去验真会红；
+② `LayerPanel.elementIconMap` 补 `flowList: '⊟'`，新增 `LayerPanelIcon.spec.ts` 用与 common 同一张字面量表比对（断言不含 `'?'`）；
+③ `FlowListGroup.vue` 四行补 `button.pd-help`（`propertyTip('fl-*')`，开关行两侧都不挂），`FlowListGroup.spec.ts` 补 3 条正向 + 反面对照。
+细节与判据见 `docs/superpowers/plans/2026-10-23-property-reset-default.md` 第 22 轮。
+
+### T-21 【已按「以 vue3 为准」逐条落地，2026-10-24】其余备案五条的处置
+
+- **条码/二维码静区行敲入缺省值是否落键 —— 已按 canvas 收口**。原状：canvas 输入框留空靠占位（`CodeGroup.vue:40` 绑原始值），
+  common 回填缺省值（条码显 10、二维码显 0），于是「把 10 原样再敲一次」在 common 被 `shell/controls.ts` 的
+  `next !== current` 短路掉、不写键，canvas 却显式写键——出纸一致，但**导出 JSON 的键存在性两侧不同**。
+  处置：common 三处回填撤掉（`property-panel.ts` 条码静区、`table-props.ts` 条码静区与二维码静区），
+  改成与 canvas 同形态「未设置即留空 + placeholder 兜提示」，提交判据随之自然一致。
+  断言：`code.spec.ts` 新增 2 条（未设置显空串且 `placeholder=默认 10`、敲 10 落键；已设 6 显 6、改 0 不被归并）
+  + 改写 1 条原锁「显 0」的旧断言。
+- **字体候选对裸字符串的容差 —— 已收紧成 canvas 判据**。原状：common `core/font-catalog.ts` 的 `buildFontCatalog` 吃
+  `fonts: ['SimSun']`，canvas/core 只认 `{family,label}` 对象（字符串静默丢弃）。处置：删掉 common 那份等价实现，
+  `shell/font-select.ts` 直接调 core `normalizeFontCatalog`，`controls.ts` 的 `host.fonts` 类型同步成
+  `readonly PrintFontDeclaration[]`（与 canvas 的 `fonts` prop 同类型）；顺带去掉那次多余的二次去重。
+  断言：core `fonts.test.ts` +1 条（裸串不进候选 + 同条目写成声明即入目录的正对照），common `font-select.spec.ts` +1 条 UI 级。
+- **模糊匹配函数曾是两份 —— 已单点化到 core**。canvas `useFontCatalog.ts` 与 common `core/font-catalog.ts` 各抄了一份
+  「相等>前缀>子串>子序列 + label/family 取更优档」。处置：四个纯函数（`findFontOption`/`fontOptionLabel`/
+  `normalizeFontQuery`/`filterFontOptions`）上收 core `print/fonts.ts`，canvas 侧改为转导（`FontOption` 类型别名保留，
+  `index.ts` 的 `export type { FontOption }` 不破坏），common 侧删掉本地实现。两处过时注释（「core 未导出这套工具」）一并清掉。
+- **技能脚本未跟上 `flowList` —— 已补**。`scripts/build_template.py` 的 `TYPE_TITLES`/`TYPE_ALIAS`/编译期默认三处补齐
+  （`cols/rowHeight/gapX/autoSpan/maxSpan/source` 简写 → `flow*`），并把「跨列上限钳到列数」这条全案唯一改用户值的规则
+  实现进脚本（`maxSpan: 9` + `cols: 4` 编译成 4），缺 `text` 时报 `BuildError`。实测脚本产物在 common 宿主
+  `loadTemplate` 后画布出 4 列网格、属性台四行显 4/8/4 且 `autoSpan` 点亮；未预置字体（不产出 `fontFamily`）。
+- **common 测试文件的类型检查既有红 —— 已清零**。`npm run typecheck -w @worm-vue3-print/common` 由 HEAD 的 8 条降到 **0**
+  （`cell-border` 未用导入、`code` 的 `type:'static'`→`'data'`、`element-border` 的 `ElementType`/`HTMLButtonElement`/`HTMLSelectElement`×4、
+  `reset-button` 与 `table-cell-reset` 的 `render` 入参类型）。canvas 侧的既有红另记 **T-22**。
+
+### T-22 canvas 测试文件仍有 49 条既有类型错误（10-24 实测，非本轮引入）
+
+- 判据：`cd packages/print-canvas && npx vue-tsc --noEmit` → `error TS` **49 条**，全部落在 `src/__tests__/*.spec.ts`
+  （`TableElement` 16、`PageTabs` 11、`BorderBgGroup` 6、`TableCellGroup` 3、其余散在 12 个 spec），
+  `src/components/**` 与 `src/composables/**` **零错**。主要形态：`element.options.tableColWidths` 可能 undefined、
+  `findAll(...)` 回调参数隐式 any、`VueNode<Element>` 上取 `.value` 未转 `HTMLInputElement`、字段夹具缺 `PrintBusinessField` 必填项。
+- **本轮不修的原因（如实写）**：49 条与 common↔canvas 功能对齐无关，且散在十几个 spec；批量改测试文件容易把断言语义一起改掉，
+  应单独一轮按文件推进。修完后建议把 `vue-tsc`/`typecheck` 串进 `npm test` 或 CI 门禁，否则这类红会长期看不见
+  （现状：canvas 的 `test` 脚本只跑 vitest，`build` 走 `tsconfig.build.json` 排除测试）。
+- **对我自己前一轮报告的更正**：我在 10-24 早先的报告里写过「canvas `vue-tsc` 零错」，那是**错的**——
+  当时命令写成 `vue-tsc -p packages/print-canvas/tsconfig.json` 却从根目录执行，路径解析失败被管道吞掉退出码，
+  我把「没输出」当成了「没错误」。本轮改为在包目录内跑 `npx vue-tsc --noEmit` 才拿到真实数字。
+
+
 ### 执行顺序建议
 
 | 序 | 项 | 性质 | 代价 |
@@ -552,6 +675,9 @@ npm run styles -w @worm-vue3-print/common
 | 5 | **T-15 dist-tag 口径** | 发布面 | 改文档或改发布脚本，二选一 |
 | 6 | **T-16 四宿主接 `fonts`** | 示例与验收缺口 | 四份宿主各一处 + verify-demo 加 2 条断言 |
 | 7 | **T-17 表达式绕过示例兜底** | 引导层缺陷（显示陈旧） | core 判据一处 + 两端各一处 |
+| 8 | ~~T-19 四宿主预览缩放档位~~ **已按方案 A 落地（10-24）** | 宿主示例能力缺口 | core 下沉一组纯函数 + 4 宿主各一条档位条；vue2 必须用 `v-show`（`v-if` 会让 diff 重建 iframe） |
+| 9 | ~~T-20 三处「以 vue3 为准会改坏 common」~~ **已裁决改 canvas 并落地（10-24）** | 需裁定改哪一侧 | 三条都在 canvas，各 1–3 行 + 新增 3 个 spec |
+| 10 | **T-22 canvas 测试文件 49 条既有类型错误** | 存量类型洞（`test`/`build` 都不查测试类型） | 按 spec 分文件改，建议随后把 `vue-tsc` 串进 CI |
 
 ### 九、对外动作的通路（T-13 / T-14 执行前先看）
 
