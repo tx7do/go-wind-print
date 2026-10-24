@@ -95,6 +95,13 @@ describe('normalizeFontCatalog', () => {
     expect(normalizeFontCatalog(undefined)).toEqual([])
   })
 
+  it('非声明条目（裸字符串族名）不进候选：两套外壳都只吃 { family, label } 条目', () => {
+    // 宿主把 fonts 传成 ['SimSun'] 时静默丢弃，而不是凭空造出一档无文件名的候选
+    expect(normalizeFontCatalog(['SimSun', ''] as never)).toEqual([])
+    // 正对照：同一条目写成声明即入目录
+    expect(normalizeFontCatalog([{ family: 'SimSun' }])).toEqual([{ family: 'SimSun' }])
+  })
+
   it('同族名大小写不敏感去重，保留首现顺序与宿主自己的 label', () => {
     const out = normalizeFontCatalog([
       { family: 'Demo', label: '甲' },

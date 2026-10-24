@@ -30,6 +30,8 @@ export * from './utils/migrate.js'
 export * from './utils/default-config.js'
 export * from './utils/table-matrix.js'
 export * from './utils/element-border-edit.js'
+// 预览查看缩放的纯逻辑：canvas 的预览组件、无框架外壳的 UMD 命名空间与四个宿主复刻预览层同源
+export * from './utils/preview-zoom.js'
 export * from './utils/element-factory.js'
 export * from './utils/zone-layout.js'
 export * from './utils/ruler.js'
