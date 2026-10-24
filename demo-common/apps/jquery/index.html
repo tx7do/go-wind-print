@@ -31,6 +31,7 @@
         </details></span>
         <span class="demo-ou" data-overflow-unit="biz"><span class="demo-badge">业务类型：<span id="badge-biz">空白模板</span></span></span>
         <span class="demo-ou" data-overflow-unit="host-badge"><span class="demo-badge">宿主：jQuery + Web Component</span></span>
+        <span class="demo-spacer" data-overflow-spacer></span>
         <span class="demo-ou" data-overflow-unit="custom"><button type="button" class="demo-print-btn" id="btn-custom">自定义字段与数据</button></span>
         <span class="demo-ou" data-overflow-unit="gallery"><button type="button" class="demo-print-btn" id="btn-gallery">加载示例</button></span>
         <span class="demo-ou" data-overflow-unit="export"><button type="button" class="demo-print-btn" id="btn-export">导出模板</button></span>
@@ -45,7 +46,7 @@
           <span id="batch-text">批量打印（1 份）</span>
         </label></span>
         <span class="demo-more-group" data-overflow-more hidden>
-          <button type="button" class="demo-print-btn demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
+          <button type="button" class="demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
             <svg class="demo-more-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" /></svg>
             <span>更多</span><span class="demo-more-caret" aria-hidden="true"></span>
           </button>
@@ -82,10 +83,14 @@
               <button type="button" class="preview-btn ghost" id="preview-close">关闭</button>
             </div>
           </div>
-          <div class="preview-body print-html-preview">
+          <div class="preview-body print-html-preview" id="preview-body">
             <div class="print-html-preview-loading" id="preview-loading">预览渲染中…</div>
             <div class="print-html-preview-error" id="preview-error" hidden></div>
             <iframe class="print-html-preview-iframe" id="preview-frame" title="打印预览"></iframe>
+            <!-- 档位条与 demo 的 PrintHtmlPreview 同类名同档位：按钮由 app.js 按 core 结算结果重画 -->
+            <div class="print-html-preview-zoom" id="preview-zoom" hidden>
+              <span class="print-html-preview-zoom-note">仅屏幕缩放，打印不受影响</span>
+            </div>
           </div>
         </div>
       </div>

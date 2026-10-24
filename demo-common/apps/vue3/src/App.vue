@@ -16,6 +16,7 @@
       </details></span>
       <span class="demo-ou" data-overflow-unit="biz"><span class="demo-badge">业务类型：{{ currentSample ? currentSample.name : '空白模板' }}</span></span>
       <span class="demo-ou" data-overflow-unit="host-badge"><span class="demo-badge">宿主：Vue 3 + Web Component</span></span>
+      <span class="demo-spacer" data-overflow-spacer />
       <span class="demo-ou" data-overflow-unit="custom"><button type="button" class="demo-print-btn" @click="customDialogVisible = true">自定义字段与数据</button></span>
       <span class="demo-ou" data-overflow-unit="gallery"><button type="button" class="demo-print-btn" @click="galleryVisible = true">加载示例</button></span>
       <span class="demo-ou" data-overflow-unit="export"><button type="button" class="demo-print-btn" @click="onExportTemplate">导出模板</button></span>
@@ -26,7 +27,7 @@
         <span>批量打印（{{ batchDataList.length }} 份）</span>
       </label></span>
       <span class="demo-more-group" data-overflow-more hidden>
-        <button type="button" class="demo-print-btn demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
+        <button type="button" class="demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
           <svg class="demo-more-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" /></svg>
           <span>更多</span><span class="demo-more-caret" aria-hidden="true"></span>
         </button>
@@ -72,10 +73,23 @@
             <button type="button" class="preview-btn ghost" @click="previewVisible = false">关闭</button>
           </div>
         </div>
-        <div class="preview-body print-html-preview">
+        <div ref="previewBodyRef" class="preview-body print-html-preview">
           <div v-if="previewLoading" class="print-html-preview-loading">预览渲染中…</div>
           <div v-if="previewError" class="print-html-preview-error">{{ previewError }}</div>
           <iframe ref="previewFrameRef" class="print-html-preview-iframe" title="打印预览" />
+          <!-- 档位条与 demo 的 PrintHtmlPreview 同类名同档位；判据在 core，宿主只渲染与切档 -->
+          <div v-if="previewZoomPresets.length && !previewLoading && !previewError" class="print-html-preview-zoom">
+            <button
+              v-for="preset in previewZoomPresets"
+              :key="preset.key"
+              type="button"
+              class="print-html-preview-zoom-btn"
+              :class="{ active: preset.key === previewZoomKey }"
+              :title="preset.tip"
+              @click="onPreviewZoom(preset.key)"
+            >{{ preset.label }}</button>
+            <span class="print-html-preview-zoom-note">仅屏幕缩放，打印不受影响</span>
+          </div>
         </div>
       </div>
     </div>
@@ -233,7 +247,7 @@ import { PrintClient, WormPrintError } from '@worm-vue3-print/core/client'
 import { SAMPLES } from './templates'
 import SampleThumb from './SampleThumb.vue'
 import { checkRenderHealth, openPdfBlob, requestServerPdf } from './render-client'
-import { renderInBrowser, writeHtmlToFrame } from './browser-render'
+import { createPreviewZoom, renderInBrowser, writeHtmlToFrame } from './browser-render'
 
 /** 宿主基址：模板里的相对路径图片按它拼接 */
 const BASE_URL = window.location.origin
@@ -411,18 +425,45 @@ const previewPages = ref(0)
 const previewLoading = ref(false)
 const previewError = ref('')
 const previewFrameRef = ref(null)
+const previewBodyRef = ref(null)
+const previewZoomPresets = ref([])
+const previewZoomKey = ref('')
+/** 本次预览用的模板：档位表要按它的 printerDpi 与纸宽结算 */
+let previewTemplate = null
+
+const previewZoom = createPreviewZoom({
+  getTemplate: () => previewTemplate,
+  measureContainer: () => previewBodyRef.value?.clientWidth ?? 0,
+})
+
+/** 重算档位并写进预览文档（渲染完成、切档、窗口变化三处同一入口） */
+function refreshPreviewZoom() {
+  const state = previewZoom.sync()
+  previewZoomPresets.value = state.presets
+  previewZoomKey.value = state.zoomKey
+  previewZoom.apply(previewFrameRef.value)
+}
+
+function onPreviewZoom(key) {
+  previewZoomKey.value = previewZoom.setKey(key)
+  previewZoom.apply(previewFrameRef.value)
+}
 
 async function openPreview(templateJson) {
   previewPages.value = 0
   previewError.value = ''
   previewLoading.value = true
   previewVisible.value = true
+  previewTemplate = templateJson
   try {
     const rendered = await renderInBrowser(templateJson, printData.value, BASE_URL)
     // iframe 由 v-if 控制，需等这一帧渲染完成后再取节点
     await nextFrame()
     writeHtmlToFrame(previewFrameRef.value, rendered.html)
     previewPages.value = rendered.pageCount
+    // 新文档不带上次的缩放守卫，重算一次补写
+    await nextFrame()
+    refreshPreviewZoom()
   } catch (error) {
     previewError.value = `渲染失败：${error.message}`
   } finally {
@@ -440,9 +481,18 @@ function printPreview() {
 function onPreviewKeydown(event) {
   if (event.key === 'Escape') previewVisible.value = false
 }
+// 「适配」档按容器宽算整数倍，窗口变化要重算（与 PrintHtmlPreview 的 resize 监听同口径）
+function onPreviewResize() {
+  if (previewVisible.value && !previewLoading.value && !previewError.value) refreshPreviewZoom()
+}
 watch(previewVisible, visible => {
-  if (visible) window.addEventListener('keydown', onPreviewKeydown)
-  else window.removeEventListener('keydown', onPreviewKeydown)
+  if (visible) {
+    window.addEventListener('keydown', onPreviewKeydown)
+    window.addEventListener('resize', onPreviewResize)
+  } else {
+    window.removeEventListener('keydown', onPreviewKeydown)
+    window.removeEventListener('resize', onPreviewResize)
+  }
 })
 
 // ────────────────── 示例模板库弹窗 ──────────────────

@@ -7,7 +7,7 @@ import { PrintClient, WormPrintError } from '@worm-vue3-print/core/client'
 import { SAMPLES } from './templates'
 import SampleThumb from './SampleThumb.vue'
 import { checkRenderHealth, openPdfBlob, requestServerPdf } from './render-client'
-import { renderInBrowser, writeHtmlToFrame } from './browser-render'
+import { createPreviewZoom, renderInBrowser, writeHtmlToFrame } from './browser-render'
 import { initTopbarOverflow } from './topbar-overflow.js'
 
 /** 宿主基址：模板里的相对路径图片按它拼接 */
@@ -53,6 +53,8 @@ export default {
       previewPages: 0,
       previewLoading: false,
       previewError: '',
+      previewZoomPresets: [],
+      previewZoomKey: '',
       // 示例库弹窗
       galleryVisible: false,
       activeGroup: '全部',
@@ -103,8 +105,13 @@ export default {
   watch: {
     // 全屏预览没有可点击的遮罩空白区，改用 Esc 关闭：打开时绑定、关闭时解绑
     previewVisible(visible) {
-      if (visible) window.addEventListener('keydown', this.onPreviewKeydown)
-      else window.removeEventListener('keydown', this.onPreviewKeydown)
+      if (visible) {
+        window.addEventListener('keydown', this.onPreviewKeydown)
+        window.addEventListener('resize', this.onPreviewResize)
+      } else {
+        window.removeEventListener('keydown', this.onPreviewKeydown)
+        window.removeEventListener('resize', this.onPreviewResize)
+      }
     },
     // 每次打开示例库：默认选中当前示例（或第一个），避免「确定」按钮空态
     galleryVisible(open) {
@@ -132,11 +139,18 @@ export default {
     this.renderErrorTimer = null
     this.clientMsgTimer = null
     this.clientStatusRegistered = false
+    // 缩放控制器与本次预览的模板挂普通属性：避免被 Vue2 深度响应式化
+    this.previewTemplate = null
+    this.previewZoomCtl = createPreviewZoom({
+      getTemplate: () => this.previewTemplate,
+      measureContainer: () => (this.$refs.previewBody ? this.$refs.previewBody.clientWidth : 0),
+    })
   },
   beforeDestroy() {
     clearTimeout(this.renderErrorTimer)
     clearTimeout(this.clientMsgTimer)
     window.removeEventListener('keydown', this.onPreviewKeydown)
+    window.removeEventListener('resize', this.onPreviewResize)
   },
   methods: {
     // ────────────────── 设计器：属性注入与宿主回调 ──────────────────
@@ -266,6 +280,8 @@ export default {
       this.previewError = ''
       this.previewLoading = true
       this.previewVisible = true
+      // 档位表按本次预览的模板结算（printerDpi 与纸宽），不进 data 以免被深度响应式化
+      this.previewTemplate = templateJson
       try {
         const rendered = await renderInBrowser(templateJson, this.printData, BASE_URL)
         // iframe 由 v-if 控制：先等 Vue 打完这条 patch，再等浏览器出这一帧，节点才真正可取
@@ -273,11 +289,29 @@ export default {
         await nextFrame()
         writeHtmlToFrame(this.$refs.previewFrame, rendered.html)
         this.previewPages = rendered.pageCount
+        // 新文档不带上次的缩放守卫，等一帧后重算补写
+        await nextFrame()
+        this.refreshPreviewZoom()
       } catch (error) {
         this.previewError = `渲染失败：${error.message}`
       } finally {
         this.previewLoading = false
       }
+    },
+    /** 重算档位并写进预览文档（渲染完成、切档、窗口变化三处同一入口） */
+    refreshPreviewZoom() {
+      const state = this.previewZoomCtl.sync()
+      this.previewZoomPresets = state.presets
+      this.previewZoomKey = state.zoomKey
+      this.previewZoomCtl.apply(this.$refs.previewFrame)
+    },
+    onPreviewZoom(key) {
+      this.previewZoomKey = this.previewZoomCtl.setKey(key)
+      this.previewZoomCtl.apply(this.$refs.previewFrame)
+    },
+    /** 「适配」档按容器宽算整数倍，窗口变化要重算（与 PrintHtmlPreview 的 resize 监听同口径） */
+    onPreviewResize() {
+      if (this.previewVisible && !this.previewLoading && !this.previewError) this.refreshPreviewZoom()
     },
     printPreview() {
       const frame = this.$refs.previewFrame
@@ -499,6 +533,7 @@ export default {
       </details></span>
       <span class="demo-ou" data-overflow-unit="biz"><span class="demo-badge">业务类型：{{ currentSample ? currentSample.name : '空白模板' }}</span></span>
       <span class="demo-ou" data-overflow-unit="host-badge"><span class="demo-badge">宿主：Vue 2 + Web Component</span></span>
+      <span class="demo-spacer" data-overflow-spacer />
       <span class="demo-ou" data-overflow-unit="custom"><button type="button" class="demo-print-btn" @click="customDialogVisible = true">自定义字段与数据</button></span>
       <span class="demo-ou" data-overflow-unit="gallery"><button type="button" class="demo-print-btn" @click="galleryVisible = true">加载示例</button></span>
       <span class="demo-ou" data-overflow-unit="export"><button type="button" class="demo-print-btn" @click="onExportTemplate">导出模板</button></span>
@@ -509,7 +544,7 @@ export default {
         <span>批量打印（{{ batchDataList.length }} 份）</span>
       </label></span>
       <span class="demo-more-group" data-overflow-more hidden>
-        <button type="button" class="demo-print-btn demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
+        <button type="button" class="demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
           <svg class="demo-more-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" /></svg>
           <span>更多</span><span class="demo-more-caret" aria-hidden="true"></span>
         </button>
@@ -555,10 +590,25 @@ export default {
             <button type="button" class="preview-btn ghost" @click="previewVisible = false">关闭</button>
           </div>
         </div>
-        <div class="preview-body print-html-preview">
+        <div ref="previewBody" class="preview-body print-html-preview">
           <div v-if="previewLoading" class="print-html-preview-loading">预览渲染中…</div>
           <div v-if="previewError" class="print-html-preview-error">{{ previewError }}</div>
           <iframe ref="previewFrame" class="print-html-preview-iframe" title="打印预览" />
+          <!-- 档位条与 demo 的 PrintHtmlPreview 同类名同档位；判据在 core，宿主只渲染与切档。
+               这一行必须用 v-show：改用 v-if 时它的出现会与「渲染中」那格在同级里互相错配，
+               Vue2 的 diff 会重建整个子树，刚写入产物的 iframe 被换成空白节点（实测 12716 → 0 字符，key 也救不回）。 -->
+          <div v-show="previewZoomPresets.length && !previewLoading && !previewError" class="print-html-preview-zoom">
+            <button
+              v-for="preset in previewZoomPresets"
+              :key="preset.key"
+              type="button"
+              class="print-html-preview-zoom-btn"
+              :class="{ active: preset.key === previewZoomKey }"
+              :title="preset.tip"
+              @click="onPreviewZoom(preset.key)"
+            >{{ preset.label }}</button>
+            <span class="print-html-preview-zoom-note">仅屏幕缩放，打印不受影响</span>
+          </div>
         </div>
       </div>
     </div>

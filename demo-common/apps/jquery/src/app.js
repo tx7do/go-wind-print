@@ -5,7 +5,7 @@
 import { SAMPLES } from './templates.js'
 import { initGallery, openGallery } from './gallery.js'
 import { initPrintDialog, openPrintDialog } from './print-dialog.js'
-import { renderInBrowser, writeHtmlToFrame } from './browser-render.js'
+import { createPreviewZoom, renderInBrowser, writeHtmlToFrame } from './browser-render.js'
 import { setVisible, setNotice, downloadJson, nextFrame } from './ui.js'
 import { initTopbarOverflow } from './topbar-overflow.js'
 
@@ -180,9 +180,18 @@ function onClearTemplate() {
 }
 
 // ────────────────── 链路一：浏览器渲染预览 + 浏览器打印 ──────────────────
+/** 本次预览用的模板与档位键（档位表由 core 结算，这里只留宿主自己的渲染状态） */
+let previewTemplate = null
+let previewZoomKeys = []
+const previewZoom = createPreviewZoom({
+  getTemplate: () => previewTemplate,
+  measureContainer: () => document.getElementById('preview-body')?.clientWidth ?? 0,
+})
+
 function closePreview() {
   setVisible('#preview-mask', false)
   window.removeEventListener('keydown', onPreviewKeydown)
+  window.removeEventListener('resize', onPreviewResize)
 }
 
 function onPreviewKeydown(event) {
@@ -192,20 +201,74 @@ function onPreviewKeydown(event) {
 async function openPreview(templateJson) {
   setVisible('#preview-mask', true)
   window.addEventListener('keydown', onPreviewKeydown)
+  window.addEventListener('resize', onPreviewResize)
   setNotice('#preview-subtitle', '')
   setNotice('#preview-error', '')
   setVisible('#preview-loading', true)
+  setVisible('#preview-zoom', false)
+  previewTemplate = templateJson
   try {
     const rendered = await renderInBrowser(templateJson, printData(), BASE_URL)
     // iframe 一直在 DOM 里，等这一帧写完再灌产物，避免用户看到上一份内容
     await nextFrame()
     writeHtmlToFrame(document.getElementById('preview-frame'), rendered.html)
     setNotice('#preview-subtitle', `${rendered.pageCount} 页`)
+    // 新文档不带上次的缩放守卫，等一帧后重算补写
+    await nextFrame()
+    refreshPreviewZoom()
   } catch (error) {
     setNotice('#preview-error', `渲染失败：${error.message}`)
   } finally {
     setVisible('#preview-loading', false)
   }
+}
+
+/** 预览是否开着（遮罩靠 hidden 属性，与 setVisible 同一条判据） */
+const previewShown = () => {
+  const mask = document.getElementById('preview-mask')
+  return !!mask && !mask.hasAttribute('hidden')
+}
+
+/** 重算档位、重画档位条，并把缩放写进预览文档（渲染完成、切档、窗口变化三处同一入口） */
+function refreshPreviewZoom() {
+  const bar = document.getElementById('preview-zoom')
+  const frame = document.getElementById('preview-frame')
+  if (!bar || !previewTemplate) return
+  const state = previewZoom.sync()
+  previewZoomKeys = state.presets.map(p => p.key)
+  const note = bar.querySelector('.print-html-preview-zoom-note')
+  bar.querySelectorAll('.print-html-preview-zoom-btn').forEach(node => node.remove())
+  for (const preset of state.presets) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = `print-html-preview-zoom-btn${preset.key === state.zoomKey ? ' active' : ''}`
+    btn.title = preset.tip
+    btn.textContent = preset.label
+    btn.dataset.zoomKey = preset.key
+    bar.insertBefore(btn, note)
+  }
+  // 出错或渲染中不出档位条（与 canvas 的 v-if="templateJson && !rendering && !errorMsg" 同判据）
+  const errorShown = !document.getElementById('preview-error')?.hasAttribute('hidden')
+  const loadingShown = !document.getElementById('preview-loading')?.hasAttribute('hidden')
+  setVisible(bar, state.presets.length > 0 && !errorShown && !loadingShown)
+  previewZoom.apply(frame)
+}
+
+/** 档位条用事件委托：外壳重画按钮不影响监听，切档只改 active 与文档里的 zoom */
+function onPreviewZoomClick(event) {
+  const btn = event.target.closest?.('.print-html-preview-zoom-btn')
+  if (!btn) return
+  const key = btn.dataset.zoomKey
+  if (!previewZoomKeys.includes(key)) return
+  previewZoom.setKey(key)
+  btn.parentElement.querySelectorAll('.print-html-preview-zoom-btn')
+    .forEach(node => node.classList.toggle('active', node === btn))
+  previewZoom.apply(document.getElementById('preview-frame'))
+}
+
+/** 「适配」档按容器宽算整数倍，窗口变化要重算（与 PrintHtmlPreview 的 resize 监听同口径） */
+function onPreviewResize() {
+  if (previewShown()) refreshPreviewZoom()
 }
 
 function printPreview() {
@@ -317,6 +380,8 @@ function bindTopbar() {
   })
   $('#preview-print').on('click', printPreview)
   $('#preview-close').on('click', closePreview)
+  // 档位条按钮由 refreshPreviewZoom 重画，故用事件委托挂在容器上
+  document.getElementById('preview-zoom').addEventListener('click', onPreviewZoomClick)
 }
 
 // ────────────────── 入口 ──────────────────

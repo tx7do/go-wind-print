@@ -7,7 +7,7 @@ import { SAMPLES } from './templates'
 import TemplateGalleryDialog from './components/TemplateGalleryDialog'
 import CustomDataDialog from './components/CustomDataDialog'
 import PrintOutputDialog from './components/PrintOutputDialog'
-import { renderInBrowser, writeHtmlToFrame } from './browser-render'
+import { createPreviewZoom, renderInBrowser, writeHtmlToFrame } from './browser-render'
 
 /** 宿主基址：模板里的相对路径图片按它拼接 */
 const BASE_URL = window.location.origin
@@ -42,6 +42,7 @@ export default function App() {
   const designerRef = useRef(null)   // <print-designer> 自定义元素本体
   const fileInputRef = useRef(null)
   const previewFrameRef = useRef(null)
+  const previewBodyRef = useRef(null)
 
   const [fields, setFields] = useState([])
   const [templateData, setTemplateData] = useState(() => createDefaultTemplate())
@@ -91,24 +92,53 @@ export default function App() {
   const [previewPages, setPreviewPages] = useState(0)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
+  const [previewZoomPresets, setPreviewZoomPresets] = useState([])
+  const [previewZoomKey, setPreviewZoomKey] = useState('')
+  /** 本次预览用的模板：档位表按它的 printerDpi 与纸宽结算 */
+  const previewTemplateRef = useRef(null)
+  const previewZoomRef = useRef(null)
+  if (!previewZoomRef.current) {
+    previewZoomRef.current = createPreviewZoom({
+      getTemplate: () => previewTemplateRef.current,
+      measureContainer: () => previewBodyRef.current?.clientWidth ?? 0,
+    })
+  }
+
+  /** 重算档位并写进预览文档（渲染完成、切档、窗口变化三处同一入口） */
+  const refreshPreviewZoom = useCallback(() => {
+    const ctl = previewZoomRef.current
+    const state = ctl.sync()
+    setPreviewZoomPresets(state.presets)
+    setPreviewZoomKey(state.zoomKey)
+    ctl.apply(previewFrameRef.current)
+  }, [])
+
+  const onPreviewZoom = useCallback((key) => {
+    setPreviewZoomKey(previewZoomRef.current.setKey(key))
+    previewZoomRef.current.apply(previewFrameRef.current)
+  }, [])
 
   const openPreview = useCallback(async (templateJson) => {
     setPreviewPages(0)
     setPreviewError('')
     setPreviewLoading(true)
     setPreviewVisible(true)
+    previewTemplateRef.current = templateJson
     try {
       const rendered = await renderInBrowser(templateJson, printDataRef.current, BASE_URL)
       // iframe 由条件渲染控制，需等这一帧渲染完成后再取节点
       await nextFrame()
       writeHtmlToFrame(previewFrameRef.current, rendered.html)
       setPreviewPages(rendered.pageCount)
+      // 新文档不带上次的缩放守卫，等一帧后重算补写
+      await nextFrame()
+      refreshPreviewZoom()
     } catch (error) {
       setPreviewError(`渲染失败：${error.message}`)
     } finally {
       setPreviewLoading(false)
     }
-  }, [])
+  }, [refreshPreviewZoom])
 
   /** 载入示例：模板深拷贝后回写（重复选同一示例也能触发重载），字段树与打印数据同步切换 */
   const applySample = useCallback((sample) => {
@@ -236,9 +266,17 @@ export default function App() {
     const onPreviewKeydown = (event) => {
       if (event.key === 'Escape') setPreviewVisible(false)
     }
+    // 「适配」档按容器宽算整数倍，窗口变化要重算（与 PrintHtmlPreview 的 resize 监听同口径）
+    const onPreviewResize = () => {
+      if (!previewLoading && !previewError) refreshPreviewZoom()
+    }
     window.addEventListener('keydown', onPreviewKeydown)
-    return () => window.removeEventListener('keydown', onPreviewKeydown)
-  }, [previewVisible])
+    window.addEventListener('resize', onPreviewResize)
+    return () => {
+      window.removeEventListener('keydown', onPreviewKeydown)
+      window.removeEventListener('resize', onPreviewResize)
+    }
+  }, [previewVisible, previewLoading, previewError, refreshPreviewZoom])
 
   // ────────────────── 各弹窗可见性 ──────────────────
   const [galleryVisible, setGalleryVisible] = useState(false)
@@ -278,6 +316,7 @@ export default function App() {
         </details></span>
         <span className="demo-ou" data-overflow-unit="biz"><span className="demo-badge">业务类型：{currentSample ? currentSample.name : '空白模板'}</span></span>
         <span className="demo-ou" data-overflow-unit="host-badge"><span className="demo-badge">宿主：React + Web Component</span></span>
+        <span className="demo-spacer" data-overflow-spacer />
         <span className="demo-ou" data-overflow-unit="custom"><button type="button" className="demo-print-btn" onClick={() => setCustomDialogVisible(true)}>自定义字段与数据</button></span>
         <span className="demo-ou" data-overflow-unit="gallery"><button type="button" className="demo-print-btn" onClick={() => setGalleryVisible(true)}>加载示例</button></span>
         <span className="demo-ou" data-overflow-unit="export"><button type="button" className="demo-print-btn" onClick={onExportTemplate}>导出模板</button></span>
@@ -291,7 +330,7 @@ export default function App() {
           <span>批量打印（{batchDataList.length} 份）</span>
         </label></span>
         <span className="demo-more-group" data-overflow-more hidden>
-          <button type="button" className="demo-print-btn demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
+          <button type="button" className="demo-more-trigger" data-test="demo-more" aria-expanded="false" title="横向空间不足时，顶部其余操作会折叠到这里">
             <svg className="demo-more-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" /></svg>
             <span>更多</span><span className="demo-more-caret" aria-hidden="true"></span>
           </button>
@@ -329,10 +368,25 @@ export default function App() {
                 <button type="button" className="preview-btn ghost" onClick={() => setPreviewVisible(false)}>关闭</button>
               </div>
             </div>
-            <div className="preview-body print-html-preview">
+            <div ref={previewBodyRef} className="preview-body print-html-preview">
               {previewLoading ? <div className="print-html-preview-loading">预览渲染中…</div> : null}
               {previewError ? <div className="print-html-preview-error">{previewError}</div> : null}
               <iframe ref={previewFrameRef} className="print-html-preview-iframe" title="打印预览" />
+              {/* 档位条与 demo 的 PrintHtmlPreview 同类名同档位；判据在 core，宿主只渲染与切档 */}
+              {previewZoomPresets.length && !previewLoading && !previewError ? (
+                <div className="print-html-preview-zoom">
+                  {previewZoomPresets.map(preset => (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      className={`print-html-preview-zoom-btn${preset.key === previewZoomKey ? ' active' : ''}`}
+                      title={preset.tip}
+                      onClick={() => onPreviewZoom(preset.key)}
+                    >{preset.label}</button>
+                  ))}
+                  <span className="print-html-preview-zoom-note">仅屏幕缩放，打印不受影响</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

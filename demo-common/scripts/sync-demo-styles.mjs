@@ -12,6 +12,7 @@ const REPO = join(HERE, '..', '..')
 /** 抽取来源：顺序即层叠顺序，与 demo 中各组件的 scoped 样式互不干扰 */
 const SOURCES = [
   { file: 'demo/src/App.vue', title: 'demo 骨架：顶栏 / 画布容器 / 全屏预览层' },
+  { file: 'demo/src/components/DemoTopbarMore.vue', title: '顶栏「更多」收纳面板（子 demo 用同一套类名与状态类）' },
   { file: 'demo/src/components/PrintOutputDialog.vue', title: '打印输出弹窗（服务端 PDF / 客户端静默打印）' },
   { file: 'demo/src/components/TemplateGalleryDialog.vue', title: '示例模板库弹窗' },
   { file: 'demo/src/components/CustomDataDialog.vue', title: '自定义字段与数据弹窗' },

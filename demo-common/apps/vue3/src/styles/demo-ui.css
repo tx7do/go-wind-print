@@ -30,6 +30,31 @@ body,
   color: #2a2e37;
   flex-shrink: 0;
 }
+/* 收纳单元与其内文本一律不压缩：压缩会让自然宽度量不准，收纳判定随之失真 */
+.demo-topbar > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.demo-ou {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.demo-spacer {
+  flex: 1 0 0;
+  min-width: 0;
+}
+/* 9 项全收进「更多」后仍放不下：标题区省略号兜底，不再让顶部条溢出 */
+.demo-topbar.is-tight .demo-logo,
+.demo-topbar.is-tight .demo-project {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.demo-topbar.is-tight .demo-project {
+  flex-shrink: 1;
+  min-width: 0;
+}
 .demo-logo {
   font-weight: 600;
   color: #165dff;
@@ -137,9 +162,7 @@ body,
 .demo-print-btn:hover {
   background: #eef3ff;
 }
-.demo-topbar > .demo-print-btn:first-of-type {
-  margin-left: auto;
-}
+/* 左右分隔由 .demo-spacer 承担：按钮被包进收纳单元后，:first-of-type 选不到它们了 */
 .demo-batch-switch {
   display: inline-flex;
   align-items: center;
@@ -227,6 +250,97 @@ body,
   background: #f4f6fa;
   color: #2a2e37;
   border: 1px solid #d9dde6;
+}
+
+/* ══ 顶栏「更多」收纳面板（子 demo 用同一套类名与状态类） ══ 逐字来自 demo/src/components/DemoTopbarMore.vue */
+.demo-more-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.demo-more-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid #d9dde6;
+  border-radius: 6px;
+  background: #fff;
+  color: #5a667f;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .14s ease, border-color .14s ease, color .14s ease;
+}
+.demo-more-trigger:hover {
+  border-color: #165dff;
+  color: #165dff;
+  background: #f7faff;
+}
+.demo-more-trigger.on {
+  border-color: #165dff;
+  color: #165dff;
+  background: rgba(22, 93, 255, .07);
+}
+.demo-more-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+/* 顶部条给子项统一设了 nowrap，说明文字要能自然换行得显式放开 */
+.demo-more-note {
+  margin: 0;
+  padding: 0 2px 8px;
+  border-bottom: 1px solid #eef1f6;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8b909c;
+  white-space: normal;
+}
+.demo-more-caret {
+  width: 0;
+  height: 0;
+  margin-left: 5px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  opacity: .6;
+  transition: transform .14s ease;
+}
+.demo-more-caret.up {
+  transform: rotate(180deg);
+}
+.demo-more-panel {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 276px;
+  max-width: 320px;
+  padding: 10px;
+  border: 1px solid #d9dde6;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(23, 32, 60, .14);
+}
+.demo-more-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.demo-more-label {
+  font-size: 11px;
+  color: #8b909c;
+}
+.demo-more-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ══ 打印输出弹窗（服务端 PDF / 客户端静默打印） ══ 逐字来自 demo/src/components/PrintOutputDialog.vue */
@@ -804,6 +918,46 @@ body,
 }
 .print-html-preview-error {
   color: #f56c6c;
+}
+/* 缩放条浮在预览右上：不占布局，避免各宿主（demo 与设计器弹框）为它改容器结构 */
+.print-html-preview-zoom {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border: 1px solid var(--pd-border-soft, #ebeef5);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.print-html-preview-zoom-btn {
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--pd-text-muted, #909399);
+  font-size: 11px;
+  line-height: 18px;
+  cursor: pointer;
+  transition: color .14s ease, background .14s ease;
+}
+.print-html-preview-zoom-btn:hover {
+  background: var(--pd-sidebar-hover, #f0f3f9);
+  color: var(--pd-text, #2a2e37);
+}
+.print-html-preview-zoom-btn.active {
+  background: var(--pd-accent, #165DFF);
+  color: #fff;
+  font-weight: 600;
+}
+.print-html-preview-zoom-note {
+  padding-right: 4px;
+  color: var(--pd-text-muted, #909399);
+  font-size: 11px;
 }
 
 /* ── 通用宿主适配补充（非 demo 样式，仅为让自定义元素拿到与组件根节点相同的高度） ── */
