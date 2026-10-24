@@ -6,7 +6,10 @@ import { h, render } from '../../core/h'
 import type { ShellState } from '../controls'
 import { renderFontSelect } from '../font-select'
 
-const FONTS = ['SimSun', 'SimHei', 'Microsoft YaHei', 'KaiTi']
+const FONTS = [
+  { family: 'SimSun' }, { family: 'SimHei' }, { family: 'Microsoft YaHei' }, { family: 'KaiTi' },
+]
+const FAMILIES = FONTS.map(f => f.family)
 
 function makeState(): ShellState {
   return {
@@ -20,7 +23,7 @@ interface MountArgs {
   value?: string
   placeholder?: string
   disabled?: boolean
-  fonts?: readonly (string | { family: string; label?: string })[]
+  fonts?: readonly { family: string; label?: string }[]
 }
 
 /** 挂一次字体控件（等价于外壳的一帧重绘） */
@@ -74,16 +77,23 @@ describe('font-select 结构与 aria（对照 FontSelect.vue）', () => {
   it('空值行文案 = placeholder；候选只有宿主清单，没有内置字体档', () => {
     const m = mount({ state: makeState(), placeholder: '继承默认' })
     m.focus()
-    expect(m.labels()).toEqual(['继承默认', ...FONTS])
+    expect(m.labels()).toEqual(['继承默认', ...FAMILIES])
     expect(m.list()).toBeTruthy()
     expect(m.input.getAttribute('aria-expanded')).toBe('true')
     expect(m.rows().every(li => li.getAttribute('role') === 'option')).toBe(true)
   })
 
+  it('裸字符串族名不入候选（与画布同判据：候选只来自字体声明条目）', () => {
+    const m = mount({ state: makeState(), fonts: ['SimSun', 'SimHei'] as never })
+    m.focus()
+    // 只剩空值行，不会凭空造出没有字体文件的两档
+    expect(m.labels()).toEqual(['默认'])
+  })
+
   it('当前值不在清单内时补一行「xxx（未知）」且置灰（canvas 的 unknown 行）', () => {
     const m = mount({ state: makeState(), value: 'Zapfino' })
     m.focus()
-    expect(m.labels()).toEqual(['默认', 'Zapfino（未知）', ...FONTS])
+    expect(m.labels()).toEqual(['默认', 'Zapfino（未知）', ...FAMILIES])
     expect(m.rows()[1]!.classList.contains('is-muted')).toBe(true)
     expect(m.input.value).toBe('Zapfino')
   })

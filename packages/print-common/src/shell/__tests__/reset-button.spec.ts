@@ -8,8 +8,9 @@
 import { describe, it, expect } from 'vitest'
 import { resetButton, field, fieldHelp } from '../controls'
 import { render } from '../../core/h'
+import type { El } from '../../core/h'
 
-function mount(node: unknown): HTMLElement {
+function mount(node: El | string | Node): HTMLElement {
   const host = document.createElement('div')
   render(node, host)
   return host

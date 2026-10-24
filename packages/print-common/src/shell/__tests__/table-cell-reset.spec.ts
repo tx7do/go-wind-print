@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'
+import type { El } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
 import { tableCellGroup, tableSettingsGroup } from '../table-props'
 import { createDefaultOptions } from '@worm-vue3-print/core/designer'
@@ -34,7 +35,7 @@ function makeCtx(cellPatches: Partial<TableCell>[]) {
   return { store, ctx, el }
 }
 
-function paint(node: unknown): HTMLElement {
+function paint(node: El | string | Node): HTMLElement {
   const host = document.createElement('div')
   render(node, host)
   return host

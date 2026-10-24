@@ -45,7 +45,7 @@ function paint(available: number | null) {
   const ctx: ShellCtx = {
     store, format: new FormatToolbar(store), state: makeState(),
     repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false,
-    host: { fonts: ['SimSun'] },
+    host: { fonts: [] },
   }
   const host = document.createElement('div')
   document.body.replaceChildren(host)
@@ -127,7 +127,7 @@ describe('print-common 工具栏收纳：「更多」与内层下拉可并存', 
       store, format: new FormatToolbar(store),
       state: { ...makeState(), openMore: true, openDd: 'align' },
       repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false,
-      host: { fonts: ['SimSun'] },
+      host: { fonts: [] },
     }
     const host = document.createElement('div')
     document.body.replaceChildren(host)

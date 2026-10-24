@@ -2,15 +2,17 @@
 // 零框架外壳的流式列表验收：对照 canvas 的 FlowListElement.vue + FlowListGroup.vue，
 // 并核对与出纸同源的三条口径（列数与行高同源、只提示不写值、跨列上限钳到列数）。
 import { describe, it, expect } from 'vitest'
+import { resolveFlowGapX, suggestFlowColumns } from '@worm-vue3-print/core/designer'
+import type { ElementType } from '@worm-vue3-print/core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
 import { renderPropertyPanel } from '../property-panel'
 import { renderDesignElement } from '../elements'
-import { ELEMENT_TYPES } from '../panels'
+import { ELEMENT_TYPES, renderLeftPanel } from '../panels'
 
-function makeState(propSearch = ''): ShellState {
+function makeState(): ShellState {
   return {
     leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
     openDd: null, collapsedGroups: new Set(), renamingPage: null,
@@ -29,7 +31,7 @@ function makeCtx(options: Record<string, any> = {}, propSearch = ''): ShellCtx {
   return {
     store, format: new FormatToolbar(store), state: { ...makeState(), propSearch },
     repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false,
-    host: { fonts: ['SimSun', 'SimHei'] },
+    host: { fonts: [] },
   }
 }
 
@@ -66,7 +68,7 @@ const visibleFieldLabels = (host: ParentNode, title: string) => {
 
 const setColumns = (host: ParentNode, title: string, label: string, value: string) => {
   const group = Array.from(host.querySelectorAll<HTMLElement>('.property-group'))
-    .find(g => g.querySelector('.group-title') === label || g.querySelector('.group-title')?.textContent === title)
+    .find(g => g.querySelector('.group-title')?.textContent === title)
   const row = Array.from(group?.querySelectorAll<HTMLElement>('.pd-field') ?? [])
     .find(f => (f.querySelector('.pd-label')?.textContent ?? '').includes(label))
   const input = row?.querySelector('input.pd-step-input') as HTMLInputElement | null
@@ -74,6 +76,28 @@ const setColumns = (host: ParentNode, title: string, label: string, value: strin
   input.value = value
   input.dispatchEvent(new Event('change'))
   return input
+}
+
+const flowGroup = (host: ParentNode) => Array.from(host.querySelectorAll<HTMLElement>('.property-group'))
+  .find(g => g.querySelector('.group-title')?.textContent === '流式列表')
+
+const fieldByLabel = (host: ParentNode, label: string) => Array.from(flowGroup(host)?.querySelectorAll<HTMLElement>('.pd-field') ?? [])
+  .find(f => (f.querySelector('.pd-label')?.textContent ?? '').includes(label))
+
+const inputValue = (field?: HTMLElement) => (field?.querySelector('input.pd-step-input') as HTMLInputElement | null)?.value
+
+/** happy-dom 该版本未实现 Storage：分组折叠态读写需要 localStorage（同 __tests__/adsorb-drag.spec.ts） */
+function stubStorage() {
+  const map = new Map<string, string>()
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (k: string) => (map.has(k) ? map.get(k)! : null),
+      setItem: (k: string, v: string) => { map.set(k, String(v)) },
+      removeItem: (k: string) => { map.delete(k) },
+      clear: () => map.clear(),
+    },
+  })
 }
 
 describe('工具箱与元素层', () => {
@@ -150,5 +174,73 @@ describe('属性台', () => {
     // 搜索时其余行仍在 DOM 里，只是被门控隐藏
     expect(fieldLabels(host, '流式列表').some(l => l.includes('每行列数'))).toBe(true)
     expect(shown.some(l => l.includes('每行列数'))).toBe(false)
+  })
+
+  it('步进框显示 core 解析出的出厂值：手写/存量模板缺字段时不留空（canvas FlowListGroup 同口径）', () => {
+    const ctx = makeCtx({ flowColumns: undefined, flowRowHeight: undefined, flowGapX: undefined })
+    const host = paintPanel(ctx)
+    expect(inputValue(fieldByLabel(host, '每行列数'))).toBe('4')
+    expect(inputValue(fieldByLabel(host, '行高'))).toBe('8')
+    expect(inputValue(fieldByLabel(host, '单元横向间距'))).toBe('4')
+  })
+
+  it('关闭跨列开关不凭空写 flowMaxSpan（canvas 只在打开那一支补钳）', () => {
+    const ctx = makeCtx({ flowAutoSpan: true, flowMaxSpan: undefined })
+    const host = paintPanel(ctx)
+    const sw = fieldByLabel(host, '内容过长时跨列')?.querySelector('input.pd-switch') as HTMLInputElement
+    expect(sw.checked).toBe(true)
+    sw.checked = false
+    sw.dispatchEvent(new Event('change'))
+    const o = ctx.store.elements[0]!.options
+    expect(o.flowAutoSpan).toBe(false)
+    // 出厂值里 flowMaxSpan 恒有键（element-factory 写 2），所以判据取「关开关后仍是 fixture 的 undefined」
+    expect(o.flowMaxSpan).toBeUndefined()
+  })
+
+  it('「列数挤不下」提示行与 canvas 逐字同串（含句末句号）', () => {
+    const ctx = makeCtx({ flowColumns: 8, width: 20 })
+    const host = paintPanel(ctx)
+    const suggest = suggestFlowColumns(20, resolveFlowGapX(ctx.store.elements[0]!.options.flowGapX), 10.5)
+    expect(flowGroup(host)?.querySelector('.pd-hint')?.textContent)
+      .toBe(`按当前字号与框宽，8 列偏挤（可放约 ${suggest} 列）。数值保持不变，出纸按 8 列排。`)
+  })
+
+  it('分组折叠偏好落在与 canvas 同一个 localStorage 键（property-group-flowList）', () => {
+    stubStorage()
+    window.localStorage.clear()
+    const host = paintPanel(makeCtx())
+    const header = flowGroup(host)!.querySelector('.group-header') as HTMLElement
+    header.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(window.localStorage.getItem('property-group-flowList')).toBe('false')
+    expect(window.localStorage.getItem('property-group-flow-list')).toBeNull()
+  })
+})
+
+/** 与 canvas 的 __tests__/LayerPanelIcon.spec.ts 断言同一张字面量表，任一侧改动即红 */
+const LAYER_ICONS: Record<string, string> = {
+  text: 'T', longText: '¶', table: '⊞', flowList: '⊟', image: '🖼', barcode: '≡', qrcode: '▣',
+  hline: '—', vline: '|', rect: '□', oval: '○', html: '<>',
+}
+
+describe('图层面板类型图标', () => {
+  it('12 类元素各有图标，flowList 是 ⊟ 而不是 ? 兜底（与 canvas 同表）', () => {
+    const store = new DesignerStore()
+    for (const type of Object.keys(LAYER_ICONS)) {
+      store.addElement(type as ElementType, { left: 0, top: 0, width: 10, height: 10, title: type })
+    }
+    const ctx: ShellCtx = {
+      store, format: new FormatToolbar(store), state: makeState(),
+      repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false, host: {},
+    }
+    const host = document.createElement('div')
+    document.body.replaceChildren(host)
+    render(renderLeftPanel(ctx), host)
+    // 图层行按 zIndex 排序，故按「类型 → 图标」建表比对，不依赖 DOM 顺序
+    const byType: Record<string, string> = {}
+    for (const row of Array.from(host.querySelectorAll('.layer-item'))) {
+      byType[row.querySelector('.layer-name')?.textContent ?? ''] = row.querySelector('.layer-icon')?.textContent ?? ''
+    }
+    expect(byType).toEqual(LAYER_ICONS)
+    expect(Object.values(byType)).not.toContain('?')
   })
 })

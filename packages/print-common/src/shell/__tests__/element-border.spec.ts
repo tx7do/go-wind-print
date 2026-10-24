@@ -2,14 +2,14 @@
 // 元素台边框入口 Common 端契约：与 canvas 的 BorderBgGroup.vue 同位同文案，
 // 写入统一经 store.updateElement 收口，落盘口径由 core 的 element-border-edit 保证（两宿主同一条）。
 import { describe, it, expect } from 'vitest'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { ElementType, RuntimeElement } from '@worm-vue3-print/core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
 import { renderPropertyPanel } from '../property-panel'
 
-function paintElement(type: string, options: Record<string, any> = {}) {
+function paintElement(type: ElementType, options: Record<string, any> = {}) {
   const store = new DesignerStore()
   store.addElement(type, { left: 10, top: 10, width: 35, height: 45, ...options })
   store.selectOne(store.elements[0]!.id)
@@ -29,13 +29,13 @@ function paintElement(type: string, options: Record<string, any> = {}) {
 }
 
 const presetBtn = (host: HTMLElement, label: string) =>
-  Array.from(host.querySelectorAll<HTMLElement>('.border-presets button')).find(b => b.textContent === label)
+  Array.from(host.querySelectorAll<HTMLButtonElement>('.border-presets button')).find(b => b.textContent === label)
 
 const edgeBoxes = (host: HTMLElement) =>
   Array.from(host.querySelectorAll<HTMLInputElement>('.pd-checkbox-group input'))
 
 const styleSelect = (host: HTMLElement) =>
-  host.querySelector<HTMLElement>('[data-prop-key="bb-border-style"] select')!
+  host.querySelector<HTMLSelectElement>('[data-prop-key="bb-border-style"] select')!
 
 describe('元素台边框入口', () => {
   it('文本元素给线型、四档预设与四边勾选', () => {
@@ -48,7 +48,7 @@ describe('元素台边框入口', () => {
   })
 
   it('rect／oval／hline／vline／table 用 border 画自身本体，不给预设与单边', () => {
-    for (const type of ['rect', 'oval', 'hline', 'vline', 'table']) {
+    for (const type of ['rect', 'oval', 'hline', 'vline', 'table'] as const) {
       const { host } = paintElement(type)
       expect(host.querySelector('.border-presets'), `${type} 不应给预设行`).toBeNull()
       expect(host.querySelector('.pd-checkbox-group'), `${type} 不应给单边行`).toBeNull()

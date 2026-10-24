@@ -7,13 +7,12 @@
 //   过滤词、高亮行）持久化在 ShellState.fontOpen 上，repaint() 后仍能原样恢复，不闪断。
 // · 输入与过滤只重写本控件的 <ul> 子树，不触发外壳重绘（canvas 同理：状态在组件内部），
 //   因此连续输入与中文输入法组合不会被整体重绘打断。
-// · 候选数据源为 core 侧未导出的字体目录算法，等价实现见 ../core/font-catalog.ts。
+// · 候选整理与模糊匹配都直接调 core 的 print/fonts.ts 导出，canvas 与本包同一份实现（不再有第二套目录算法）。
 import {
-  buildFontCatalog, filterFontOptions, findFontOption, fontOptionLabel, normalizeFontQuery,
-} from '../core/font-catalog'
-import type { FontOption } from '../core/font-catalog'
+  filterFontOptions, findFontOption, fontOptionLabel, normalizeFontCatalog, normalizeFontQuery,
+} from '@worm-vue3-print/core'
+import type { FontCatalogOption, PrintFontDeclaration } from '@worm-vue3-print/core'
 import { resolveOverlayPlacement } from '@worm-vue3-print/core/designer'
-import { normalizeFontCatalog } from '@worm-vue3-print/core'
 import type { ShellState } from './controls'
 
 type FontRowKind = 'clear' | 'unknown' | 'font' | 'free'
@@ -32,8 +31,8 @@ export interface FontSelectOptions {
   id: string
   /** 外壳状态：展开态落在这里，跨重绘保持 */
   state: ShellState
-  /** 宿主注入的字体清单（字符串或字体声明均可） */
-  fonts?: readonly (string | FontOption)[]
+  /** 宿主注入的字体清单：条目须是字体声明（family/label，`files` 由宿主侧携带），裸字符串不进候选——与画布同一判据 */
+  fonts?: readonly (FontCatalogOption | PrintFontDeclaration | null | undefined)[]
   /** 当前族名；undefined 表示未设置，走全局兜底字体栈 */
   value?: string
   /** 空值行文案（同时用作输入框 placeholder） */
@@ -60,8 +59,9 @@ function measureBoundary(el: HTMLElement): { top: number; bottom: number } {
 }
 
 export function renderFontSelect(opts: FontSelectOptions): HTMLElement {
-  // 候选只来自宿主声明的模板字体（随模板分发、三端一致）；设计器不内置字体名档位
-  const catalog = normalizeFontCatalog(buildFontCatalog(opts.fonts))
+  // 候选只来自宿主声明的模板字体（随模板分发、三端一致）；设计器不内置字体名档位。
+  // 整理与匹配算法全在 core 的 print/fonts.ts，与 canvas 的 useFontCatalog 同一份实现。
+  const catalog = normalizeFontCatalog(opts.fonts)
   const placeholder = opts.placeholder ?? '默认'
   const listId = `font-select-list-${opts.id}`
 

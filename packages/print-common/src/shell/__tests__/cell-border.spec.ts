@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest'
 import type { RuntimeElement, TableCell } from '@worm-vue3-print/core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
-import { h, render } from '../../core/h'
+import { render } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
 import { tableCellGroup } from '../table-props'
 

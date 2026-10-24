@@ -30,7 +30,7 @@ function paint() {
   const ctx: ShellCtx = {
     store, format: new FormatToolbar(store), state: makeState(),
     repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false,
-    host: { fonts: ['SimSun'] },
+    host: { fonts: [] },
   }
   const host = document.createElement('div')
   document.body.replaceChildren(host)

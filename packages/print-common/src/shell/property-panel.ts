@@ -203,7 +203,7 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
               : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定') + (barWidthRec ? `。${barWidthRec}` : ''),
           })),
           gateItem(ctx, 'cd-bar-quiet-zone', fieldHelp('静区 (模块)', stepper({
-            value: o.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',
+            value: o.barQuietZone, min: 0, max: 20, placeholder: '默认 10',
             onCommit: v => patch({ barQuietZone: v }),
           }), propertyTip('cd-bar-quiet-zone'), reset('barQuietZone', 'cd-bar-quiet-zone'))),
           gateItem(ctx, 'cd-bar-height', fieldHelp('条高 (mm)', stepper({
@@ -256,36 +256,39 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
   // 流式列表：列数与行高必须指定、跨列默认关、放不下只提示不写值（与 canvas FlowListGroup 逐项一致）
   if (type === 'flowList') {
     const cols = resolveFlowColumns(o.flowColumns)
+    const rowH = resolveFlowRowHeight(o.flowRowHeight)
     const gap = resolveFlowGapX(o.flowGapX)
+    const maxSpan = resolveFlowMaxSpan(o.flowMaxSpan, cols)
     const fitCols = suggestFlowColumns(o.width ?? 0, gap, o.fontSize ?? 12)
-    rows.push(group(ctx, 'flow-list', '流式列表', 'Grid3x3', [
+    // 分组键与 canvas FlowListGroup 的 group-key 同串，两侧折叠偏好才互通
+    rows.push(group(ctx, 'flowList', '流式列表', 'Grid3x3', [
       h('form', { class: 'pd-form', onSubmit: (ev: Event) => ev.preventDefault() }, [
         gateItem(ctx, 'fl-columns', fieldHelp('每行列数', stepper({
-          value: o.flowColumns, min: 1, max: 12,
+          value: cols, min: 1, max: 12,
           onCommit: v => patch({
             flowColumns: resolveFlowColumns(v),
             flowMaxSpan: resolveFlowMaxSpan(o.flowMaxSpan, resolveFlowColumns(v)),
           }),
         }), propertyTip('fl-columns'))),
         gateItem(ctx, 'fl-row-height', fieldHelp('行高 (mm)', stepper({
-          value: o.flowRowHeight, min: 3, max: 100, step: 0.5,
+          value: rowH, min: 3, max: 100, step: 0.5,
           onCommit: v => patch({ flowRowHeight: resolveFlowRowHeight(v) }),
         }), propertyTip('fl-row-height'))),
         gateItem(ctx, 'fl-gap-x', fieldHelp('单元横向间距 (mm)', stepper({
-          value: o.flowGapX, min: 0, max: 50, step: 0.5,
+          value: gap, min: 0, max: 50, step: 0.5,
           onCommit: v => patch({ flowGapX: resolveFlowGapX(v) }),
         }), propertyTip('fl-gap-x'))),
-        gateItem(ctx, 'fl-auto-span', switchField(ctx, '内容过长时跨列', o.flowAutoSpan === true, v => patch({
-          flowAutoSpan: v,
-          flowMaxSpan: resolveFlowMaxSpan(o.flowMaxSpan, cols),
-        }))),
+        // 关开关不动 flowMaxSpan：与 canvas onAutoSpanChange 同口径，只开时补钳一次
+        gateItem(ctx, 'fl-auto-span', switchField(ctx, '内容过长时跨列', o.flowAutoSpan === true, v => {
+          patch(v ? { flowAutoSpan: v, flowMaxSpan: maxSpan } : { flowAutoSpan: v })
+        })),
         o.flowAutoSpan === true ? gateItem(ctx, 'fl-max-span', fieldHelp('最多跨几列', stepper({
-          value: o.flowMaxSpan, min: 1, max: cols,
+          value: maxSpan, min: 1, max: cols,
           onCommit: v => patch({ flowMaxSpan: resolveFlowMaxSpan(v, cols) }),
         }), propertyTip('fl-max-span'))) : '',
         cols > fitCols ? h('p', {
           class: 'pd-hint',
-          text: `按当前字号与框宽，${cols} 列偏挤（可放约 ${fitCols} 列）。数值保持不变，出纸按 ${cols} 列排`,
+          text: `按当前字号与框宽，${cols} 列偏挤（可放约 ${fitCols} 列）。数值保持不变，出纸按 ${cols} 列排。`,
         }) : '',
         // 单元模板与列表源不在本分组：模板写在「内容」分组的一条完整表达式里（{drugs.name} {drugs.spec}），
         // 列表源由表达式里出现的数组字段检出（core detectFlowListKey），与出纸同一口径

@@ -50,7 +50,7 @@ function qrcodeImg(host: HTMLElement): HTMLImageElement {
 function paintCellProps(cellPatch: Record<string, any>, cellType: 'qrcode' | 'barcode' = 'qrcode') {
   const store = new DesignerStore()
   const rows: TableRow[] = [{
-    id: 'r1', type: 'static', height: 8,
+    id: 'r1', type: 'data', height: 8,
     cells: [{
       id: 'c1', formatter: cellType === 'qrcode' ? 'QR' : '12345678', cellType, ...cellPatch,
     } as never],
@@ -158,8 +158,10 @@ describe('common 单元格二维码静区（属性台）', () => {
     expect(cell().qrQuietZone).toBe(0)
   })
 
-  it('未设置显示 0（与渲染器缺省档一致），已设置按存值显示', () => {
-    expect(quietInput(paintCellProps({}).host)!.value).toBe('0')
+  it('未设置时留空靠占位提示（与画布同形态：canvas 绑的是原始值），已设置按存值显示', () => {
+    const empty = quietInput(paintCellProps({}).host)!
+    expect(empty.value).toBe('')
+    expect(empty.placeholder).toBe('默认 0')
     expect(quietInput(paintCellProps({ qrQuietZone: 4 }).host)!.value).toBe('4')
   })
 })
@@ -189,6 +191,46 @@ describe('common 二维码元素静区（元素属性台）', () => {
     expect(help, '静区标签后应有帮助图标').toBeTruthy()
     expect(help!.getAttribute('data-tip')).toContain('数值越大白边越宽')
     expect(field!.querySelector('.pd-hint'), '说明不应常驻成一行文字').toBeNull()
+  })
+})
+
+describe('common 条形码元素静区（元素属性台）', () => {
+  function paintBarcodeProps(options: Partial<RuntimeElement['options']> = {}) {
+    const store = new DesignerStore()
+    store.addElement('barcode', { left: 10, top: 10, width: 60, height: 20, testData: '12345678', ...options } as never)
+    store.selectOne(store.elements[0]!.id)
+    const ctx: ShellCtx = {
+      store, format: new FormatToolbar(store),
+      state: {
+        leftTab: 'elements', leftCollapsed: false, propTab: 'element', propCollapsed: false,
+        openDd: null, collapsedGroups: new Set<string>(), renamingPage: null,
+      } as unknown as ShellState,
+      repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false, host: { fonts: [] },
+    } as unknown as ShellCtx
+    const host = document.createElement('div')
+    document.body.replaceChildren(host)
+    render(renderPropertyPanel(ctx), host)
+    const row = Array.from(host.querySelectorAll<HTMLElement>('.pd-field'))
+      .find(f => f.querySelector('.pd-label')?.textContent?.includes('静区'))!
+    return { row, input: row.querySelector('input.pd-step-input') as HTMLInputElement, el: store.elements[0]! }
+  }
+
+  it('未设置时留空靠占位提示；把缺省的 10 原样敲进去会写键（canvas CodeGroup 绑的是原始值，同一条 change 判据）', () => {
+    const { row, input, el } = paintBarcodeProps()
+    expect(input.value).toBe('')
+    expect(input.placeholder).toBe('默认 10')
+    expect(row.querySelector('.pd-help'), '说明应挂帮助图标').toBeTruthy()
+    input.value = '10'
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(el.options.barQuietZone).toBe(10)
+  })
+
+  it('已设置按存值显示，改回 0 是合法档不被归并成未设置', () => {
+    const { input, el } = paintBarcodeProps({ barQuietZone: 6 })
+    expect(input.value).toBe('6')
+    input.value = '0'
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(el.options.barQuietZone).toBe(0)
   })
 })
 

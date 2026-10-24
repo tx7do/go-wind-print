@@ -15,7 +15,8 @@ const GROUP_ICON: Record<string, string> = {
 /** 展开态与 canvas 共用 localStorage 键（`property-group-<key>`），同一浏览器里两侧偏好互通 */
 function readExpanded(key: string, fallback: boolean): boolean {
   try {
-    const raw = localStorage.getItem(`property-group-${key}`)
+    // 显式 window. 前缀：happy-dom 下 localStorage 不挂在 globalThis 上（同 help-modal.ts）
+    const raw = window.localStorage.getItem(`property-group-${key}`)
     return raw === null ? fallback : raw === 'true'
   } catch {
     return fallback
@@ -23,7 +24,7 @@ function readExpanded(key: string, fallback: boolean): boolean {
 }
 
 function writeExpanded(key: string, value: boolean) {
-  try { localStorage.setItem(`property-group-${key}`, String(value)) } catch { /* 隐私模式或存储满，忽略 */ }
+  try { window.localStorage.setItem(`property-group-${key}`, String(value)) } catch { /* 隐私模式或存储满，忽略 */ }
 }
 
 export function group(

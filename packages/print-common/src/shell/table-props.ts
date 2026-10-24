@@ -328,7 +328,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定') + (barWidthRec ? `。${barWidthRec}` : '')) : '',
       // 同二维码：走 stepper 而非 numField，0 档（不留白边）是合法值不能被归并成未设置
       isBarcodeCell ? fieldHelp('静区 (模块)', stepper({
-        value: cell0.barQuietZone ?? 10, min: 0, max: 20, placeholder: '默认 10',
+        value: cell0.barQuietZone, min: 0, max: 20, placeholder: '默认 10',
         onCommit: v => write(c => { c.barQuietZone = v }),
       }), propertyTip('cd-bar-quiet-zone'), cellReset('barQuietZone')) : '',
       isBarcodeCell ? fieldHelp('条高 (mm)', stepper({
@@ -350,7 +350,7 @@ export function tableCellGroup(ctx: ShellCtx, el: RuntimeElement): El {
         v => write(c => { c.qrCodeLevel = v || undefined }), false, cellReset('qrCodeLevel')) : '',
       // 与元素台同构造直接用 stepper：numField 经 orUndef 会把显式填的 0 归并成未设置（出图虽一致，存的值应与用户填的一致），且它也不带说明图标
       isQrcodeCell ? fieldHelp('静区 (模块)', stepper({
-        value: cell0.qrQuietZone ?? 0, min: 0, max: 8, placeholder: '默认 0',
+        value: cell0.qrQuietZone, min: 0, max: 8, placeholder: '默认 0',
         onCommit: v => write(c => { c.qrQuietZone = v }),
       }), propertyTip('cd-quiet-zone'), cellReset('qrQuietZone')) : '',
 

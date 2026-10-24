@@ -25,7 +25,7 @@ function paint(type: ElementType = 'text', propSearch = '', options: Record<stri
   const ctx: ShellCtx = {
     store, format: new FormatToolbar(store), state: { ...makeState(), propSearch },
     repaint: () => {}, fire: () => {}, showHelp: true, isEdit: false,
-    host: { fonts: ['SimSun', 'SimHei'] },
+    host: { fonts: [] },
   }
   const host = document.createElement('div')
   document.body.replaceChildren(host)

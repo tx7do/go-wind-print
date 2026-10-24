@@ -48,7 +48,8 @@ export interface ShellCtx {
   host: {
     uploadImage?: (file: File) => Promise<string>
     uploadDesignBackground?: (file: File) => Promise<string>
-    fonts?: readonly (string | PrintFontDeclaration)[]
+    /** 模板级字体声明，与 canvas 的 PrintDesigner `fonts` prop 同类型（裸字符串族名不参与候选，与画布一致） */
+    fonts?: readonly PrintFontDeclaration[]
   }
 }
 
