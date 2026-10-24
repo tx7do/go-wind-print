@@ -23,6 +23,7 @@ TYPE_TITLES = {
     'image': '图片',
     'longText': '长文',
     'table': '表格',
+    'flowList': '流式列表',
     'hline': '横线',
     'vline': '竖线',
     'rect': '矩形',
@@ -84,6 +85,16 @@ TYPE_ALIAS = {
     'longText': {
         'text': 'formatter',
         'indent': 'longTextIndent',
+    },
+    'flowList': {
+        # 单元模板是一条完整表达式（如 {drugs.name} {drugs.spec}），列表路径写在里面
+        'text': 'formatter',
+        'source': 'dataSource',        # 可选覆盖：显式给出时优先于表达式检出
+        'cols': 'flowColumns',         # 每行列数 1~12，必须由作者指定
+        'rowHeight': 'flowRowHeight',  # 行高 mm 3~100，最小高语义（内容更高时该行撑高）
+        'gapX': 'flowGapX',            # 单元横向间距 mm 0~50，纵向不留缝
+        'autoSpan': 'flowAutoSpan',    # 内容过长时跨列，缺省 false
+        'maxSpan': 'flowMaxSpan',      # 最多跨几列，钳到 flowColumns
     },
 }
 
@@ -203,6 +214,18 @@ def build_options(spec: Dict[str, Any], etype: str) -> Dict[str, Any]:
         options.setdefault('qrCodeLevel', 'M')
     if etype in ('text', 'longText'):
         options.setdefault('fontSize', 9)
+    if etype == 'flowList':
+        # 与设计器新建的出厂值同值（core createDefaultOptions），并把跨列上限钳到列数——
+        # 这是流式列表唯一会改用户填值的规则，脚本产出必须与画布所见一致
+        options.setdefault('flowColumns', 4)
+        options.setdefault('flowRowHeight', 8)
+        options.setdefault('flowGapX', 4)
+        options.setdefault('flowAutoSpan', False)
+        cols = options['flowColumns']
+        span = options.get('flowMaxSpan')
+        options['flowMaxSpan'] = 2 if span is None else max(1, min(int(span), cols))
+        if 'formatter' not in options:
+            raise BuildError('flowList 元素必须给 text（单元模板是一条完整表达式，如 "{drugs.name} {drugs.spec}"）')
     # 不预置字体：未显式写 family 时不产出 fontFamily/tableDefaultFontFamily，
     # 由渲染端系统默认字体承接（项目不替用户预置第三方授权字体名）
     return options
