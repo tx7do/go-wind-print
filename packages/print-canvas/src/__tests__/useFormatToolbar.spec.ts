@@ -316,3 +316,42 @@ describe('useFormatToolbar 元素分边边框', () => {
     expect(toolbar.elementEdges.value).toBeNull()
   })
 })
+
+describe('useFormatToolbar 单元格边框回读', () => {
+  const b = (width: number, style: 'solid' | 'dashed' | 'dotted', color = '#ff0000') => ({ width, style, color })
+
+  it('单选：取该格已有边的一致规格；部分边也照实回显', () => {
+    const { toolbar } = setup([tableEl([[{ borders: { top: b(2, 'dashed'), left: b(2, 'dashed') } }]])], ['t1'],
+      { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
+    expect(toolbar.cellBorderDraft.value).toMatchObject({
+      style: 'dashed', width: 2, color: '#ff0000',
+      mixed: { style: false, width: false, color: false },
+    })
+  })
+
+  it('单选四边不一致：逐字段标 mixed，兜底值仍可用于批写', () => {
+    const { toolbar } = setup([tableEl([[{
+      borders: { top: b(2, 'dashed'), right: b(0.75, 'solid', '#333333') },
+    }]])], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
+    expect(toolbar.cellBorderDraft.value).toMatchObject({
+      style: 'solid', width: 0.75, color: '#333333',
+      mixed: { style: true, width: true, color: true },
+    })
+  })
+
+  it('多选不回读单格：落缺省档且无 mixed', () => {
+    const { toolbar } = setup([tableEl([[
+      { borders: { top: b(3, 'dotted', '#123456') } },
+      { borders: { top: b(2, 'dashed') } },
+    ]])], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 1 })
+    expect(toolbar.cellBorderDraft.value).toMatchObject({
+      style: 'solid', width: 0.75, color: '#333333',
+      mixed: { style: false, width: false, color: false },
+    })
+  })
+
+  it('元素/无选中上下文不回读单元格：返回 null', () => {
+    expect(setup([el('a', 'text')], ['a']).toolbar.cellBorderDraft.value).toBeNull()
+    expect(setup([el('a', 'text')]).toolbar.cellBorderDraft.value).toBeNull()
+  })
+})

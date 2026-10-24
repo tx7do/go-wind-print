@@ -11,6 +11,7 @@ import {
   resolveElementBorderDisplay, setElementBorderEdgeVisible, setElementBorderField, BORDER_LINE_STYLES,
   ELEMENT_BORDER_APPLY_HINT,
   resolveFlowColumns, resolveFlowGapX, resolveFlowMaxSpan, resolveFlowRowHeight, suggestFlowColumns,
+  resolveCellGroupMode,
 } from '@worm-vue3-print/core/designer'
 import type { BorderPreset, ElementBorderFieldKey, ElementBorderSide, ElementOptions, RuntimeElement } from '@worm-vue3-print/core/designer'
 import { h } from '../core/h'
@@ -83,6 +84,9 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
   const isTable = type === 'table'
   /** 单元格选中态：单元格位置与宽高由行高/列宽控制，「位置与尺寸」分组让位（canvas isTableCellSelected） */
   const cellSelected = isTable && s.tableSelection?.elementId === el.id
+  /** 多选单元格：只做批量设置，不回显单格配置——「内容」绑定组按 r1,c1 单格读写，整组让位给单元格台 */
+  const multiCellSelected = cellSelected
+    && resolveCellGroupMode(el.options.tableRows ?? [], s.tableSelection!).mode === 'multi'
 
   const rows: unknown[] = []
   if (!cellSelected) {
@@ -240,7 +244,7 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
     ]))
   }
 
-  rows.push(bindingGroup(ctx, el))
+  if (!multiCellSelected) rows.push(bindingGroup(ctx, el))
 
   if (cellSelected) {
     rows.push(tableRowGroup(ctx, el))

@@ -3,7 +3,7 @@
   <button
     type="button"
     class="pd-reset-btn"
-    :class="{ 'is-dirty': dirty }"
+    :class="{ 'is-dirty': changed && !force }"
     :data-tip="tip"
     :aria-label="tip"
     @click="reset"
@@ -27,6 +27,8 @@ const props = defineProps<{
   tipOverride?: string
   /** 覆盖写回通道：单元格组必须走分组自己的整选区 write()，不能让组件直接改单个 cell 对象 */
   write?: (value: any) => void
+  /** 多选批量档：不显示"已改"脏点（判据取自单格会误导），但按钮恒可点，写回整选区 */
+  force?: boolean
 }>()
 
 const emit = defineEmits<{ change: [] }>()
@@ -35,16 +37,18 @@ const emit = defineEmits<{ change: [] }>()
 const factory = computed(() => props.base?.[props.propKey])
 
 /** 判据必须用 === 比出厂值；0 与 undefined 是两个状态，不得用 ?? / || 归并 */
-const dirty = computed(() => props.target?.[props.propKey] !== factory.value)
+const changed = computed(() => props.target?.[props.propKey] !== factory.value)
+const actionable = computed(() => props.force === true || changed.value)
 
 const tip = computed(() => {
-  if (props.tipOverride) return props.tipOverride
-  if (props.tipValue === undefined) return '恢复默认值'
-  return `恢复默认值（${props.tipValue}${props.tipUnit ? ' ' + props.tipUnit : ''}）`
+  const base = props.tipOverride ?? (props.tipValue === undefined
+    ? '恢复默认值'
+    : `恢复默认值（${props.tipValue}${props.tipUnit ? ' ' + props.tipUnit : ''}）`)
+  return props.force ? `${base}（应用到全部选中格）` : base
 })
 
 function reset() {
-  if (!dirty.value) return
+  if (!actionable.value) return
   if (props.write) props.write(factory.value)
   else props.target[props.propKey] = factory.value
   emit('change')

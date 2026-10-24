@@ -156,3 +156,95 @@ describe('格式栏线型可全不选中（线型＝无）', () => {
     expect(Object.keys(el.options.borders ?? {}).sort()).toEqual(['bottom', 'left', 'right'])
   })
 })
+
+describe('格式栏边框三行回读单元格', () => {
+  const b = (width: number, style: 'solid' | 'dashed' | 'dotted', color = '#ff0000') => ({ width, style, color })
+
+  /** 单行单元格夹具：cells 原样进矩阵，选区可覆盖右端 */
+  function cellBarHarness(cells: Array<Partial<TableCell>>, c2 = 0) {
+    const store = new DesignerStore()
+    store.addElement('table', { left: 10, top: 10, width: 60, height: 10 })
+    const el = store.elements[0] as RuntimeElement
+    el.options.tableColWidths = cells.map(() => 30)
+    el.options.tableRows = [{ id: 'r0', type: 'data', height: 10, cells }] as never
+    store.selectOne(el.id)
+    store.setTableSelection({ elementId: el.id, r1: 0, c1: 0, r2: 0, c2 })
+    const format = new FormatToolbar(store)
+    const host = paintBar(makeCtx(store, format))
+    return { store, format, el, host, cell: (i: number) => el.options.tableRows![0]!.cells[i] as TableCell }
+  }
+
+  const panel = (host: HTMLElement) => host.querySelector<HTMLElement>('[data-test="border-panel"]')!
+  const onStyles = (host: HTMLElement) => ['solid', 'dashed', 'dotted', 'double']
+    .filter(k => panel(host).querySelector(`[data-test="style-${k}"]`)!.classList.contains('on'))
+  const widthInput = (host: HTMLElement) =>
+    panel(host).querySelector<HTMLInputElement>('.ft-line-width input')!
+  const swatch = (host: HTMLElement) =>
+    panel(host).querySelector<HTMLElement>('.preset-color-swatch')!
+
+  it('单选：线型 / 粗细 / 颜色取该格真实规格，预设沿用该规格批写', () => {
+    const { host, format, cell } = cellBarHarness([{ borders: { top: b(2, 'dashed') } }])
+    expect(onStyles(host)).toEqual(['dashed'])
+    expect(widthInput(host).value).toBe('2')
+    expect(swatch(host).style.background).toBe('#ff0000')
+
+    format.applyBorderPreset('all')
+    expect(cell(0).borders!.top).toEqual(b(2, 'dashed'))
+    expect(cell(0).borders!.right).toEqual(b(2, 'dashed'))
+    expect(cell(0).borders!.bottom).toEqual(b(2, 'dashed'))
+    expect(cell(0).borders!.left).toEqual(b(2, 'dashed'))
+  })
+
+  it('单格无边框：线型无、粗细 0、颜色 #333；选实线自动补 0.75，预设出框', () => {
+    const { host, format, cell, store } = cellBarHarness([{}])
+    expect(onStyles(host)).toEqual([])
+    expect(widthInput(host).value).toBe('0')
+    expect(swatch(host).style.background).toBe('#333333')
+
+    panel(host).querySelector<HTMLElement>('[data-test="style-solid"]')!.dispatchEvent(new Event('click'))
+    expect(format.borderWidth).toBe(0.75)
+    const repainted = paintBar(makeCtx(store, format))
+    expect(widthInput(repainted).value).toBe('0.75')
+
+    format.applyBorderPreset('all')
+    expect(cell(0).borders!.top).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+  })
+
+  it('单选四边不一致：不一致的字段留空、图标全不亮并提示，未改项按缺省档批写', () => {
+    const { host, format, cell } = cellBarHarness([{
+      borders: { top: b(2, 'dashed'), right: b(0.75, 'solid', '#333333') },
+    }])
+    expect(onStyles(host)).toEqual([])
+    expect(widthInput(host).value).toBe('')
+    expect(widthInput(host).placeholder).toBe('混合')
+    expect(swatch(host).style.background).toBe('transparent')
+    expect(panel(host).textContent).toContain('四边规格不一致')
+
+    format.applyBorderPreset('all')
+    expect(cell(0).borders!.top).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+    expect(format.borderWidth, '应用后留空项落定为缺省档').toBe(0.75)
+    expect(format.borderMixed.width).toBe(false)
+  })
+
+  it('多选不回读单格：三行落缺省档作批写源', () => {
+    const { host } = cellBarHarness([
+      { borders: { top: b(3, 'dotted', '#123456') } },
+      { borders: { top: b(2, 'dashed') } },
+    ], 1)
+    expect(onStyles(host)).toEqual(['solid'])
+    expect(widthInput(host).value).toBe('0.75')
+    expect(swatch(host).style.background).toBe('#333333')
+    expect(panel(host).textContent).not.toContain('四边规格不一致')
+  })
+
+  it('离开单元格上下文回缺省草稿，避免把单元格值带进元素面板', () => {
+    const { store, format } = cellBarHarness([{ borders: { top: b(2, 'dashed') } }])
+    expect(format.cellEdges).not.toBeNull()
+    store.setTableSelection(null)
+    store.selectOne('nonexistent')
+    format.syncBorderDraft()
+    expect(format.borderStyle).toBe('solid')
+    expect(format.borderWidth).toBe(0.75)
+    expect(format.borderColor).toBe('#333333')
+  })
+})

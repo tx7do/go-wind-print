@@ -6,7 +6,7 @@
     class="preset-color-trigger"
     :aria-expanded="visible"
     aria-haspopup="dialog"
-    :title="modelValue || '自动'"
+    :title="modelValue || emptyTitle || '自动'"
     @click="toggle"
   >
     <span class="preset-color-swatch" :style="swatchStyle"></span>
@@ -104,6 +104,8 @@ const props = withDefaults(defineProps<{
   modelValue?: string
   /** 是否允许清除颜色，边框等颜色必填场景可关闭 */
   clearable?: boolean
+  /** 未设置时的触发钮提示：默认「自动」；多选/混合场景可传「混合」 */
+  emptyTitle?: string
 }>(), {
   clearable: true,
 })

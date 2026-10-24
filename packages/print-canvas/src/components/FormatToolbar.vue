@@ -181,13 +181,18 @@
           <div class="ft-border-style-row">
             <span class="ft-edge-label">粗细</span>
             <div class="ft-line-width">
-              <StepperInput v-model="borderWidth" :min="0.25" :max="5" :step="0.25" />
+              <StepperInput :model-value="borderWidth" :min="0.25" :max="5" :step="0.25"
+                :placeholder="borderMixed.width ? '混合' : undefined"
+                @update:model-value="onBorderWidth" />
             </div>
           </div>
           <div class="ft-border-style-row">
             <span class="ft-edge-label">颜色</span>
-            <PresetColorPicker v-model="borderColor" :clearable="false" />
+            <PresetColorPicker :model-value="borderColor" :clearable="false"
+              :empty-title="borderMixed.color ? '混合' : undefined"
+              @update:model-value="onBorderColor" />
           </div>
+          <p class="pd-hint" v-if="borderMixedAny">当前单元格四边规格不一致：留空的项不谎报，点预设/单边时按缺省档（实线 0.75 / #333333）批写</p>
         </div>
       </ToolbarDropdown>
       </div>
@@ -196,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import {
   Bold, Underline, Strikethrough, TextAlignStart, TextAlignCenter, TextAlignEnd, TextAlignJustify,
   ArrowUpToLine, ChevronsUpDown, ArrowDownToLine, Grid3x3,
@@ -281,8 +286,29 @@ function decoTip(base: string): string {
 /* 边框面板（WPS 式）：线型/粗细/颜色为面板内草稿，点预设/单边时整体落盘 */
 /** 线型草稿：null = 一个格式都没选中（线型＝无，点预设/单边即按「无」落盘） */
 const borderStyle = ref<'solid' | 'dashed' | 'dotted' | 'double' | null>('solid')
-const borderWidth = ref(0.75)
-const borderColor = ref('#333333')
+const borderWidth = ref<number | undefined>(0.75)
+const borderColor = ref<string | undefined>('#333333')
+/** 单元格四边规格不一致的字段：留空、不谎报；未选时批写按缺省档兜底 */
+const borderMixed = reactive({ style: false, width: false, color: false })
+const borderMixedAny = computed(() => borderMixed.style || borderMixed.width || borderMixed.color)
+
+/** 选区块更换时把三行重置为该选区真实规格；离开单元格上下文回缺省草稿，避免把单元格值带进元素面板 */
+watch(() => props.format.cellBorderDraft.value?.key ?? '', () => {
+  const spec = props.format.cellBorderDraft.value
+  if (!spec) {
+    borderStyle.value = 'solid'
+    borderWidth.value = 0.75
+    borderColor.value = '#333333'
+    borderMixed.style = borderMixed.width = borderMixed.color = false
+    return
+  }
+  borderMixed.style = spec.mixed.style
+  borderMixed.width = spec.mixed.width
+  borderMixed.color = spec.mixed.color
+  borderStyle.value = spec.mixed.style ? null : (spec.style === 'none' ? null : spec.style)
+  borderWidth.value = spec.mixed.width ? undefined : spec.width
+  borderColor.value = spec.mixed.color ? undefined : spec.color
+}, { immediate: true })
 
 const isCells = computed(() => props.format.context.value === 'cells')
 
@@ -296,19 +322,49 @@ const LINE_STYLES = [
 type BorderSide = 'top' | 'right' | 'bottom' | 'left'
 
 function borderSpec(): TableCellBorder {
-  // 取消选中时按「无」落盘（此时只会走"清边框/撤边"分支）
-  return { width: borderWidth.value, style: borderStyle.value ?? 'none', color: borderColor.value }
+  // 四边不一致且用户没选线型时按实线批写（不能当成「无」把边框清掉）；显式取消才落 none
+  const style = borderStyle.value ?? (borderMixed.style ? 'solid' : 'none')
+  return {
+    width: borderWidth.value ?? 0.75,
+    style,
+    color: borderColor.value ?? '#333333',
+  }
+}
+
+function onBorderWidth(v?: number) {
+  borderWidth.value = v
+  borderMixed.width = false
+}
+
+function onBorderColor(v?: string) {
+  borderColor.value = v
+  borderMixed.color = false
+}
+
+/** 单元格批写落盘后本次规格已统一：混合标记与留空项落定为实际写入值 */
+function settleBorderDraft() {
+  if (!isCells.value) return
+  if (borderMixed.style) { borderStyle.value = 'solid'; borderMixed.style = false }
+  if (borderMixed.width) { borderWidth.value = 0.75; borderMixed.width = false }
+  if (borderMixed.color) { borderColor.value = '#333333'; borderMixed.color = false }
 }
 
 /** 再点已选中的线型＝取消该格式（图标全不亮＝线型无） */
 function toggleStyle(key: 'solid' | 'dashed' | 'dotted' | 'double') {
-  borderStyle.value = borderStyle.value === key ? null : key
+  const next = borderStyle.value === key ? null : key
+  borderMixed.style = false
+  borderStyle.value = next
+  // 无边框格（回读为 0）选线型时补缺省宽度；取消线型则宽度归零
+  if (next === null) borderWidth.value = 0
+  else if (borderWidth.value === 0) borderWidth.value = 0.75
 }
 
 function onPreset(p: BorderPreset) {
   // 线型＝无时预设等于清边框（单元格/元素同口径）
   if (isCells.value) {
-    props.format.applyCellBorderPreset(borderStyle.value === null ? 'none' : p, borderSpec())
+    const withNone = borderStyle.value === null && !borderMixed.style
+    props.format.applyCellBorderPreset(withNone ? 'none' : p, borderSpec())
+    settleBorderDraft()
   } else {
     props.format.applyElementBorder(borderStyle.value === null || p === 'none' ? 'none' : 'all', borderSpec())
   }
@@ -321,14 +377,18 @@ function edgeOn(side: BorderSide): boolean {
 }
 
 function onEdge(side: BorderSide) {
-  // 线型＝无时点某条边＝撤掉那条边
-  if (borderStyle.value === null) {
-    if (isCells.value) props.format.applyCellBorderEdges([side], borderSpec(), false)
-    else props.format.clearElementEdge(side)
+  // 线型＝无时点某条边＝撤掉那条边；混合态（未选线型）不能当成「无」，按实线补
+  if (borderStyle.value === null && !borderMixed.style) {
+    if (isCells.value) {
+      props.format.applyCellBorderEdges([side], borderSpec(), false)
+      settleBorderDraft()
+    } else props.format.clearElementEdge(side)
     return
   }
-  if (isCells.value) props.format.toggleCellEdge(side, borderSpec())
-  else props.format.toggleElementEdge(side, borderSpec())
+  if (isCells.value) {
+    props.format.toggleCellEdge(side, borderSpec())
+    settleBorderDraft()
+  } else props.format.toggleElementEdge(side, borderSpec())
 }
 </script>
 

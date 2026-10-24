@@ -202,20 +202,24 @@ export function resetButton(o: {
   write?: (value: any) => void
   /** 写回后的收尾（重绘 / 记历史）；不提供时只改对象 */
   onReset?: () => void
+  /** 多选批量档：不显示"已改"脏点（判据取自单格会误导），但按钮恒可点，写回整选区 */
+  force?: boolean
 }) {
   const factory = o.base?.[o.propKey]
-  const dirty = o.target?.[o.propKey] !== factory
-  const tip = o.tipOverride ?? (o.tipValue === undefined
+  const changed = o.target?.[o.propKey] !== factory
+  const actionable = o.force === true || changed
+  const baseTip = o.tipOverride ?? (o.tipValue === undefined
     ? '恢复默认值'
     : `恢复默认值（${o.tipValue}${o.tipUnit ? ' ' + o.tipUnit : ''}）`)
+  const tip = o.force ? `${baseTip}（应用到全部选中格）` : baseTip
   return h('button', {
     type: 'button',
-    class: `pd-reset-btn${dirty ? ' is-dirty' : ''}`,
+    class: `pd-reset-btn${changed && !o.force ? ' is-dirty' : ''}`,
     'data-tip': tip,
     'aria-label': tip,
     html: iconSvg('RotateCcw', 13),
     onClick: () => {
-      if (!dirty) return
+      if (!actionable) return
       if (o.write) o.write(factory)
       else o.target[o.propKey] = factory
       o.onReset?.()
@@ -253,8 +257,8 @@ export function radioGroup(name: string, options: { value: string; label: string
  * 必须建真节点后显式 select.value = 当前值（与 selectField 同一套可靠赋值）。
  */
 export function plainSelect(
-  value: string, options: { value: string; label: string }[], onChange: (v: string) => void,
-  attrs: { className?: string; width?: string } = {},
+  value: string, options: { value: string; label: string; disabled?: boolean }[],
+  onChange: (v: string) => void, attrs: { className?: string; width?: string } = {},
 ) {
   const sel = document.createElement('select')
   sel.className = attrs.className ?? 'pd-select'
@@ -263,6 +267,7 @@ export function plainSelect(
     const opt = document.createElement('option')
     opt.value = o.value
     opt.textContent = o.label
+    if (o.disabled) opt.disabled = true
     sel.appendChild(opt)
   }
   sel.value = value

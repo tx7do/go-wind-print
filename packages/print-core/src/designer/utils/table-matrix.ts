@@ -1,7 +1,9 @@
 // web/src/components/print/utils/table-matrix.ts
 // Excel 风格表格矩阵结构操作纯函数库。
 // 约定：函数原地修改传入的 rows/colWidths；返回 string 的函数以非空字符串为拒绝原因。
-import type { TableRow, TableRowType, TableCell, TableCellBorder, TableCellBorders, ElementOptions } from '../types.js'
+import type {
+  TableRow, TableRowType, TableCell, TableCellBorder, TableCellBorders, TableCellType, ElementOptions,
+} from '../types.js'
 import type { BorderSpecDisplay } from './element-border-edit.js'
 
 export interface CellRect { r1: number; c1: number; r2: number; c2: number }
@@ -391,7 +393,15 @@ export function applyBorderPreset(
 
 /** 线型/宽度/颜色是待应用规格（初值取自选区真实边框），必须点预设或勾单边才落盘；文案画布与 common 单元格台共用一条 */
 export const CELL_BORDER_APPLY_HINT
-  = '线型 / 宽度 / 颜色是待应用规格：选中格已有的边框规格一致时会填进这三行，规格不一或还没画过框时回到缺省档（实线 0.75pt）。改完点「全部 / 外侧 / 内部」或勾选上、下、左、右某条边才会写入选中的单元格；「无」是清除边框'
+  = '线型 / 宽度 / 颜色是待应用规格：选中格已有的边框规格一致时会填进这三行；四边不一致的项显示「混合」，一条边都没有时显示「无 / 0」。改完点「全部 / 外侧 / 内部」或勾选上、下、左、右某条边才会写入选中的单元格；「无」是清除边框'
+
+/** 多选态边框说明：多选不回显单格，三行只作批写规格；与单选的「取自选区」口径区分 */
+export const CELL_BORDER_APPLY_HINT_MULTI
+  = '多选时不回显单格边框：线型 / 宽度 / 颜色按当前设置作为批写规格，点「全部 / 外侧 / 内部」或勾选某条边后写入所有选中格；「无」是清除边框'
+
+/** 单格四边规格不一致的说明：不一致的字段显示「混合」，未改项批写仍按缺省档 */
+export const CELL_BORDER_APPLY_HINT_MIXED
+  = '当前单元格四边边框规格不一致：带「混合」的项不谎报，未改项在点「全部 / 外侧 / 内部」或勾选单边时按缺省档（实线 0.75pt）写入，改任一项即按该值批写'
 
 /**
  * 单边写入：只动那一条边，其余三边原样保留。
@@ -408,21 +418,52 @@ export function setCellBorderEdge(
   cell.borders = nb.top || nb.right || nb.bottom || nb.left ? nb : undefined
 }
 
+/** 选区内的可写单元格（跳过被合并覆盖的占位格）：单/多选判定、共有类型、边框派生都以此为准 */
+export function collectWritableCells(rows: TableRow[], rect: CellRect): TableCell[] {
+  const out: TableCell[] = []
+  for (let r = rect.r1; r <= rect.r2; r++) {
+    for (let c = rect.c1; c <= rect.c2; c++) {
+      const cell = rows[r]?.cells[c]
+      if (cell && !cell.merged) out.push(cell)
+    }
+  }
+  return out
+}
+
+/**
+ * 单元格台模式：可写格=1 为单选，≥2 为多选。
+ * 跨行/跨列的合并格虽然 rect 跨多个下标，但只有一个可写主格，仍按单选处理（正常回显）。
+ */
+export function resolveCellGroupMode(
+  rows: TableRow[], rect: CellRect,
+): { mode: 'single' | 'multi'; count: number } {
+  const count = collectWritableCells(rows, rect).length
+  return { mode: count > 1 ? 'multi' : 'single', count }
+}
+
+/**
+ * 多选时类型专属行（码制/条宽/静区/缩放…）的共有类型：全部可写格同类型才返回该类型，
+ * 混合返回 null。text 是合法返回值（未设置 cellType 即 text），供调用方决定文字类行是否出现。
+ */
+export function resolveSharedCellType(rows: TableRow[], rect: CellRect): TableCellType | null {
+  const cells = collectWritableCells(rows, rect)
+  if (!cells.length) return null
+  const first = cells[0]!.cellType ?? 'text'
+  return cells.every(c => (c.cellType ?? 'text') === first) ? first : null
+}
+
 /**
  * 单元格台「线型 / 宽度 / 颜色」三行的待应用规格（方案 B：跟着选区走，不再存本地草稿）。
  * 取选区内所有可写格已存在的边：规格全一致就回显该值，不一致逐字段给 mixed（界面留空报「混合」），
  * 一条边都没有给 undefined——由界面落回缺省档，保证点预设真的出框。
+ * 多选时界面不调用本函数（只回显单格配置），由缺省档充当批写源。
  */
 export function resolveCellBorderDisplay(rows: TableRow[], rect: CellRect): BorderSpecDisplay {
   const edges: TableCellBorder[] = []
-  for (let r = rect.r1; r <= rect.r2; r++) {
-    for (let c = rect.c1; c <= rect.c2; c++) {
-      const cell = rows[r]?.cells[c]
-      if (!cell || cell.merged) continue
-      for (const side of ['top', 'right', 'bottom', 'left'] as const) {
-        const b = cell.borders?.[side]
-        if (b) edges.push(b)
-      }
+  for (const cell of collectWritableCells(rows, rect)) {
+    for (const side of ['top', 'right', 'bottom', 'left'] as const) {
+      const b = cell.borders?.[side]
+      if (b) edges.push(b)
     }
   }
   const pick = (get: (b: TableCellBorder) => string | number | undefined) => {

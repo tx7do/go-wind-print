@@ -24,7 +24,7 @@
             <AppearanceGroup v-if="filteredGroups.includes('appearance')" :element="element" :is-text-type="isTextType" :matched-keys="matchedKeys" :searching="searching" />
             <!-- 条码/二维码设置（码制、条宽、缩放模式、最大宽高等） -->
             <CodeGroup v-if="filteredGroups.includes('code') && isCodeType" :element="element" :matched-keys="matchedKeys" :searching="searching" @change="recordHistory?.()" />
-            <PropertyGroup v-if="filteredGroups.includes('binding')" title="内容" icon="Document" default-expanded group-key="binding">
+            <PropertyGroup v-if="filteredGroups.includes('binding') && !isMultiCellSelection" title="内容" icon="Document" default-expanded group-key="binding">
               <BindingControl
                 v-for="desc in bindingDescriptors"
                 :key="desc.targetPath"
@@ -178,7 +178,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { RuntimeElement, PrintBusinessField, TemplateData, TableSelection } from '@worm-vue3-print/core/designer'
-import { PAPER_PRESETS, isContinuousPaperSize, isLabelPaperSize, labelPaperDefaults } from '@worm-vue3-print/core/designer'
+import { PAPER_PRESETS, isContinuousPaperSize, isLabelPaperSize, labelPaperDefaults, resolveCellGroupMode } from '@worm-vue3-print/core/designer'
 import { searchProperties } from '@worm-vue3-print/core/designer'
 import PropertySearch from './property/PropertySearch.vue'
 import ResetButton from './property/ResetButton.vue'
@@ -266,6 +266,14 @@ const isTableCellSelected = computed(() => {
 const isTableType = computed(() => {
   if (!props.element) return false
   return props.element.printElementType.type === 'table'
+})
+
+/** 多选单元格：只做批量设置，不回显单格配置——「内容」绑定组按 r1,c1 单格读写，整组让位给单元格台 */
+const isMultiCellSelection = computed(() => {
+  const s = props.tableSelection
+  const rows = props.element?.options.tableRows
+  if (!isTableCellSelected.value || !s || !rows) return false
+  return resolveCellGroupMode(rows, s).mode === 'multi'
 })
 
 const searchResult = computed(() => searchProperties(searchText.value))

@@ -162,10 +162,12 @@ describe('FormatToolbar 边框下拉（WPS 式菜单）', () => {
     expect(a.options.borders?.right, '其余三边展开成单边').toBeTruthy()
   })
 
-  it('单元格上下文单边按钮可用：点击补齐上边框并呈按下态，再点清除', async () => {
+  it('单元格上下文单边按钮可用：先选线型再勾上边框，再点清除', async () => {
     const t = tableEl([[{ id: 'c' } as TableCell]])
     const w = mountToolbar([t], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
     await w.find('[data-test=border]').trigger('click')
+    // 无边框格回读为「无 / 0」，直接点单边只会撤边；先选实线（自动补 0.75）
+    await w.find('[data-test=style-solid]').trigger('click')
     const top = w.find('[data-test=edge-top]')
     expect(top.classes()).not.toContain('on')
     await top.trigger('click')
@@ -173,5 +175,75 @@ describe('FormatToolbar 边框下拉（WPS 式菜单）', () => {
     expect(w.find('[data-test=edge-top]').classes()).toContain('on')
     await w.find('[data-test=edge-top]').trigger('click')
     expect(t.options.tableRows![0]!.cells[0]!.borders?.top).toBeUndefined()
+  })
+})
+
+describe('FormatToolbar 单元格边框回读', () => {
+  const b = (width: number, style: 'solid' | 'dashed' | 'dotted', color = '#ff0000') => ({ width, style, color })
+  const cell0 = (t: RuntimeElement) => (t.options.tableRows as any[])[0].cells[0] as TableCell
+  const openPanel = async (w: ReturnType<typeof mountToolbar>) => {
+    await w.find('[data-test=border]').trigger('click')
+    return w.find('[data-test=border-panel]')
+  }
+  const styleOn = (panel: ReturnType<typeof openPanel> extends Promise<infer P> ? P : never) =>
+    ['solid', 'dashed', 'dotted', 'double'].filter(k => panel.find(`[data-test=style-${k}]`).classes().includes('on'))
+
+  it('单选：线型 / 粗细 / 颜色取该格真实规格，预设沿用该规格批写', async () => {
+    const t = tableEl([[{ borders: { top: b(2, 'dashed') } } as TableCell]])
+    const w = mountToolbar([t], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
+    const panel = await openPanel(w)
+    expect(styleOn(panel as never)).toEqual(['dashed'])
+    expect((panel.find('.ft-line-width input').element as HTMLInputElement).value).toBe('2')
+    expect(panel.find('.preset-color-trigger').attributes('title')).toBe('#ff0000')
+
+    await panel.find('[data-test=preset-all]').trigger('click')
+    expect(cell0(t).borders!.top).toEqual(b(2, 'dashed'))
+    expect(cell0(t).borders!.right).toEqual(b(2, 'dashed'), '预设按回读规格铺满四边')
+    expect(cell0(t).borders!.left).toEqual(b(2, 'dashed'))
+  })
+
+  it('单格无边框：线型图标全不亮、粗细 0、颜色 #333；选实线自动补 0.75，预设出框', async () => {
+    const t = tableEl([[{ id: 'c' } as TableCell]])
+    const w = mountToolbar([t], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
+    const panel = await openPanel(w)
+    expect(styleOn(panel as never)).toEqual([])
+    expect((panel.find('.ft-line-width input').element as HTMLInputElement).value).toBe('0')
+    expect(panel.find('.preset-color-trigger').attributes('title')).toBe('#333333')
+
+    await panel.find('[data-test=style-solid]').trigger('click')
+    expect((panel.find('.ft-line-width input').element as HTMLInputElement).value).toBe('0.75')
+    await panel.find('[data-test=preset-all]').trigger('click')
+    expect(cell0(t).borders!.top).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+  })
+
+  it('单选四边不一致：不一致的字段留空并提示，未改项按缺省档批写', async () => {
+    const t = tableEl([[{
+      borders: { top: b(2, 'dashed'), right: b(0.75, 'solid', '#333333') },
+    } as TableCell]])
+    const w = mountToolbar([t], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
+    const panel = await openPanel(w)
+    expect(styleOn(panel as never), '线型不一致 ⇒ 图标全不亮').toEqual([])
+    const width = panel.find('.ft-line-width input').element as HTMLInputElement
+    expect(width.value).toBe('')
+    expect(width.placeholder).toBe('混合')
+    expect(panel.find('.preset-color-trigger').attributes('title')).toBe('混合')
+    expect(panel.text()).toContain('四边规格不一致')
+
+    await panel.find('[data-test=preset-all]').trigger('click')
+    expect(cell0(t).borders!.top).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+    expect(panel.find('.ft-line-width input').attributes('placeholder')).toBeUndefined()
+  })
+
+  it('多选不回读单格：三行落缺省档作批写源', async () => {
+    const t = tableEl([[
+      { borders: { top: b(3, 'dotted', '#123456') } as TableCell },
+      { borders: { top: b(2, 'dashed') } as TableCell },
+    ]])
+    const w = mountToolbar([t], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 1 })
+    const panel = await openPanel(w)
+    expect(styleOn(panel as never)).toEqual(['solid'])
+    expect((panel.find('.ft-line-width input').element as HTMLInputElement).value).toBe('0.75')
+    expect(panel.find('.preset-color-trigger').attributes('title')).toBe('#333333')
+    expect(panel.text()).not.toContain('四边规格不一致')
   })
 })

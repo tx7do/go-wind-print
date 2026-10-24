@@ -2,17 +2,19 @@
 <template>
   <PropertyGroup title="单元格" icon="Menu" default-expanded group-key="table-cell">
     <form class="pd-form" @submit.prevent>
+      <p class="pd-hint" v-if="isMulti">已选 {{ cellCount }} 格 · 批量设置：不显示单格配置，改动会应用到全部选中格</p>
       <div class="pd-field"><span class="pd-label">单元格类型</span>
         <div class="pd-radio-group" role="radiogroup">
-          <label class="pd-radio"><input type="radio" value="text" :checked="(mainCell.cellType || 'text') === 'text'" @change="onCellTypeChange(($event.target as HTMLInputElement).value)"><span>文本</span></label>
-          <label class="pd-radio"><input type="radio" value="barcode" :checked="mainCell.cellType === 'barcode'" @change="onCellTypeChange(($event.target as HTMLInputElement).value)"><span>条形码</span></label>
-          <label class="pd-radio"><input type="radio" value="qrcode" :checked="mainCell.cellType === 'qrcode'" @change="onCellTypeChange(($event.target as HTMLInputElement).value)"><span>二维码</span></label>
-          <label class="pd-radio"><input type="radio" value="image" :checked="mainCell.cellType === 'image'" @change="onCellTypeChange(($event.target as HTMLInputElement).value)"><span>图片</span></label>
+          <label class="pd-radio"><input type="radio" value="text" :checked="isTextTypeChecked" @change="onCellTypeChange(($event.target as HTMLInputElement).value)"><span>文本</span></label>
+          <label class="pd-radio"><input type="radio" value="barcode" :checked="cellTypeDisplay === 'barcode'" @change="onCellTypeChange(($event.target as HTMLInputElement).value)"><span>条形码</span></label>
+          <label class="pd-radio"><input type="radio" value="qrcode" :checked="cellTypeDisplay === 'qrcode'" @change="onCellTypeChange(($event.target as HTMLInputElement).value)"><span>二维码</span></label>
+          <label class="pd-radio"><input type="radio" value="image" :checked="cellTypeDisplay === 'image'" @change="onCellTypeChange(($event.target as HTMLInputElement).value)"><span>图片</span></label>
         </div>
       </div>
 
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label">码制</span>
-        <select :value="mainCell.barcodeType || 'CODE128'" class="pd-select" @change="write(c => { c.barcodeType = ($event.target as HTMLSelectElement).value || undefined })">
+        <select :value="barcodeTypeDisplay" class="pd-select" @change="onBarcodeTypeChange(($event.target as HTMLSelectElement).value)">
+          <option v-if="isMulti" :value="MULTI_VALUE" disabled>多选</option>
           <option value="CODE128">CODE128（通用）</option>
           <option value="EAN13">EAN13（商品码）</option>
           <option value="EAN8">EAN8</option>
@@ -22,51 +24,53 @@
         </select>
       </div>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">显示文本</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="showBarcodeText" :tip-override="CELL_TIP" :write="(v) => write(c => { c.showBarcodeText = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="showBarcodeText" :tip-override="CELL_TIP" :write="(v) => writeField('showBarcodeText', v)" />
         </span>
-        <input :checked="mainCell.showBarcodeText !== false" type="checkbox" class="pd-switch" @input="write(c => { c.showBarcodeText = !!($event.target as HTMLInputElement).checked })" />
+        <input :checked="showBarcodeTextChecked" type="checkbox" class="pd-switch" @input="writeField('showBarcodeText', !!($event.target as HTMLInputElement).checked)" />
       </div>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">条宽（倍率）</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="barWidth" :tip-override="CELL_TIP" :write="(v) => write(c => { c.barWidth = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="barWidth" :tip-override="CELL_TIP" :write="(v) => writeField('barWidth', v)" />
         </span>
-        <StepperInput :model-value="mainCell.barWidth ?? 2"
+        <StepperInput :model-value="barWidthDisplay"
           :min="2"
           :max="8"
           :step="0.5"
-          @update:model-value="write(c => { c.barWidth = $event })" />
+          :placeholder="isMulti ? '多选' : undefined"
+          @update:model-value="writeField('barWidth', $event)" />
       </div>
       <p class="pd-hint" v-if="isBarcodeCell">{{ barWidthHint }}</p>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">静区 (模块)<button type="button" class="pd-help" :data-tip="barQuietTip" aria-label="字段说明" /></span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="barQuietZone" :tip-override="CELL_TIP" :write="(v) => write(c => { c.barQuietZone = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="barQuietZone" :tip-override="CELL_TIP" :write="(v) => writeField('barQuietZone', v)" />
         </span>
-        <StepperInput :model-value="mainCell.barQuietZone"
+        <StepperInput :model-value="cellValue('barQuietZone')"
           :min="0"
           :max="20"
-          placeholder="默认 10"
-          @update:model-value="write(c => { c.barQuietZone = $event ?? undefined })" />
+          :placeholder="isMulti ? '多选' : '默认 10'"
+          @update:model-value="writeField('barQuietZone', $event ?? undefined)" />
       </div>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">条高 (mm)<button type="button" class="pd-help" :data-tip="barHeightTip" aria-label="字段说明" /></span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="barHeight" :tip-override="CELL_TIP" :write="(v) => write(c => { c.barHeight = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="barHeight" :tip-override="CELL_TIP" :write="(v) => writeField('barHeight', v)" />
         </span>
-        <StepperInput :model-value="mainCell.barHeight"
+        <StepperInput :model-value="cellValue('barHeight')"
           :min="1"
           :max="100"
-          placeholder="默认 30 模块"
-          @update:model-value="write(c => { c.barHeight = $event ?? undefined })" />
+          :placeholder="isMulti ? '多选' : '默认 30 模块'"
+          @update:model-value="writeField('barHeight', $event ?? undefined)" />
       </div>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">文本字号（相对条高，条高为 30）</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="barFontSize" :tip-override="CELL_TIP" :write="(v) => write(c => { c.barFontSize = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="barFontSize" :tip-override="CELL_TIP" :write="(v) => writeField('barFontSize', v)" />
         </span>
-        <StepperInput :model-value="mainCell.barFontSize ?? 10"
+        <StepperInput :model-value="barFontSizeDisplay"
           :min="5"
           :max="24"
-          placeholder="默认 10"
-          @update:model-value="write(c => { c.barFontSize = $event ?? undefined })" />
+          :placeholder="isMulti ? '多选' : '默认 10'"
+          @update:model-value="writeField('barFontSize', $event ?? undefined)" />
       </div>
       <div class="pd-field" v-if="isBarcodeCell"><span class="pd-label"><span class="pd-label-t">打印机分辨率</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="printerDpi" :tip-override="CELL_TIP" :write="(v) => write(c => { c.printerDpi = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="printerDpi" :tip-override="CELL_TIP" :write="(v) => writeField('printerDpi', v)" />
         </span>
-        <select :value="mainCell.printerDpi ? String(mainCell.printerDpi) : ''" class="pd-select" @change="onPrinterDpiChange(($event.target as HTMLSelectElement).value)">
+        <select :value="printerDpiDisplay" class="pd-select" @change="onPrinterDpiChange(($event.target as HTMLSelectElement).value)">
+          <option v-if="isMulti" :value="MULTI_VALUE" disabled>多选</option>
           <option value="">不指定（按条宽渲染）</option>
           <option value="203">203 dpi（8 点/mm）</option>
           <option value="300">300 dpi（11.8 点/mm）</option>
@@ -75,9 +79,10 @@
       </div>
       <p class="pd-hint" v-if="isBarcodeCell">填写后条宽吸附到整数打印点（消除出纸「条宽忽宽忽窄」）：条码先按条宽渲染，可用宽度够就原样落纸，不够才整体等比缩小</p>
       <div class="pd-field" v-if="isQrcodeCell"><span class="pd-label"><span class="pd-label-t">纠错级别</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="qrCodeLevel" :tip-override="CELL_TIP" :write="(v) => write(c => { c.qrCodeLevel = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="qrCodeLevel" :tip-override="CELL_TIP" :write="(v) => writeField('qrCodeLevel', v)" />
         </span>
-        <select :value="mainCell.qrCodeLevel || 'M'" class="pd-select" @change="write(c => { c.qrCodeLevel = ($event.target as HTMLSelectElement).value || undefined })">
+        <select :value="qrCodeLevelDisplay" class="pd-select" @change="onQrLevelChange(($event.target as HTMLSelectElement).value)">
+          <option v-if="isMulti" :value="MULTI_VALUE" disabled>多选</option>
           <option value="L">L（最低，容量大）</option>
           <option value="M">M（推荐）</option>
           <option value="Q">Q</option>
@@ -86,127 +91,131 @@
       </div>
 
       <div class="pd-field" v-if="isQrcodeCell"><span class="pd-label"><span class="pd-label-t">静区 (模块)<button type="button" class="pd-help" :data-tip="quietTip" aria-label="字段说明" /></span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="qrQuietZone" :tip-override="CELL_TIP" :write="(v) => write(c => { c.qrQuietZone = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="qrQuietZone" :tip-override="CELL_TIP" :write="(v) => writeField('qrQuietZone', v)" />
         </span>
-        <StepperInput :model-value="mainCell.qrQuietZone"
+        <StepperInput :model-value="cellValue('qrQuietZone')"
           :min="0"
           :max="8"
-          placeholder="默认 0" @update:model-value="write(c => { c.qrQuietZone = $event ?? undefined })" />
+          :placeholder="isMulti ? '多选' : '默认 0'" @update:model-value="writeField('qrQuietZone', $event ?? undefined)" />
       </div>
 
       <p class="pd-hint" v-if="isBarcodeCell">单元格条码尺寸由「条宽」与「打印机分辨率」结算：可用宽度足够时按条宽原样落纸，不足时整体等比缩小；拉伸会把条宽变成非整数，故条形码不提供缩放模式，可用「最大宽高」限制上限。要放大条码：先加条宽倍率，再收窄静区（左右白边会换成条宽），必要时关掉显示文本以让出文本区高度</p>
       <div class="pd-field" v-if="isQrcodeCell || isImageCell"><span class="pd-label"><span class="pd-label-t">缩放模式</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="fit" :tip-override="CELL_TIP" :write="(v) => write(c => { c.fit = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="fit" :tip-override="CELL_TIP" :write="(v) => writeField('fit', v)" />
         </span>
-        <select :value="mainCell.fit || 'contain'" class="pd-select" @change="write(c => { c.fit = ($event.target as HTMLSelectElement).value as any })">
+        <select :value="fitDisplay" class="pd-select" @change="onFitChange(($event.target as HTMLSelectElement).value)">
+          <option v-if="isMulti" :value="MULTI_VALUE" disabled>多选</option>
           <option v-for="o in IMAGE_FIT_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
       </div>
-      <div class="pd-cell-anchor" v-if="isImageCell && mainCell.fit === 'cover'">
+      <div class="pd-cell-anchor" v-if="isImageCell && !isMulti && mainCell.fit === 'cover'">
         <CropAnchorField field-key="ap-img-object-position"
           label="裁剪锚点"
           :options="mainCell" :base="CELL_FACTORY" :tip-override="CELL_TIP"
-          :write-anchor="(v) => write(c => { c.objectPosition = v })"
-          :write-scale="(v) => write(c => { c.fitScale = v })"
+          :write-anchor="(v) => writeField('objectPosition', v)"
+          :write-scale="(v) => writeField('fitScale', v)"
           :src="cellImageSrc"
           :fit="mainCell.fit"
           :width-mm="cellBoxMm.width"
           :height-mm="cellBoxMm.height"
           :scale="mainCell.fitScale"
           :model-value="mainCell.objectPosition"
-          @update:model-value="write(c => { c.objectPosition = $event })"
-          @update:scale="write(c => { c.fitScale = $event })" />
+          @update:model-value="writeField('objectPosition', $event)"
+          @update:scale="writeField('fitScale', $event)" />
       </div>
       <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label"><span class="pd-label-t">最大宽度 (mm)</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="maxWidth" :tip-override="CELL_TIP" :write="(v) => write(c => { c.maxWidth = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="maxWidth" :tip-override="CELL_TIP" :write="(v) => writeField('maxWidth', v)" />
         </span>
-        <StepperInput :model-value="mainCell.maxWidth"
+        <StepperInput :model-value="cellValue('maxWidth')"
           :min="1"
           :max="200"
-          placeholder="默认" @update:model-value="write(c => { c.maxWidth = $event ?? undefined })" />
+          :placeholder="isMulti ? '多选' : '默认'" @update:model-value="writeField('maxWidth', $event ?? undefined)" />
       </div>
       <div class="pd-field" v-if="isBarcodeCell || isQrcodeCell || isImageCell"><span class="pd-label"><span class="pd-label-t">最大高度 (mm)</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="maxHeight" :tip-override="CELL_TIP" :write="(v) => write(c => { c.maxHeight = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="maxHeight" :tip-override="CELL_TIP" :write="(v) => writeField('maxHeight', v)" />
         </span>
-        <StepperInput :model-value="mainCell.maxHeight"
+        <StepperInput :model-value="cellValue('maxHeight')"
           :min="1"
           :max="200"
-          placeholder="默认" @update:model-value="write(c => { c.maxHeight = $event ?? undefined })" />
+          :placeholder="isMulti ? '多选' : '默认'" @update:model-value="writeField('maxHeight', $event ?? undefined)" />
       </div>
 
       <div class="pd-field"><span class="pd-label">内容</span>
-        <input :value="mainCell.formatter || ''" class="pd-input"
-          placeholder="输入内容，支持 {字段} 表达式"
-          @input="write(c => { c.formatter = ($event.target as HTMLInputElement).value || undefined })"
+        <input :value="cellValue('formatter') || ''" class="pd-input"
+          :placeholder="isMulti ? '多选（输入后覆盖全部选中格）' : '输入内容，支持 {字段} 表达式'"
+          @input="writeField('formatter', ($event.target as HTMLInputElement).value || undefined)"
           @dblclick="openFormatterEditor" />
       </div>
 
       <div class="pd-field"><span class="pd-label"><span class="pd-label-t">水平对齐</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="align" :tip-override="CELL_TIP" :write="(v) => write(c => { c.align = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="align" :tip-override="CELL_TIP" :write="(v) => writeField('align', v)" />
         </span>
         <div class="pd-radio-group" role="radiogroup">
-          <label class="pd-radio"><input type="radio" value="left" :checked="mainCell.align === 'left'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>左</span></label>
-          <label class="pd-radio"><input type="radio" value="center" :checked="mainCell.align === 'center'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>中</span></label>
-          <label class="pd-radio"><input type="radio" value="right" :checked="mainCell.align === 'right'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>右</span></label>
-          <label class="pd-radio"><input type="radio" value="justify" :checked="mainCell.align === 'justify'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>两端</span></label>
+          <label class="pd-radio"><input type="radio" value="left" :checked="cellValue('align') === 'left'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>左</span></label>
+          <label class="pd-radio"><input type="radio" value="center" :checked="cellValue('align') === 'center'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>中</span></label>
+          <label class="pd-radio"><input type="radio" value="right" :checked="cellValue('align') === 'right'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>右</span></label>
+          <label class="pd-radio"><input type="radio" value="justify" :checked="cellValue('align') === 'justify'" @change="onAlignChange(($event.target as HTMLInputElement).value)"><span>两端</span></label>
         </div>
       </div>
       <div class="pd-field"><span class="pd-label"><span class="pd-label-t">垂直对齐</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="valign" :tip-override="CELL_TIP" :write="(v) => write(c => { c.valign = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="valign" :tip-override="CELL_TIP" :write="(v) => writeField('valign', v)" />
         </span>
         <div class="pd-radio-group" role="radiogroup">
-          <label class="pd-radio"><input type="radio" value="top" :checked="mainCell.valign === 'top'" @change="onValignChange(($event.target as HTMLInputElement).value)"><span>上</span></label>
-          <label class="pd-radio"><input type="radio" value="middle" :checked="mainCell.valign === 'middle'" @change="onValignChange(($event.target as HTMLInputElement).value)"><span>中</span></label>
-          <label class="pd-radio"><input type="radio" value="bottom" :checked="mainCell.valign === 'bottom'" @change="onValignChange(($event.target as HTMLInputElement).value)"><span>下</span></label>
+          <label class="pd-radio"><input type="radio" value="top" :checked="cellValue('valign') === 'top'" @change="onValignChange(($event.target as HTMLInputElement).value)"><span>上</span></label>
+          <label class="pd-radio"><input type="radio" value="middle" :checked="cellValue('valign') === 'middle'" @change="onValignChange(($event.target as HTMLInputElement).value)"><span>中</span></label>
+          <label class="pd-radio"><input type="radio" value="bottom" :checked="cellValue('valign') === 'bottom'" @change="onValignChange(($event.target as HTMLInputElement).value)"><span>下</span></label>
         </div>
       </div>
       <div class="cell-style-grid">
         <div class="pd-field cell-font-field"><span class="pd-label"><span class="pd-label-t">字体</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="fontFamily" :tip-override="CELL_TIP" :write="(v) => write(c => { c.fontFamily = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="fontFamily" :tip-override="CELL_TIP" :write="(v) => writeField('fontFamily', v)" />
         </span>
           <FontSelect
-            :model-value="mainCell.fontFamily"
-            placeholder="继承默认"
-            @update:model-value="write(c => { c.fontFamily = $event })"
+            :model-value="cellValue('fontFamily')"
+            :placeholder="isMulti ? '多选' : '继承默认'"
+            @update:model-value="writeField('fontFamily', $event)"
           />
         </div>
         <div class="pd-field"><span class="pd-label"><span class="pd-label-t">字号 (pt)</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="fontSize" :tip-override="CELL_TIP" :write="(v) => write(c => { c.fontSize = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="fontSize" :tip-override="CELL_TIP" :write="(v) => writeField('fontSize', v)" />
         </span>
-          <StepperInput :model-value="mainCell.fontSize"
+          <StepperInput :model-value="cellValue('fontSize')"
             :min="5"
             :max="72"
-            placeholder="默认" @update:model-value="write(c => { c.fontSize = $event ?? undefined })" />
+            :placeholder="isMulti ? '多选' : '默认'" @update:model-value="writeField('fontSize', $event ?? undefined)" />
         </div>
         <div class="pd-field"><span class="pd-label"><span class="pd-label-t">加粗</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="fontWeight" :tip-override="CELL_TIP" :write="(v) => write(c => { c.fontWeight = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="fontWeight" :tip-override="CELL_TIP" :write="(v) => writeField('fontWeight', v)" />
         </span>
-          <input :checked="mainCell.fontWeight === 'bold'" type="checkbox" class="pd-switch" @input="write(c => { c.fontWeight = ($event.target as HTMLInputElement).checked ? 'bold' : undefined })" />
+          <input :checked="cellValue('fontWeight') === 'bold'" type="checkbox" class="pd-switch" @input="writeField('fontWeight', ($event.target as HTMLInputElement).checked ? 'bold' : undefined)" />
         </div>
         <div class="pd-field"><span class="pd-label"><span class="pd-label-t">文字颜色</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="color" :tip-override="CELL_TIP" :write="(v) => write(c => { c.color = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="color" :tip-override="CELL_TIP" :write="(v) => writeField('color', v)" />
         </span>
-          <PresetColorPicker :model-value="mainCell.color" @update:model-value="write(c => { c.color = $event })" />
+          <PresetColorPicker :model-value="cellValue('color')" @update:model-value="writeField('color', $event)" />
         </div>
         <div class="pd-field"><span class="pd-label"><span class="pd-label-t">背景色</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="backgroundColor" :tip-override="CELL_TIP" :write="(v) => write(c => { c.backgroundColor = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="backgroundColor" :tip-override="CELL_TIP" :write="(v) => writeField('backgroundColor', v)" />
         </span>
-          <PresetColorPicker :model-value="mainCell.backgroundColor" @update:model-value="write(c => { c.backgroundColor = $event })" />
+          <PresetColorPicker :model-value="cellValue('backgroundColor')" @update:model-value="writeField('backgroundColor', $event)" />
         </div>
       </div>
 
       <h3 class="pd-divider">边框</h3>
       <div class="border-style-row">
-        <select class="pd-select" :value="draftBorder.style" style="width: 90px"
-          @change="overrideBorder('style', ($event.target as HTMLSelectElement).value as TableCellBorder['style'])">
+        <select class="pd-select" :value="borderStyleDisplay" style="width: 90px"
+          @change="onBorderStyleChange(($event.target as HTMLSelectElement).value)">
+          <option v-if="mixedActive.style" :value="BORDER_MIXED_VALUE" disabled>混合</option>
           <option v-for="s in BORDER_LINE_STYLES" :key="s.value" :value="s.value">{{ s.label }}</option>
         </select>
-        <div style="width: 112px; flex-shrink: 0"><StepperInput :model-value="draftBorder.width"
+        <div style="width: 112px; flex-shrink: 0"><StepperInput :model-value="borderWidthDisplay"
           :min="0.25"
           :max="5"
           :step="0.25"
+          :placeholder="isMulti ? '多选' : (mixedActive.width ? '混合' : undefined)"
           @update:model-value="overrideBorder('width', $event ?? DEFAULT_BORDER.width)" /></div>
-        <PresetColorPicker :model-value="draftBorder.color" :clearable="false"
+        <PresetColorPicker :model-value="borderColorDisplay" :clearable="false"
+          :empty-title="mixedActive.color ? '混合' : undefined"
           @update:model-value="overrideBorder('color', $event)" />
       </div>
       <div class="pd-button-group border-presets">
@@ -222,40 +231,41 @@
             @change="onEdgeChange(e.value, $event)"><span>{{ e.label }}</span>
         </label>
       </div>
-      <p class="pd-hint">{{ CELL_BORDER_APPLY_HINT }}</p>
+      <p class="pd-hint">{{ isMulti ? CELL_BORDER_APPLY_HINT_MULTI : (mixedActiveAny ? CELL_BORDER_APPLY_HINT_MIXED : CELL_BORDER_APPLY_HINT) }}</p>
 
       <div class="pd-field"><span class="pd-label"><span class="pd-label-t">内边距 (mm)</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="padding" :tip-override="CELL_TIP" :write="(v) => write(c => { c.padding = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="padding" :tip-override="CELL_TIP" :write="(v) => writeField('padding', v)" />
         </span>
-        <StepperInput :model-value="mainCell.padding"
+        <StepperInput :model-value="cellValue('padding')"
           :min="0"
           :max="10"
           :step="0.5"
-          placeholder="默认" @update:model-value="write(c => { c.padding = $event ?? undefined })" />
+          :placeholder="isMulti ? '多选' : '默认'" @update:model-value="writeField('padding', $event ?? undefined)" />
       </div>
       <div class="pd-field"><span class="pd-label"><span class="pd-label-t">自动换行</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="wordWrap" :tip-override="CELL_TIP" :write="(v) => write(c => { c.wordWrap = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="wordWrap" :tip-override="CELL_TIP" :write="(v) => writeField('wordWrap', v)" />
         </span>
-        <input :checked="mainCell.wordWrap ?? true" type="checkbox" class="pd-switch" @input="write(c => { c.wordWrap = !!($event.target as HTMLInputElement).checked })" />
+        <input :checked="wordWrapChecked" type="checkbox" class="pd-switch" @input="writeField('wordWrap', !!($event.target as HTMLInputElement).checked)" />
       </div>
       <div class="pd-field" v-if="isTextCell"><span class="pd-label"><span class="pd-label-t">文字溢出</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="textFit" :tip-override="CELL_TIP" :write="(v) => write(c => { c.textFit = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="textFit" :tip-override="CELL_TIP" :write="(v) => writeField('textFit', v)" />
         </span>
-        <select class="pd-select" :value="cellTextFit" style="width: 100%" @change="onTextFitChange">
+        <select class="pd-select" :value="cellTextFit ?? MULTI_VALUE" style="width: 100%" @change="onTextFitChange">
+          <option v-if="isMulti" :value="MULTI_VALUE" disabled>多选</option>
           <option value="clip">截断</option>
           <option value="shrink">自动缩小</option>
           <option value="autoHeight">自适应行高</option>
         </select>
       </div>
       <div class="pd-field" v-if="isTextCell && cellTextFit === 'shrink'"><span class="pd-label"><span class="pd-label-t">最小字号 (pt)</span>
-          <ResetButton :target="mainCell" :base="CELL_FACTORY" prop-key="shrinkMinFontSize" :tip-override="CELL_TIP" :write="(v) => write(c => { c.shrinkMinFontSize = v })" />
+          <ResetButton :force="isMulti" :target="mainCell" :base="CELL_FACTORY" prop-key="shrinkMinFontSize" :tip-override="CELL_TIP" :write="(v) => writeField('shrinkMinFontSize', v)" />
         </span>
-        <StepperInput :model-value="mainCell.shrinkMinFontSize"
+        <StepperInput :model-value="cellValue('shrinkMinFontSize')"
           :min="1"
           :max="72"
           :step="0.5"
-          placeholder="默认 6"
-          @update:model-value="write(c => { c.shrinkMinFontSize = $event ?? undefined })" />
+          :placeholder="isMulti ? '多选' : '默认 6'"
+          @update:model-value="writeField('shrinkMinFontSize', $event ?? undefined)" />
       </div>
 
       <div class="merge-btns">
@@ -283,9 +293,11 @@ import type {
 } from '@worm-vue3-print/core/designer'
 import {
   canMergeReason, mergeCells, splitCells, applyBorderPreset, setCellBorderEdge, findMainCell,
-  resolveBorderEdgeStates, resolveCellBorderDisplay, BORDER_LINE_STYLES, DEFAULT_BORDER, type BorderPreset,
+  resolveBorderEdgeStates, resolveCellBorderDisplay, collectWritableCells, resolveCellGroupMode,
+  resolveSharedCellType, BORDER_LINE_STYLES, DEFAULT_BORDER, type BorderPreset, type BorderEdgeState,
   resolveCellTextFit, type TextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA, barcodeBarWidthRecommendText,
-  cellFitCapMm, cellFitWidthMm, CELL_BORDER_APPLY_HINT,
+  cellFitCapMm, cellFitWidthMm, CELL_BORDER_APPLY_HINT, CELL_BORDER_APPLY_HINT_MULTI,
+  CELL_BORDER_APPLY_HINT_MIXED,
 } from '@worm-vue3-print/core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import PropertyGroup from './PropertyGroup.vue'
@@ -315,6 +327,88 @@ const rows = computed(() => props.element.options.tableRows!)
 const main = computed(() => findMainCell(rows.value, props.selection.r1, props.selection.c1))
 const mainCell = computed<TableCell>(() => rows.value[main.value.r]!.cells[main.value.c]!)
 
+/** 单/多选：可写格（跳过合并占位格）=1 才回显单格配置；跨行/跨列的合并格仍算单选 */
+const groupMode = computed(() => resolveCellGroupMode(rows.value, props.selection))
+const cellCount = computed(() => groupMode.value.count)
+const isMulti = computed(() => groupMode.value.mode === 'multi')
+/** 本次选区内的批写草稿：多选写完控件显示它，换选区即清空（不是任何一格的回显） */
+const batchDraft = ref<Partial<TableCell>>({})
+/** 多选时单边按钮的批写草稿：不取选区三态，只记本次点过的边 */
+const batchEdges = ref<Partial<Record<ElementBorderSide, boolean>>>({})
+
+/** 显示取值：单选取该格真实值；多选只取本次批写草稿，未写过即空 */
+function cellValue<K extends keyof TableCell>(key: K): TableCell[K] | undefined {
+  if (!isMulti.value) return mainCell.value[key]
+  return (batchDraft.value as Partial<TableCell>)[key]
+}
+
+const cellTypeDisplay = computed<TableCellType | undefined>(
+  () => (isMulti.value ? batchDraft.value.cellType : mainCell.value.cellType),
+)
+const isTextTypeChecked = computed(() => (isMulti.value
+  ? 'cellType' in batchDraft.value && (batchDraft.value.cellType ?? 'text') === 'text'
+  : (mainCell.value.cellType ?? 'text') === 'text'))
+
+/** 类型专属行的共有类型：多选时只有全部可写格同类型才出该类型的行；批写草稿里的新类型优先 */
+const groupCellType = computed<TableCellType | null>(() => {
+  if (!isMulti.value) return mainCell.value.cellType ?? 'text'
+  if ('cellType' in batchDraft.value) return batchDraft.value.cellType ?? 'text'
+  return resolveSharedCellType(rows.value, props.selection)
+})
+const isBarcodeCell = computed(() => groupCellType.value === 'barcode')
+const isQrcodeCell = computed(() => groupCellType.value === 'qrcode')
+const isImageCell = computed(() => groupCellType.value === 'image')
+const isTextCell = computed(() => groupCellType.value === 'text')
+/** 条码点对齐：仅条形码单元格 + 已配打印机分辨率；此时缩放模式与最大宽高不参与 */
+const dotAligned = computed(() => isBarcodeCell.value && !!cellValue('printerDpi'))
+
+/** 条宽提示：结算口径 + 选了打印机分辨率后的推荐倍率（只给参考，不回写 barWidth） */
+const barWidthHint = computed(() => {
+  const base = dotAligned.value
+    ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），单元格放不下时整体等比缩小'
+    : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定'
+  const rec = barcodeBarWidthRecommendText(cellValue('printerDpi'), cellValue('barWidth'))
+  return rec ? `${base}。${rec}` : base
+})
+
+/** 未配置时：不换行→截断，否则自适应行高（与打印端同一判定）；多选只认批写草稿 */
+const storedTextFit = computed(() => resolveCellTextFit(mainCell.value))
+const cellTextFit = computed<TextFit | undefined>(
+  () => (isMulti.value ? batchDraft.value.textFit : storedTextFit.value),
+)
+
+/** 多选占位项：禁用 + 哨兵值，避免和「不指定/默认」这类真实空值撞车 */
+const MULTI_VALUE = '__multi__'
+const hasDraft = (key: keyof TableCell): boolean => isMulti.value && key in batchDraft.value
+const barcodeTypeDisplay = computed(() => (isMulti.value
+  ? batchDraft.value.barcodeType ?? MULTI_VALUE
+  : mainCell.value.barcodeType || 'CODE128'))
+const printerDpiDisplay = computed(() => {
+  if (!isMulti.value) return mainCell.value.printerDpi ? String(mainCell.value.printerDpi) : ''
+  if (!hasDraft('printerDpi')) return MULTI_VALUE
+  const dpi = batchDraft.value.printerDpi
+  return dpi ? String(dpi) : ''
+})
+const qrCodeLevelDisplay = computed(() => (isMulti.value
+  ? batchDraft.value.qrCodeLevel ?? MULTI_VALUE
+  : mainCell.value.qrCodeLevel || 'M'))
+const fitDisplay = computed(() => (isMulti.value
+  ? batchDraft.value.fit ?? MULTI_VALUE
+  : mainCell.value.fit || 'contain'))
+/** 未设置时的默认档只在单选照旧展示；多选留空走「多选」占位 */
+const barWidthDisplay = computed(() => (isMulti.value
+  ? batchDraft.value.barWidth
+  : mainCell.value.barWidth ?? 2))
+const barFontSizeDisplay = computed(() => (isMulti.value
+  ? batchDraft.value.barFontSize
+  : mainCell.value.barFontSize ?? 10))
+const showBarcodeTextChecked = computed(() => (isMulti.value
+  ? batchDraft.value.showBarcodeText === true
+  : mainCell.value.showBarcodeText !== false))
+const wordWrapChecked = computed(() => (isMulti.value
+  ? batchDraft.value.wordWrap === true
+  : mainCell.value.wordWrap ?? true))
+
 /** 单元格内容盒近似：列宽合计 × 行高合计（内边距与塌陷边框不计，只用于判哪一轴能挪） */
 /** 剪裁盒尺寸取「可用内容框」：与出纸钉盒同一口径（扣内边距与塌陷边框），报原始行列和会让可挪量虚高 */
 const cellBoxMm = computed(() => {
@@ -336,47 +430,55 @@ const cellImageSrc = computed(() => {
 const formatterEditorVisible = ref(false)
 const pendingFormatterValue = ref('')
 
-const isBarcodeCell = computed(() => mainCell.value.cellType === 'barcode')
-const isQrcodeCell = computed(() => mainCell.value.cellType === 'qrcode')
-const isImageCell = computed(() => mainCell.value.cellType === 'image')
-/** 条码点对齐：仅条形码单元格 + 已配打印机分辨率；此时缩放模式与最大宽高不参与 */
-const dotAligned = computed(() => isBarcodeCell.value && !!mainCell.value.printerDpi)
-
-/** 条宽提示：结算口径 + 选了打印机分辨率后的推荐倍率（只给参考，不回写 barWidth） */
-const barWidthHint = computed(() => {
-  const base = dotAligned.value
-    ? '已设置打印机分辨率：条宽会被吸附到最近的整数打印点（DPI 优先于毫米值），单元格放不下时整体等比缩小'
-    : '热敏/针式打印建议 3 及以上：决定条码的落纸尺寸，条越粗出纸后条宽越稳定'
-  const rec = barcodeBarWidthRecommendText(mainCell.value.printerDpi, mainCell.value.barWidth)
-  return rec ? `${base}。${rec}` : base
-})
-
-/** 文字溢出形式仅对文本单元格有意义（码值/图片由 fit/maxWidth 控制） */
-const isTextCell = computed(() => !isBarcodeCell.value && !isQrcodeCell.value && !isImageCell.value)
-/** 未配置时：不换行→截断，否则自适应行高（与打印端同一判定） */
-const cellTextFit = computed(() => resolveCellTextFit(mainCell.value))
-
 function onTextFitChange(e: Event) {
-  const value = (e.target as HTMLSelectElement).value as TextFit
-  write(c => { c.textFit = value })
+  const value = (e.target as HTMLSelectElement).value
+  if (value === MULTI_VALUE) return
+  writeField('textFit', value as TextFit)
+}
+
+function onBarcodeTypeChange(v: string) {
+  if (v === MULTI_VALUE) return
+  writeField('barcodeType', v || undefined)
+}
+
+function onQrLevelChange(v: string) {
+  if (v === MULTI_VALUE) return
+  writeField('qrCodeLevel', v || undefined)
+}
+
+function onFitChange(v: string) {
+  if (v === MULTI_VALUE) return
+  writeField('fit', v as TableCell['fit'])
 }
 
 function onAlignChange(v: string) {
-  write(c => { c.align = v as TextAlign })
+  writeField('align', v as TextAlign)
 }
 
 function onValignChange(v: string) {
-  write(c => { c.valign = v as TableCell['valign'] })
+  writeField('valign', v as TableCell['valign'])
 }
 
 function onPrinterDpiChange(v: string) {
+  if (v === MULTI_VALUE) return
   const dpi = Number(v)
-  write(c => { c.printerDpi = dpi > 0 ? dpi : undefined })
+  writeField('printerDpi', dpi > 0 ? dpi : undefined)
 }
 
 function onCellTypeChange(v: string) {
+  const type = v === 'text' ? undefined : (v as TableCellType)
+  const patch: Partial<TableCell> = { cellType: type }
+  if (v !== 'barcode') {
+    Object.assign(patch, {
+      barcodeType: undefined, showBarcodeText: undefined, printerDpi: undefined,
+      barQuietZone: undefined, barHeight: undefined,
+    })
+  }
+  if (v !== 'qrcode') {
+    Object.assign(patch, { qrCodeLevel: undefined, qrQuietZone: undefined })
+  }
   write(c => {
-    c.cellType = v === 'text' ? undefined : (v as TableCellType)
+    c.cellType = type
     if (v !== 'barcode') {
       c.barcodeType = undefined
       c.showBarcodeText = undefined
@@ -389,16 +491,16 @@ function onCellTypeChange(v: string) {
       c.qrQuietZone = undefined
     }
     // fit、maxWidth、maxHeight 对所有类型都有效，不再清除
-  })
+  }, patch)
 }
 
 function openFormatterEditor() {
-  pendingFormatterValue.value = mainCell.value.formatter || ''
+  pendingFormatterValue.value = String(cellValue('formatter') ?? '')
   formatterEditorVisible.value = true
 }
 
 function onFormatterEditorConfirm(val: string) {
-  write(c => { c.formatter = val || undefined })
+  writeField('formatter', val || undefined)
 }
 
 /** 单元格的出厂态就是"未设"：落点恒为 undefined，删键后回落到该表格自己的表格级默认 */
@@ -406,35 +508,77 @@ const CELL_FACTORY: Record<string, any> = {}
 /** 回落目标是作者可改的表级默认，写死数字就是假承诺，故整组固定这一句 */
 const CELL_TIP = '恢复默认值（跟随表格默认）'
 
-function write(fn: (c: TableCell) => void) {
-  const s = props.selection
-  for (let r = s.r1; r <= s.r2; r++) {
-    for (let c = s.c1; c <= s.c2; c++) {
-      const cell = rows.value[r]!.cells[c]!
-      if (!cell.merged) fn(cell)
-    }
-  }
+/** 整选区写入；多选时把本次写入值记进批写草稿，控件显示它（不是任何一格的回显） */
+function write(fn: (c: TableCell) => void, patch?: Partial<TableCell>) {
+  for (const cell of collectWritableCells(rows.value, props.selection)) fn(cell)
+  if (isMulti.value && patch) batchDraft.value = { ...batchDraft.value, ...patch }
   ctx.recordHistory()
 }
 
-/** 待应用规格（线型 / 宽度 / 颜色）：初值取自选区真实边框；用户改动只在本选区暂存，换选区即作废 */
+/** 单键批写：多选下同时更新草稿，避免写完整组控件弹回「多选」 */
+function writeField<K extends keyof TableCell>(key: K, value: TableCell[K]) {
+  write(c => { (c as Record<string, any>)[key] = value }, { [key]: value } as Partial<TableCell>)
+}
+
+/** 待应用规格（线型 / 宽度 / 颜色）：单选取选区真实边框；多选不回显单格，只用缺省档 + 本次草稿 */
 const borderOverride = ref<Partial<TableCellBorder>>({})
-const borderDisplay = computed(() => resolveCellBorderDisplay(rows.value, props.selection))
+const borderDisplay = computed(() => (isMulti.value
+  ? { width: undefined, style: undefined, color: undefined }
+  : resolveCellBorderDisplay(rows.value, props.selection)))
+/** 单选格四边是否至少有一条边：没有边时三行显示「无 / 0」，而不是缺省档 */
+const hasBorderEdges = computed(() => !isMulti.value
+  && collectWritableCells(rows.value, props.selection)
+    .some(c => !!c.borders && !!(c.borders.top || c.borders.right || c.borders.bottom || c.borders.left)))
 const draftBorder = computed<TableCellBorder>(() => {
   const d = borderDisplay.value
+  const noBorder = !isMulti.value && !hasBorderEdges.value
   return {
-    width: typeof d.width === 'number' ? d.width : DEFAULT_BORDER.width,
-    style: (typeof d.style === 'string' && d.style !== 'mixed' ? d.style : DEFAULT_BORDER.style) as TableCellBorder['style'],
+    width: noBorder ? 0 : (typeof d.width === 'number' ? d.width : DEFAULT_BORDER.width),
+    style: (noBorder ? 'none' : (typeof d.style === 'string' && d.style !== 'mixed' ? d.style : DEFAULT_BORDER.style)) as TableCellBorder['style'],
     color: typeof d.color === 'string' && d.color !== 'mixed' ? d.color : DEFAULT_BORDER.color,
     ...borderOverride.value,
   }
 })
 
+/** 单格四边规格不一致（mixed）且用户尚未改该项：界面显示「混合」，批写仍按缺省档 */
+const BORDER_MIXED_VALUE = '__mixed__'
+const borderMixed = computed(() => ({
+  style: !isMulti.value && borderDisplay.value.style === 'mixed',
+  width: !isMulti.value && borderDisplay.value.width === 'mixed',
+  color: !isMulti.value && borderDisplay.value.color === 'mixed',
+}))
+const mixedActive = computed(() => ({
+  style: borderMixed.value.style && borderOverride.value.style === undefined,
+  width: borderMixed.value.width && borderOverride.value.width === undefined,
+  color: borderMixed.value.color && borderOverride.value.color === undefined,
+}))
+const mixedActiveAny = computed(() => mixedActive.value.style || mixedActive.value.width || mixedActive.value.color)
+const borderStyleDisplay = computed(() => (mixedActive.value.style ? BORDER_MIXED_VALUE : draftBorder.value.style))
+const borderWidthDisplay = computed(() => (mixedActive.value.width ? undefined : draftBorder.value.width))
+const borderColorDisplay = computed(() => (mixedActive.value.color ? undefined : draftBorder.value.color))
+
+function onBorderStyleChange(v: string) {
+  if (v === BORDER_MIXED_VALUE) return
+  const style = v as TableCellBorder['style']
+  overrideBorder('style', style)
+  // 无边框格选非无线型时补缺省宽度，否则会按 0 宽写出一条看不见的框；选无且本来无框则宽度归零
+  if (style !== 'none' && borderWidthDisplay.value === 0) {
+    overrideBorder('width', DEFAULT_BORDER.width)
+  } else if (style === 'none' && !hasBorderEdges.value) {
+    overrideBorder('width', 0)
+  }
+}
+
+/** 选区标识带上元素 id：跨表格同名坐标也不复用草稿 */
 const selectionKey = computed(() => {
   const s = props.selection
-  return `${s.r1}:${s.c1}:${s.r2}:${s.c2}`
+  return `${props.element.id}:${s.r1}:${s.c1}:${s.r2}:${s.c2}`
 })
-watch(selectionKey, () => { borderOverride.value = {} })
+watch(selectionKey, () => {
+  borderOverride.value = {}
+  batchDraft.value = {}
+  batchEdges.value = {}
+})
 
 function overrideBorder<K extends keyof TableCellBorder>(key: K, value: TableCellBorder[K]) {
   borderOverride.value = { ...borderOverride.value, [key]: value }
@@ -446,17 +590,14 @@ const BORDER_EDGES: { value: ElementBorderSide; label: string }[] = [
   { value: 'bottom', label: '下' }, { value: 'left', label: '左' },
 ]
 
-/** 选区内可写格的真实边位状态：全有＝勾选、部分＝半选、全无＝不勾（与顶部工具栏同一判据） */
-const edgeStates = computed(() => {
-  const s = props.selection
-  const borders: Array<TableCell['borders']> = []
-  for (let r = s.r1; r <= s.r2; r++) {
-    for (let c = s.c1; c <= s.c2; c++) {
-      const cell = rows.value[r]!.cells[c]!
-      if (!cell.merged) borders.push(cell.borders)
-    }
+/** 单选：边位状态由选区真实边框派生（全有＝勾选、部分＝半选）；多选不回显，只认本次点过的边 */
+const edgeStates = computed<Record<ElementBorderSide, BorderEdgeState>>(() => {
+  if (isMulti.value) {
+    const out = {} as Record<ElementBorderSide, BorderEdgeState>
+    for (const e of BORDER_EDGES) out[e.value] = batchEdges.value[e.value] ? 'on' : 'off'
+    return out
   }
-  return resolveBorderEdgeStates(borders)
+  return resolveBorderEdgeStates(collectWritableCells(rows.value, props.selection).map(c => c.borders))
 })
 
 function currentBorder(): TableCellBorder {
@@ -474,6 +615,7 @@ function onEdgeChange(side: ElementBorderSide, event: Event) {
   const on = (event.target as HTMLInputElement).checked
   // 线型＝无时勾边不会出线：一律按"没有这条边"处理（与工具栏取消态同口径）
   const visible = on && draftBorder.value.style !== 'none'
+  if (isMulti.value) batchEdges.value = { ...batchEdges.value, [side]: visible }
   write(c => { setCellBorderEdge(c, side, visible ? currentBorder() : null) })
 }
 

@@ -8,7 +8,8 @@ import type {
 import {
   applyBorderPreset, acceptsElementBorder, ELEMENT_BORDER_SIDES, type BorderPreset,
   applyElementBorderPreset, setCellBorderEdge, setElementBorderEdgeVisible, elementVisibleBorders,
-  resolveBorderEdgeStates, type BorderEdgeState, type ElementBorderSpec,
+  resolveBorderEdgeStates, resolveCellGroupMode, resolveCellBorderDisplay,
+  type BorderEdgeState, type ElementBorderSpec,
 } from '@worm-vue3-print/core/designer'
 import type { DesignerStore } from './store'
 
@@ -71,8 +72,17 @@ export class FormatToolbar {
   // ─── 边框面板草稿（Vue 版为 FormatToolbar.vue 内的 ref，点预设/单边时整体落盘） ───
   /** 线型草稿：null = 一个格式都没选中（线型＝无，点预设/单边即按「无」落盘） */
   borderStyle: 'solid' | 'dashed' | 'dotted' | 'double' | null = 'solid'
-  borderWidth = 0.75
-  borderColor = '#333333'
+  /** 多选/混合态允许留空；批写时按缺省档兜底 */
+  borderWidth: number | undefined = 0.75
+  borderColor: string | undefined = '#333333'
+  /** 单元格四边规格不一致的字段：留空、不谎报；未选时批写按缺省档 */
+  borderMixed = { style: false, width: false, color: false }
+  /** 最近一次已回读的单元格选区标识：只在新选区回填，避免每次重绘冲掉用户草稿 */
+  private borderDraftKey = ''
+
+  get borderMixedAny(): boolean {
+    return this.borderMixed.style || this.borderMixed.width || this.borderMixed.color
+  }
 
   // ─── 格式刷状态（交互 UI 由 shell 实现，这里只提供状态与操作） ───
   painterActive = false
@@ -253,15 +263,91 @@ export class FormatToolbar {
   toggleStrike() { this.toggleDecoration('line-through') }
 
   // ─── 边框 ───
-  /** 当前面板草稿对应的边框规格（Vue 版组件内 borderSpec()） */
+  /**
+   * 单元格上下文的三行回读：单格取该格真实规格（四边不一致的字段留空并标 mixed）；
+   * 多选按上一轮口径不取单格，落缺省档作批写源。只在选区变化时回填，用户改草稿不会被打断。
+   */
+  syncBorderDraft(): void {
+    if (this.context !== 'cells') {
+      if (this.borderDraftKey) {
+        // 离开单元格上下文：回缺省草稿，避免把单元格的值带进元素面板
+        this.borderDraftKey = ''
+        this.borderStyle = 'solid'
+        this.borderWidth = 0.75
+        this.borderColor = '#333333'
+        this.borderMixed = { style: false, width: false, color: false }
+      }
+      return
+    }
+    const s = this.store.tableSelection
+    const rows = this.tableElement?.options.tableRows
+    if (!s || !rows) return
+    const key = `cells:${s.elementId}:${s.r1}:${s.c1}:${s.r2}:${s.c2}`
+    if (key === this.borderDraftKey) return
+    this.borderDraftKey = key
+    if (resolveCellGroupMode(rows, s).mode === 'multi') {
+      this.borderStyle = 'solid'
+      this.borderWidth = 0.75
+      this.borderColor = '#333333'
+      this.borderMixed = { style: false, width: false, color: false }
+      return
+    }
+    const d = resolveCellBorderDisplay(rows, s)
+    const noEdges = d.style === undefined && d.width === undefined && d.color === undefined
+    if (noEdges) {
+      // 单格四边都没有边框：线型显示「无」、宽度 0（不是缺省实线）
+      this.borderMixed = { style: false, width: false, color: false }
+      this.borderStyle = null
+      this.borderWidth = 0
+      this.borderColor = '#333333'
+      return
+    }
+    this.borderMixed = { style: d.style === 'mixed', width: d.width === 'mixed', color: d.color === 'mixed' }
+    if (this.borderMixed.style) this.borderStyle = null
+    else if (d.style === undefined) this.borderStyle = 'solid'
+    else if (d.style === 'none') this.borderStyle = null
+    else this.borderStyle = d.style as 'solid' | 'dashed' | 'dotted' | 'double'
+    this.borderWidth = this.borderMixed.width ? undefined : (typeof d.width === 'number' ? d.width : 0.75)
+    this.borderColor = this.borderMixed.color ? undefined : (typeof d.color === 'string' ? d.color : '#333333')
+  }
+
+  /** 当前面板草稿对应的边框规格（Vue 版组件内 borderSpec()）；混合/留空项按缺省档兜底 */
   borderSpec(): TableCellBorder {
-    return { width: this.borderWidth, style: this.borderStyle ?? 'none', color: this.borderColor }
+    const style = this.borderStyle ?? (this.borderMixed.style ? 'solid' : 'none')
+    return {
+      width: this.borderWidth ?? 0.75,
+      style,
+      color: this.borderColor ?? '#333333',
+    }
+  }
+
+  setBorderWidth(v: number | undefined): void {
+    this.borderWidth = v
+    this.borderMixed.width = false
+  }
+
+  setBorderColor(v: string | undefined): void {
+    this.borderColor = v
+    this.borderMixed.color = false
+  }
+
+  /** 单元格批写落盘后本次规格已统一：混合标记与留空项落定为实际写入值 */
+  private settleBorderDraft(): void {
+    if (this.context !== 'cells') return
+    if (this.borderMixed.style) { this.borderStyle = 'solid'; this.borderMixed.style = false }
+    if (this.borderMixed.width) { this.borderWidth = 0.75; this.borderMixed.width = false }
+    if (this.borderMixed.color) { this.borderColor = '#333333'; this.borderMixed.color = false }
   }
 
   /** 再点已选中的线型＝取消该格式（图标全不亮＝线型无） */
   toggleBorderStyle(key: 'solid' | 'dashed' | 'dotted' | 'double') {
     // 只改草稿，不动模板：不产生历史条目（与工具栏其它草稿控件一致，重绘由 shell 负责）
-    this.borderStyle = this.borderStyle === key ? null : key
+    const next = this.borderStyle === key ? null : key
+    this.borderMixed.style = false
+    this.borderStyle = next
+    // 无边框格（回读为 0）选线型时补缺省宽度；取消线型则宽度归零
+    if (next === null) this.borderWidth = 0
+    else if (this.borderWidth === 0) this.borderWidth = 0.75
   }
 
   private applyElementBorder(mode: 'all' | 'none', border: ElementBorderSpec) {
@@ -323,22 +409,31 @@ export class FormatToolbar {
 
   /** 边框预设（Vue 版组件 onPreset 的路由口径）：单元格上下文走表格预设，否则走元素整圈 */
   applyBorderPreset(preset: BorderPreset) {
-    // 线型＝无时预设等于清边框（单元格/元素同口径）
+    // 线型＝无时预设等于清边框（单元格/元素同口径）；混合态未选线型不能当成「无」
     const withNone = this.borderStyle === null
-    if (this.context === 'cells') this.applyCellBorderPreset(withNone ? 'none' : preset, this.borderSpec())
-    else this.applyElementBorder(withNone || preset === 'none' ? 'none' : 'all', this.borderSpec())
+    if (this.context === 'cells') {
+      const clear = withNone && !this.borderMixed.style
+      this.applyCellBorderPreset(clear ? 'none' : preset, this.borderSpec())
+      this.settleBorderDraft()
+    } else {
+      this.applyElementBorder(withNone || preset === 'none' ? 'none' : 'all', this.borderSpec())
+    }
   }
 
   /** 单边按钮（Vue 版组件 onEdge 的路由口径）：按上下文落到单元格边或元素分边 */
   applyEdge(side: BorderSide) {
-    // 线型＝无时点某条边＝撤掉那条边
-    if (this.borderStyle === null) {
-      if (this.context === 'cells') this.applyCellBorderEdges([side], this.borderSpec(), false)
-      else this.clearElementEdge(side)
+    // 线型＝无时点某条边＝撤掉那条边；混合态未选线型不能当成「无」，按实线补
+    if (this.borderStyle === null && !this.borderMixed.style) {
+      if (this.context === 'cells') {
+        this.applyCellBorderEdges([side], this.borderSpec(), false)
+        this.settleBorderDraft()
+      } else this.clearElementEdge(side)
       return
     }
-    if (this.context === 'cells') this.toggleCellEdge(side, this.borderSpec())
-    else this.toggleElementEdge(side, this.borderSpec())
+    if (this.context === 'cells') {
+      this.toggleCellEdge(side, this.borderSpec())
+      this.settleBorderDraft()
+    } else this.toggleElementEdge(side, this.borderSpec())
   }
 
   /** 撤掉一条边（线型＝无时工具栏的单边走这条）：整圈生效时其余三边展开成单边 */

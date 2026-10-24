@@ -303,12 +303,19 @@ describe('TableCellGroup 边框草稿：预设与单边才落盘', () => {
       .toContain('选中格已有的边框规格一致时会填进这三行')
   })
 
-  it('只改宽度不写边框，点「全部」才按新宽度落盘', async () => {
+  it('无边框格回显「无 / 0」；选实线自动补缺省宽度，改宽度后点「全部」才落盘', async () => {
     const element = makeElement({ formatter: '文本' })
     const w = mountGroup(element)
-    const input = w.find('.border-style-row input[type="number"]')
-    await input.setValue('2')
-    await input.trigger('change')
+    const sel = w.find('.border-style-row select')
+    const width = () => (w.find('.border-style-row input[type="number"]').element as HTMLInputElement).value
+
+    expect((sel.element as HTMLSelectElement).value, '四边都没有边框 ⇒ 线型无').toBe('none')
+    expect(width(), '四边都没有边框 ⇒ 宽度 0').toBe('0')
+
+    await sel.setValue('solid')
+    expect(width(), '选实线自动补缺省宽度').toBe('0.75')
+    await w.find('.border-style-row input[type="number"]').setValue('2')
+    await w.find('.border-style-row input[type="number"]').trigger('change')
     expect(cellOf(element).borders, '仅改宽度不应落盘').toBeUndefined()
 
     const all = w.findAll('.border-presets button').find(b => b.text() === '全部')!
@@ -375,12 +382,12 @@ describe('TableCellGroup 边框回显：勾选框反映选区真实边位', () =
     expect(cell.borders!.right).toBeTruthy()
   })
 
-  it('选区里只有一格有上边 ⇒ 半选（indeterminate），点它是补齐而不是清空', async () => {
+  it('多选不回显单格边位：一格有上边也不半选，点下去按批写补齐全部', async () => {
     const a: Partial<TableCell> = { borders: { top: border(), left: border() } }
     const b: Partial<TableCell> = { borders: { left: border() } }
     const w = mountCells([a, b], 1)
-    expect(checked(w)).toEqual([false, false, false, true])
-    expect(indeterminate(w)).toEqual([true, false, false, false])
+    expect(checked(w), '多选不取任何一格的边位').toEqual([false, false, false, false])
+    expect(indeterminate(w)).toEqual([false, false, false, false])
 
     await w.findAll('.pd-checkbox-group input[type="checkbox"]')[0]!.setValue(true)
     expect(a.borders!.top).toBeTruthy()
@@ -388,6 +395,7 @@ describe('TableCellGroup 边框回显：勾选框反映选区真实边位', () =
     expect([a.borders!.left, b.borders!.left].every(Boolean), '补齐上边不得动其它边位').toBe(true)
     expect(Object.keys(a.borders!).sort()).toEqual(['left', 'top'])
     expect(Object.keys(b.borders!).sort()).toEqual(['left', 'top'])
+    expect(checked(w), '批写过的边在本选区回显为勾选').toEqual([true, false, false, false])
   })
 
   it('切换选区后勾选框跟着变（不残留上一格的状态）', async () => {
@@ -413,8 +421,8 @@ describe('TableCellGroup 边框回显：勾选框反映选区真实边位', () =
       expect(rows3(w)).toEqual({ style: 'dashed', width: '2', color: '#123456' })
     })
 
-    it('一条边都还没画 ⇒ 回到缺省档（实线 0.75），点预设照样能出框', () => {
-      expect(rows3(mountCells([{ borders: undefined }]))).toEqual({ style: 'solid', width: '0.75', color: '#333333' })
+    it('一条边都还没画 ⇒ 线型「无」、宽度 0，颜色仍按缺省草稿', () => {
+      expect(rows3(mountCells([{ borders: undefined }]))).toEqual({ style: 'none', width: '0', color: '#333333' })
     })
 
     it('选区里边规格不一 ⇒ 不谎报，整组回到缺省档', () => {
@@ -484,5 +492,200 @@ describe('TableCellGroup 线型可设为「无」', () => {
     await w.find('.border-style-row select').setValue('none')
     await w.findAll('.pd-checkbox-group input[type="checkbox"]')[1]!.setValue(true)
     expect(cell.borders?.right).toBeUndefined()
+  })
+})
+
+describe('TableCellGroup 单选回显 / 多选批写', () => {
+  const border = (
+    w = 0.75, style: 'solid' | 'dashed' | 'dotted' | 'double' = 'solid', color = '#333333',
+  ) => ({ width: w, style, color })
+
+  function mountMatrix(
+    rowCells: Array<Array<Partial<TableCell>>>,
+    selection: { r1: number; c1: number; r2: number; c2: number },
+  ) {
+    const element = reactive({
+      id: 'el-table',
+      options: {
+        tableColWidths: rowCells[0]!.map(() => 50),
+        tableRows: rowCells.map((cells, ri) => ({
+          id: `r${ri}`,
+          type: 'data',
+          height: 10,
+          cells: cells.map((cell, ci) => ({ id: `c${ri}-${ci}`, ...cell })),
+        })),
+      },
+      printElementType: { type: 'table', title: '表格' },
+    }) as unknown as RuntimeElement
+    const w = mount(TableCellGroup, {
+      props: { element, selection: { elementId: 'el-table', ...selection }, fields: [] },
+      global: {
+        provide: {
+          [TABLE_EDIT_KEY as symbol]: { tableSelection: { value: null }, setTableSelection: () => {}, recordHistory: () => {} },
+        },
+      },
+    })
+    return { w, element }
+  }
+
+  const cellOf = (element: RuntimeElement, r: number, c: number) =>
+    (element.options.tableRows as any[])[r].cells[c] as TableCell
+  const field = (w: ReturnType<typeof mount>, label: string) =>
+    w.findAll('.pd-field').find(f => f.find('.pd-label').text() === label)
+  const checkedRadios = (w: ReturnType<typeof mount>, label: string) =>
+    field(w, label)!.findAll('input[type="radio"]').map(i => (i.element as HTMLInputElement).checked)
+  const edgeBoxes = (w: ReturnType<typeof mount>) =>
+    w.findAll('.pd-checkbox-group input[type="checkbox"]').map(i => ({
+      checked: (i.element as HTMLInputElement).checked,
+      mixed: (i.element as HTMLInputElement).indeterminate,
+    }))
+
+  it('多选：不显示任何一格的配置值，控件留空并给出「多选」占位', () => {
+    const { w } = mountMatrix([[
+      { formatter: 'A', fontSize: 12, align: 'left', fontWeight: 'bold', color: '#123456' },
+      { formatter: 'B', fontSize: 16, align: 'center' },
+    ]], { r1: 0, c1: 0, r2: 0, c2: 1 })
+
+    expect(w.text()).toContain('已选 2 格 · 批量设置')
+    const content = field(w, '内容')!.find('input.pd-input').element as HTMLInputElement
+    expect(content.value).toBe('')
+    expect(content.placeholder).toContain('多选')
+    const size = field(w, '字号 (pt)')!.find('input[type="number"]').element as HTMLInputElement
+    expect(size.value).toBe('')
+    expect(size.placeholder).toBe('多选')
+    expect(checkedRadios(w, '水平对齐')).toEqual([false, false, false, false])
+    const bold = field(w, '加粗')!.find('input.pd-switch').element as HTMLInputElement
+    expect(bold.checked).toBe(false)
+    expect(field(w, '字体')!.find('.font-select-input').attributes('placeholder')).toBe('多选')
+    // 边框三行不取任何一格的派生值，落缺省档；四边不勾也没有半选
+    expect((w.find('.border-style-row select').element as HTMLSelectElement).value).toBe('solid')
+    expect(edgeBoxes(w)).toEqual([
+      { checked: false, mixed: false }, { checked: false, mixed: false },
+      { checked: false, mixed: false }, { checked: false, mixed: false },
+    ])
+    expect(w.text()).toContain('多选时不回显单格边框')
+  })
+
+  it('多选批写：改字号写到全部选中格，控件显示本次批写值', async () => {
+    const { w, element } = mountMatrix([[
+      { fontSize: 12 }, { fontSize: 16 },
+    ]], { r1: 0, c1: 0, r2: 0, c2: 1 })
+
+    const size = field(w, '字号 (pt)')!.find('input[type="number"]')
+    await size.setValue('14')
+    expect(cellOf(element, 0, 0).fontSize).toBe(14)
+    expect(cellOf(element, 0, 1).fontSize).toBe(14)
+    expect((size.element as HTMLInputElement).value).toBe('14')
+  })
+
+  it('换选区即清批写草稿；切回来也不复活', async () => {
+    const { w, element } = mountMatrix([[
+      { fontSize: 12 }, { fontSize: 16 },
+    ]], { r1: 0, c1: 0, r2: 0, c2: 1 })
+    const size = () => field(w, '字号 (pt)')!.find('input[type="number"]').element as HTMLInputElement
+
+    await field(w, '字号 (pt)')!.find('input[type="number"]').setValue('14')
+    expect(size().value).toBe('14')
+
+    await w.setProps({ selection: { elementId: 'el-table', r1: 0, c1: 1, r2: 0, c2: 1 } })
+    expect(size().value, '单选取该格真实值（批写后两格都是 14）').toBe('14')
+
+    await w.setProps({ selection: { elementId: 'el-table', r1: 0, c1: 0, r2: 0, c2: 1 } })
+    expect(size().value, '换回多选不残留上次批写值').toBe('')
+    expect(cellOf(element, 0, 0).fontSize).toBe(14)
+  })
+
+  it('合并格虽然 rect 跨两行，只有一个可写主格 ⇒ 仍按单选回显', () => {
+    const { w } = mountMatrix([
+      [{ rowspan: 2, formatter: '合并标题', fontSize: 20 }],
+      [{ merged: true }],
+    ], { r1: 0, c1: 0, r2: 1, c2: 0 })
+
+    expect(w.text()).not.toContain('批量设置')
+    expect((field(w, '内容')!.find('input.pd-input').element as HTMLInputElement).value).toBe('合并标题')
+    expect((field(w, '字号 (pt)')!.find('input[type="number"]').element as HTMLInputElement).value).toBe('20')
+  })
+
+  it('多选的类型专属行按共有类型出现：全条码才有码制，混合类型不显示', () => {
+    const allBarcode = mountMatrix([[
+      { cellType: 'barcode' }, { cellType: 'barcode' },
+    ]], { r1: 0, c1: 0, r2: 0, c2: 1 }).w
+    expect(field(allBarcode, '码制')).toBeTruthy()
+    expect((field(allBarcode, '码制')!.find('select').element as HTMLSelectElement).value).toBe('__multi__')
+
+    const mixed = mountMatrix([[
+      { cellType: 'barcode' }, { cellType: 'qrcode' },
+    ]], { r1: 0, c1: 0, r2: 0, c2: 1 }).w
+    expect(field(mixed, '码制')).toBeUndefined()
+    expect(field(mixed, '纠错级别')).toBeUndefined()
+    expect(field(mixed, '文字溢出')).toBeUndefined()
+  })
+
+  it('多选边框：预置按缺省档批写，不沿用某格已有的款式', async () => {
+    const a: Partial<TableCell> = { borders: { top: border(2, 'dashed') } }
+    const b: Partial<TableCell> = { borders: { top: border(3, 'dotted') } }
+    const { w, element } = mountMatrix([[a, b]], { r1: 0, c1: 0, r2: 0, c2: 1 })
+
+    await w.findAll('.border-presets button').find(x => x.text() === '全部')!.trigger('click')
+    expect(cellOf(element, 0, 0).borders!.top).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+    expect(cellOf(element, 0, 1).borders!.top).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+    // 四边勾选框只反映本次点过的单边，不把预设当成四边都点过（预设的外侧/内部并非四边均沾）
+    expect(edgeBoxes(w).every(x => !x.checked && !x.mixed)).toBe(true)
+  })
+
+  it('多选的重置按钮恒可点且不显示单格脏点，点击写 undefined 到全部', async () => {
+    const { w, element } = mountMatrix([[
+      { fontSize: 12 }, { fontSize: 16 },
+    ]], { r1: 0, c1: 0, r2: 0, c2: 1 })
+
+    const reset = field(w, '字号 (pt)')!.find('.pd-reset-btn')
+    expect(reset.classes()).not.toContain('is-dirty')
+    await reset.trigger('click')
+    expect(cellOf(element, 0, 0).fontSize).toBeUndefined()
+    expect(cellOf(element, 0, 1).fontSize).toBeUndefined()
+  })
+})
+
+describe('TableCellGroup 单格四边不一致显示混合', () => {
+  function mountCells(cells: Array<Partial<TableCell>>) {
+    const element = reactive({
+      id: 'el-table',
+      options: { tableColWidths: cells.map(() => 50), tableRows: [{ id: 'r1', type: 'data', height: 10, cells }] },
+      printElementType: { type: 'table', title: '表格' },
+    }) as unknown as RuntimeElement
+    return mount(TableCellGroup, {
+      props: { element, selection: { elementId: 'el-table', r1: 0, c1: 0, r2: 0, c2: 0 }, fields: [] },
+      global: {
+        provide: {
+          [TABLE_EDIT_KEY as symbol]: { tableSelection: { value: null }, setTableSelection: () => {}, recordHistory: () => {} },
+        },
+      },
+    })
+  }
+
+  it('三行显示「混合」，未改项批写按缺省档，落盘后回到实线 0.75', async () => {
+    const cell: Partial<TableCell> = {
+      borders: {
+        top: { width: 2, style: 'dashed', color: '#ff0000' },
+        right: { width: 0.75, style: 'solid', color: '#333333' },
+      },
+    }
+    const w = mountCells([cell])
+    const sel = w.find('.border-style-row select').element as HTMLSelectElement
+    expect(sel.value).toBe('__mixed__')
+    expect(Array.from(sel.options).some(o => o.textContent === '混合' && o.disabled)).toBe(true)
+
+    const width = w.find('.border-style-row input[type="number"]').element as HTMLInputElement
+    expect(width.value).toBe('')
+    expect(width.placeholder).toBe('混合')
+    expect(w.find('.border-style-row .preset-color-trigger').attributes('title')).toBe('混合')
+    expect(w.text()).toContain('四边边框规格不一致')
+
+    await w.findAll('.border-presets button').find(b => b.text() === '全部')!.trigger('click')
+    expect(cell.borders!.top).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+    expect(cell.borders!.right).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+    await w.vm.$nextTick()
+    expect((w.find('.border-style-row select').element as HTMLSelectElement).value).toBe('solid')
+    expect(w.text()).not.toContain('四边边框规格不一致')
   })
 })

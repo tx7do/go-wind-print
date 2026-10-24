@@ -7,6 +7,7 @@ import {
   insertRow, deleteRow, insertCol, deleteCol, setRowType, applyBorderPreset, setCellBorderEdge, resolveCellBorderDisplay,
   syncTableElementSize, resolveCellBorderCss, GHOST_BORDER_CSS,
   clampResizedColumnWidth, MIN_COL_WIDTH_MM, setHeaderRepeat,
+  collectWritableCells, resolveCellGroupMode, resolveSharedCellType,
 } from '../table-matrix.js'
 
 /** 构造 rows×cols 全 header 矩阵 */
@@ -425,5 +426,45 @@ describe('resolveCellBorderDisplay：单元格台三行的待应用规格取自�
       createCell({ merged: true, borders: { top: b(5, 'dotted', '#123456') } }),
     ] }] as never
     expect(resolveCellBorderDisplay(rows, rect)).toEqual({ width: 2, style: 'solid', color: '#333333' })
+  })
+})
+
+describe('单元格台单/多选判定：只有单个可写格才回显单格配置', () => {
+  const rect1 = { r1: 0, c1: 0, r2: 0, c2: 0 }
+  const rect2 = { r1: 0, c1: 0, r2: 0, c2: 1 }
+
+  it('单格 = single；两格 = multi；选区内只有占位格时 count 为 0 而非负数', () => {
+    const rows = [{ id: 'r', type: 'data', height: 8, cells: [
+      createCell(), createCell(), createCell({ merged: true }),
+    ] }] as never
+    expect(resolveCellGroupMode(rows, rect1)).toEqual({ mode: 'single', count: 1 })
+    expect(resolveCellGroupMode(rows, rect2)).toEqual({ mode: 'multi', count: 2 })
+    expect(resolveCellGroupMode(rows, { r1: 0, c1: 2, r2: 0, c2: 2 })).toEqual({ mode: 'single', count: 0 })
+  })
+
+  it('跨行合并格虽然 rect 跨两行，但只有一个可写主格 ⇒ 仍是单选', () => {
+    const rows = [
+      { id: 'r0', type: 'header', height: 8, cells: [createCell({ rowspan: 2 })] },
+      { id: 'r1', type: 'header', height: 8, cells: [createCell({ merged: true })] },
+    ] as never
+    expect(resolveCellGroupMode(rows, { r1: 0, c1: 0, r2: 1, c2: 0 })).toEqual({ mode: 'single', count: 1 })
+  })
+
+  it('collectWritableCells 按行列顺序返回非占位格', () => {
+    const cells = [createCell({ formatter: 'a' }), createCell({ merged: true })]
+    const rows = [{ id: 'r', type: 'data', height: 8, cells }, { id: 'r2', type: 'data', height: 8, cells: [createCell({ formatter: 'b' })] }] as never
+    expect(collectWritableCells(rows, { r1: 0, c1: 0, r2: 1, c2: 1 }).map(c => c.formatter))
+      .toEqual(['a', 'b'])
+  })
+
+  it('共有类型：全同类型返回该类型（未设置按 text），混合返回 null', () => {
+    const rows = (types: Array<'text' | 'barcode' | 'qrcode' | 'image' | undefined>) => ([{
+      id: 'r', type: 'data', height: 8,
+      cells: types.map(cellType => createCell({ cellType })),
+    }]) as never
+    expect(resolveSharedCellType(rows([undefined, 'text']), rect2)).toBe('text')
+    expect(resolveSharedCellType(rows(['barcode', 'barcode']), rect2)).toBe('barcode')
+    expect(resolveSharedCellType(rows(['barcode', undefined]), rect2)).toBeNull()
+    expect(resolveSharedCellType(rows(['image', 'image']), rect2)).toBe('image')
   })
 })

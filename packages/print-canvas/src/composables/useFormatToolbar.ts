@@ -7,6 +7,7 @@ import type {
 import {
   applyBorderPreset, setCellBorderEdge, type BorderPreset,
   applyElementBorderPreset, setElementBorderEdgeVisible, elementVisibleBorders, resolveBorderEdgeStates,
+  resolveCellGroupMode, resolveCellBorderDisplay,
   type BorderEdgeState, type ElementBorderSpec,
 } from '@worm-vue3-print/core/designer'
 
@@ -28,6 +29,16 @@ export interface FormatStylePatch {
 
 /** 元素边框规格：类型与写入口径都在 core，本包不再自造一份 */
 export type { ElementBorderSpec }
+
+/** 工具栏边框面板的单元格回读结果：mixed 字段由界面留空，批写时按缺省档兜底 */
+export interface CellBorderDraft {
+  /** 选区标识（元素 + 矩形）；变化时把草稿重置为该选区真实规格 */
+  key: string
+  style: 'solid' | 'dashed' | 'dotted' | 'double' | 'none'
+  width: number
+  color: string
+  mixed: { style: boolean; width: boolean; color: boolean }
+}
 
 export interface FormatToolbarDeps {
   elements: Ref<RuntimeElement[]>
@@ -212,6 +223,27 @@ export function useFormatToolbar(deps: FormatToolbarDeps) {
     })
   }
 
+  /** 工具栏边框面板的单元格回读：单格取该格规格（四边不一致的字段标 mixed 并留空）；多选按缺省档作批写源 */
+  const cellBorderDraft = computed<CellBorderDraft | null>(() => {
+    if (context.value !== 'cells') return null
+    const s = tableSelection.value
+    const rows = tableElement.value?.options.tableRows
+    if (!s || !rows) return null
+    const key = `cells:${s.elementId}:${s.r1}:${s.c1}:${s.r2}:${s.c2}`
+    if (resolveCellGroupMode(rows, s).mode === 'multi') {
+      return { key, style: 'solid', width: 0.75, color: '#333333', mixed: { style: false, width: false, color: false } }
+    }
+    const d = resolveCellBorderDisplay(rows, s)
+    const noEdges = d.style === undefined && d.width === undefined && d.color === undefined
+    return {
+      key,
+      style: (noEdges ? 'none' : (typeof d.style === 'string' && d.style !== 'mixed' ? d.style : 'solid')) as CellBorderDraft['style'],
+      width: noEdges ? 0 : (typeof d.width === 'number' ? d.width : 0.75),
+      color: typeof d.color === 'string' && d.color !== 'mixed' ? d.color : '#333333',
+      mixed: { style: d.style === 'mixed', width: d.width === 'mixed', color: d.color === 'mixed' },
+    }
+  })
+
   type BorderSide = 'top' | 'right' | 'bottom' | 'left'
   const BORDER_SIDES: BorderSide[] = ['top', 'right', 'bottom', 'left']
 
@@ -270,6 +302,7 @@ export function useFormatToolbar(deps: FormatToolbarDeps) {
     applyStyle, toggleBold, toggleUnderline, toggleStrike,
     applyElementBorder, applyCellBorderPreset, applyCellBorderEdges,
     cellEdges, toggleCellEdge, elementEdges, toggleElementEdge, clearElementEdge,
+    cellBorderDraft,
   }
 }
 

@@ -43,6 +43,8 @@ const RECT_SOLID = '<rect class="g-solid" x="2.5" y="2.5" width="13" height="13"
 
 export function renderFormatBar(ctx: FormatCtx) {
   const f = ctx.format
+  // 单元格选区变化时把边框三行回填为该格真实规格；用户草稿在 key 不变时保留
+  f.syncBorderDraft()
   const values = f.values
   const fontDisabled = !f.fontEditable
   const decoDisabled = fontDisabled || f.context === 'cells'
@@ -86,14 +88,18 @@ export function renderFormatBar(ctx: FormatCtx) {
         h('span', { class: 'ft-edge-label', text: '粗细' }),
         h('div', { class: 'ft-line-width' }, [stepper({
           value: f.borderWidth, min: 0.25, max: 5, step: 0.25,
-          onCommit: v => { f.borderWidth = v; ctx.repaint() },
+          placeholder: f.borderMixed.width ? '混合' : undefined,
+          onCommit: v => { f.setBorderWidth(v); ctx.repaint() },
         })]),
       ]),
       h('div', { class: 'ft-border-style-row' }, [
         h('span', { class: 'ft-edge-label', text: '颜色' }),
-        colorTrigger(f.borderColor, v => { f.borderColor = v; ctx.repaint() }, '边框颜色'),
+        colorTrigger(f.borderColor, v => { f.setBorderColor(v); ctx.repaint() }, '边框颜色'),
       ]),
-    ]),
+      f.borderMixedAny
+        ? h('p', { class: 'pd-hint', text: '当前单元格四边规格不一致：留空的项不谎报，点预设/单边时按缺省档（实线 0.75 / #333333）批写' })
+        : '',
+    ].filter(Boolean)),
   ]
 
   const alignPanel = [
