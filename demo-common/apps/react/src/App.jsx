@@ -38,6 +38,14 @@ function downloadTemplateFile(json, name) {
   URL.revokeObjectURL(url)
 }
 
+/** 模板声明的字体（多页模板合并、按 family 去重）；宿主把 /fonts 从本站 public 直接提供，URL 原样可用 */
+function fontsOf(tpl) {
+  const pages = Array.isArray(tpl && tpl.pages) ? tpl.pages : null
+  const list = pages ? pages.flatMap(p => (p && p.fonts) || []) : ((tpl && tpl.fonts) || [])
+  const seen = new Set()
+  return list.filter(f => f && f.family && !seen.has(f.family) && seen.add(f.family))
+}
+
 export default function App() {
   const designerRef = useRef(null)   // <print-designer> 自定义元素本体
   const fileInputRef = useRef(null)
@@ -74,6 +82,7 @@ export default function App() {
     if (!el) return
     el.fields = nextFields
     el.template = nextTemplate
+    el.fonts = fontsOf(nextTemplate)
     console.log(`[demo] 注入 fields(${nextFields.length} 个字段) 与 template(${nextTemplate.paperSize})`)
   }, [])
 

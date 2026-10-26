@@ -225,6 +225,27 @@ const readPreview = () => page.evaluate(() => {
     bars: doc.querySelectorAll('svg').length + doc.querySelectorAll('img[src^="data:image/svg"]').length,
     text: doc.body.innerText.replace(/\s+/g, ' ').slice(0, 400),
     subtitle: document.querySelector('.preview-subtitle')?.textContent.trim() ?? '',
+    zoom: (() => {
+      const btns = [...document.querySelectorAll('.print-html-preview-zoom-btn')]
+      const active = btns.find(b => b.classList.contains('active') || b.classList.contains('is-active') || b.getAttribute('aria-pressed') === 'true')
+      const frame = document.querySelector('.preview-mask iframe')
+      // 缩放作用在出纸文档内（iframe 里的 body），不是 iframe 元素本身；打印复位守卫也在该文档的样式里
+      const frameDoc = frame?.contentDocument
+      // 缩放落在出纸文档的 html 规则上（html{zoom:N}），打印时由 @media print{html{zoom:1 !important}} 复位
+      const css = frameDoc ? getComputedStyle(frameDoc.documentElement) : getComputedStyle(document.documentElement)
+      const printGuard = frameDoc
+        ? [...frameDoc.querySelectorAll('style')].some(x => /@media\s+print/.test(x.textContent ?? '') && /zoom/.test(x.textContent ?? ''))
+        : false
+      return {
+        count: btns.length,
+        labels: btns.map(b => b.textContent.trim()).join('/'),
+        active: active ? active.textContent.trim() : '',
+        note: document.querySelector('.print-html-preview-zoom-note')?.textContent.trim() ?? '',
+        frameZoom: frame ? frame.style.zoom : '',
+        computedZoom: css.zoom,
+        printGuard,
+      }
+    })(),
     head: !!document.querySelector('.preview-head .preview-title'),
     loading: !!document.querySelector('.print-html-preview-loading'),
   }
@@ -263,6 +284,18 @@ async function previewOnce() {
 const single = await previewOnce()
 check('预览层为 demo 的全屏版式', single.head && single.subtitle.includes('页'), single.subtitle)
 check('预览渲染出纸面', single.pages > 0, `${single.pages} 页`)
+// 预览缩放档位（T-19b）：五档齐、有激活档、说明文案与「打印不受影响」守卫都在
+check('预览缩放档位五档齐', single.zoom.count === 5 && /点阵/.test(single.zoom.labels) && /适配/.test(single.zoom.labels) && /400%/.test(single.zoom.labels),
+  `count=${single.zoom.count} ${single.zoom.labels}`)
+// 「点阵」档的期望缩放 = 打印机 dpi / 96；带 dpi 的模板必须精确命中，否则退化为「适配」时只要求为正
+const dpiHit = /(\d{2,3})dpi/.exec(single.zoom.active)
+const zoomOk = dpiHit
+  ? Math.abs(Number(single.zoom.computedZoom) - Number(dpiHit[1]) / 96) < 0.02
+  : Number(single.zoom.computedZoom) > 0
+check('预览默认档与出纸文档缩放一致', /点阵|适配/.test(single.zoom.active) && zoomOk,
+  `active=${single.zoom.active} zoom=${single.zoom.computedZoom} 期望=${dpiHit ? (Number(dpiHit[1]) / 96).toFixed(4) : '>0'}`)
+check('缩放说明与打印复位守卫在位', /仅屏幕缩放/.test(single.zoom.note) && single.zoom.printGuard,
+  `note=${single.zoom.note} guard=${single.zoom.printGuard}`)
 const expectedTexts = dataLeaves(FIRST_LABEL_SAMPLE.data).slice(0, 4)
 check('纸面含当前示例的数据值', expectedTexts.every(t => single.text.includes(t)),
   `应含 ${expectedTexts.join(' / ')} → ${single.text}`)
@@ -334,6 +367,34 @@ const download = page.waitForEvent('download', { timeout: 8000 }).catch(() => nu
 await clickByText(page, '导出模板')
 const dl = await download
 check('导出模板触发下载', !!dl, dl ? await dl.suggestedFilename() : '无下载事件')
+
+// ── 7. 字体链路（T-16）：带字体声明的示例应用后，@font-face 真的进文档、字体下拉列出候选 ──
+await clickByText(page, '加载示例')
+await waitVisible(page, '.gallery-mask')
+await page.locator('.gallery-mask .sample-card', { hasText: '综合示例模板' }).first().click()
+await page.waitForTimeout(200)
+await clickByText(page, '使用该模板')
+await waitHidden(page, '.gallery-mask')
+await page.waitForTimeout(400)
+// 字体下拉只在选中文本元素后才可用（未选中时 input 为 disabled），先点一个文本元素
+await page.locator('print-designer').locator('.print-element.type-text').first().click()
+await page.waitForTimeout(250)
+const fonts = await page.evaluate(async () => {
+  const el = document.querySelector('print-designer')
+  const tpl = JSON.parse(el.getTemplateJson())
+  const families = (tpl.fonts ?? []).map(f => f.family)
+  await document.fonts.ready
+  const faces = [...document.fonts].map(f => String(f.family).replace(/["']/g, ''))
+  const root = el.shadowRoot ?? document
+  const trigger = root.querySelector('.ft-font .font-select-input')
+  if (trigger) trigger.click()
+  const options = root.querySelectorAll('.font-select-option').length
+  return { declared: families.length, families, matched: faces.filter(f => families.includes(f)).length, options, disabled: !!trigger?.disabled }
+})
+check('带字体示例声明了 3 个字体（判据前提）', fonts.declared === 3, `declared=${fonts.declared} ${fonts.families.join('/')}`)
+check('@font-face 进入文档（模板 3 个字体全在）', fonts.matched === 3, `matched=${fonts.matched}/${fonts.declared}`)
+check('字体下拉 = 1 默认 + 3 候选', fonts.options === 4 && fonts.disabled === false, `options=${fonts.options} disabled=${fonts.disabled}`)
+await page.keyboard.press('Escape')
 
 await page.screenshot({ path: join(OUT, `demo-${new URL(URL_).port}.png`), fullPage: false })
 const realErrors = errors.filter(e => !/Failed to load resource|WebSocket|favicon/.test(e))

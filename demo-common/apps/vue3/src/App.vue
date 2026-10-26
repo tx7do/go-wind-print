@@ -287,11 +287,20 @@ const printData = computed(() => (batchEnabled.value ? batchDataList.value : act
 // 对象被字符串化成 "[object Object]"，所以对象/函数入参必须赋 property；
 // 只有字符串开关（is-edit、show-help）可以写在模板属性上。
 // fields 只有 setter（读回看 el.store.fields），故日志按宿主自身持有的数据计数。
+/** 模板声明的字体（多页模板合并、按 family 去重）；宿主把 /fonts 从本站 public 直接提供，URL 原样可用 */
+function fontsOf(tpl) {
+  const pages = Array.isArray(tpl && tpl.pages) ? tpl.pages : null
+  const list = pages ? pages.flatMap(p => (p && p.fonts) || []) : ((tpl && tpl.fonts) || [])
+  const seen = new Set()
+  return list.filter(f => f && f.family && !seen.has(f.family) && seen.add(f.family))
+}
+
 function syncDesigner() {
   const el = designerRef.value
   if (!el) return
   el.fields = fields.value
   el.template = templateData.value
+  el.fonts = fontsOf(templateData.value)
   console.log(`[demo] 注入 fields(${fields.value.length} 个字段) 与 template(${templateData.value.paperSize})`)
 }
 

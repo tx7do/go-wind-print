@@ -23,6 +23,14 @@ const state = {
   customDataActive: false,
 }
 
+/** 模板声明的字体（多页模板合并、按 family 去重）；宿主把 /fonts 从本站 public 直接提供，URL 原样可用 */
+function fontsOf(tpl) {
+  const pages = Array.isArray(tpl && tpl.pages) ? tpl.pages : null
+  const list = pages ? pages.flatMap(p => (p && p.fonts) || []) : ((tpl && tpl.fonts) || [])
+  const seen = new Set()
+  return list.filter(f => f && f.family && !seen.has(f.family) && seen.add(f.family))
+}
+
 const designer = () => document.getElementById('designer')
 
 // ────────────────── 打印数据：批量开关在对象/数组间切换，三条链路共用 ──────────────────
@@ -69,6 +77,7 @@ function syncDesigner() {
   if (!el) return
   el.fields = state.fields
   el.template = state.templateData
+  el.fonts = fontsOf(state.templateData)
   console.log(`[demo] 注入 fields(${state.fields.length} 个字段) 与 template(${state.templateData.paperSize})`)
 }
 

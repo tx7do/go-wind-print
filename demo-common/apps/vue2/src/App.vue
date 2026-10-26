@@ -32,6 +32,14 @@ function deriveBatchData(base) {
 /** iframe 由 v-if 控制，需等下一帧再取节点写入内容 */
 const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()))
 
+/** 模板声明的字体（多页模板合并、按 family 去重）；宿主把 /fonts 从本站 public 直接提供，URL 原样可用 */
+function fontsOf(tpl) {
+  const pages = Array.isArray(tpl && tpl.pages) ? tpl.pages : null
+  const list = pages ? pages.flatMap(p => (p && p.fonts) || []) : ((tpl && tpl.fonts) || [])
+  const seen = new Set()
+  return list.filter(f => f && f.family && !seen.has(f.family) && seen.add(f.family))
+}
+
 export default {
   name: 'App',
   components: { SampleThumb },
@@ -163,6 +171,7 @@ export default {
       if (!el) return
       el.fields = this.fields
       el.template = this.templateData
+      el.fonts = fontsOf(this.templateData)
       console.log(`[demo] 注入 fields(${this.fields.length} 个字段) 与 template(${this.templateData.paperSize})`)
     },
     /** 图片上传回调：设计器「插入图片」时调用，宿主返回可访问地址即可（demo 用 Data URL 模拟上传接口） */

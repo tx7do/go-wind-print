@@ -7,7 +7,8 @@
 > ② `npm run publish:npm` 发 core/canvas `1.3.11`，随后重打七件安装包并挂 Release（GitHub 附件 + Gitee 发行版正文用 `.github/release/notes.md` 与中文版本段）。
 > 发完可跑 `npm run check:release-carriers -- --post` 与线上 `npm pack` 载荷复验（本轮已用同法证过 1.3.10 缺这三条、1.3.11 全带）。
 > 另：#IKPXQL 的公开错话已按载荷级实测更正（评论 id 51816315，复核 `state=closed / comments=2`）。
-> **2026-10-26 续作**：T-28（longText 缺省行高）已按方案 A 修完并折进尚未发布的 V1.3.11 段，四载体同步、sync-assets 已重跑；T-29（`wordWrap:false` 三份手写实现收编）已完成并双推；T-22（canvas 测试类型错 53→0 并接入 pretest）已完成并双推；T-24（GitHub #6 右键菜单）已定性为**本机两宿主自动化下均正常、未能复现**，并撤回了上一稿的误报（见该条）。待裁决新登记：**T-28**（longText 缺省行高 1.5 vs 出纸 normal）、**T-29**（`wordWrap:false` 三份手写实现待收编），以及原有 T-11 C2、T-24 定性、T-16/T-19b、T-22、T-25。
+> **2026-10-26 续作**：T-28（longText 缺省行高）已按方案 A 修完并折进尚未发布的 V1.3.11 段，四载体同步、sync-assets 已重跑；T-29（`wordWrap:false` 三份手写实现收编）已完成并双推；T-22（canvas 测试类型错 53→0 并接入 pretest）已完成并双推；T-24（GitHub #6 右键菜单）已定性为**本机两宿主自动化下均正常、未能复现**，并撤回了上一稿的误报（见该条）。
+> **2026-10-26 再续**：T-16（四宿主字体链路）与 T-19b（预览缩放档位断言）已完成并双推，`verify-demo` 42 项 ×4 全绿。待裁决新登记：**T-28**（longText 缺省行高 1.5 vs 出纸 normal）、**T-29**（`wordWrap:false` 三份手写实现待收编），以及原有 T-11 C2、T-24 定性、T-16/T-19b、T-22、T-25。
 
 > **本文件只挂未完成项。** 已完成条目压成文末「已完成归档」一行一条；原实施正文、批次记录、浏览器验证实测与探针坑明细
 > 已从本文件移出，可在 `git show HEAD:TODO.md`（截至 `cd6e7c1` 的 775 行版）与中英 CHANGELOG 里取回。
@@ -80,27 +81,6 @@
   `verify-demo` 四宿主 36/36 ×4 本轮新鲜重跑；技能 `template-schema.md` 的 `wordWrap` 行与 `docs/中文/指南/模板设计器.md` 的 `textFit` 三档已回写单行溢出/版本边界口径；`build_template.py` 的 `COMMON_ALIAS` 补了 `keepLineBreaks`（此前技能生成不出该字段），端到端跑通：生成→校验 0 项→core 落值出 nowrap 不出 pre-wrap。
 - **剩一条只能维护者本机做**：`npm login` 后跑 `node scripts/check-common-dist-tag.mjs --fix` 摘掉 `latest`；
   以及按既有口径走 `publish:common:beta` 重发预览版（该包已落后主线 40+ 笔提交）。
-
-### T-16 demo-common 四宿主没接 `fonts`，字体链路在 Common 宿主上是暗的　【成立】
-
-- 2026-10-26 复核：四入口 `grep -c fonts` **仍全为 0**（`apps/vue3/src/App.vue`、`apps/vue2/src/App.vue`、`apps/react/src/App.jsx`、`apps/jquery/src/app.js`）。
-- 2026-10-26 浏览器动态取证（Playwright + 系统 Chrome，载入示例「综合示例模板」——该示例声明 3 个字体）：
-  - 9331（vue3 Common 宿主）：宿主传入 `fonts=null`、`document` 与 shadow 的 `@font-face` **均 0 条**、`document.fonts.size = 0`。
-  - **正对照** 9303（canvas 主 demo，同一探针同一示例）：`@font-face` **3 条**、`document.fonts.size = 3`
-    ⇒ 缺口确在宿主侧，不是探针假象。
-- 外壳契约本身正常：`print-common/src/shell/controls.ts` 收 `fonts`，`property-panel.ts` 透传给 core `normalizeFontCatalog`。
-- 待办三条：① 四宿主各补一份与主 demo 同算法的 `activeFonts`（参照 `demo/src/App.vue:78` + `:243`，直挂宿主就地实现）；
-  ② `verify-demo.mjs` 补字体断言（应用该示例后 `document.fonts` 应出 3 条 face、下拉行数 = 1 默认 + 3）；
-  ③ 核对 PARITY §宿主契约是否已把 `fonts` 标成「demo 未演示」。
-
-### T-19b 残余：`verify-demo` 缺「预览缩放档位」与「字体链路」两条断言　【口径修正】
-
-- **更正原话**：T-19b 写的是「verify-demo 的 36 项不含**顶栏收纳**与预览缩放档位断言」——前半句不属实。
-  顶栏收纳两条早已随 T-10 入库：`demo-common/scripts/verify-demo.mjs:118`「顶栏接入自适应收纳（T-10）」、
-  `:119`「收纳数与「更多」组显隐一致」。2026-10-26 实测该脚本仍是 **36 项、四宿主 36/36**。
-- 真实缺口只剩两条：**预览缩放档位**与**字体链路**（后者即 T-16 的 ②，两条一并做成第 37-38 项）。
-- 功能本身是好的，本轮已动态验证：9331 与 9334（jQuery 直挂形态）预览都量到五档齐、默认 active「点阵 203dpi」、
-  iframe `computed zoom = 2.11458`、`@media print` 复位守卫在位、说明文案在位。缺的只是把一次性探针固化进脚本。
 
 ### T-23 【已验证，2026-10-26】#IKPXQL 的跟随区：主路径已解决，需求2 只解决了一半
 
@@ -249,6 +229,8 @@
 | T-28 | longText 缺省行高三端不一致已修：出纸在未设 `lineHeight` 时补 `line-height:1.5`（无单位，不覆盖显式 pt）；**存量影响**：29 份产物 25 份一致，差异只有 4 组「longText + 未设行高」各多一条声明，示例库 13 份 + 技能 8 份全未变（资产里 longText 未设行高者 0 个，未设行高的 85 个全是 `text` 且三端本就 normal）；真实 Chromium 每行 22px→24px 与画布同值 | RED/GREEN + 逐份 cmp + Chromium 行盒 + 四载体回写（中英 CHANGELOG / 两份 help-content / 指南 / 技能） |
 | T-29 | `wordWrap === false → nowrap` 已收编到 core 单点：新增 `resolveElementNowrap`（随 `/designer` 导出），出纸 `elementFitStyle`、画布 `Text/LongTextElement`、print-common `textLikeStyle` 三端消费同一份；单元格那两处（td 层与 cell-fit 层）属另一套语义，按原样保留 | core 2 条判据用例 + 三端既有落值用例 + 出纸声明逐字复核（`line-height:1.5;overflow:visible;white-space:nowrap;text-overflow:ellipsis;`） |
 | T-22 | canvas 测试类型错 **53 → 0**：`tableColWidths` 非空断言 16、`pages` 夹具按最小对象构造并标 `TemplateData` 11、`borders`/`dots` 可空 2、`VueNode.value` 转 `HTMLInputElement`/`HTMLSelectElement` 5、隐式 any 6、`toEqual` 消息参数位置 1、单元格夹具补 `id` 9、TableCellImage 夹具 cast 1 等；并把 `vue-tsc --noEmit` 接进 canvas 的 `pretest`（变异验证：故意插一条类型错 → 门禁 exit 2 且 vitest 根本没跑） | vue-tsc 计数 53→0 + canvas 73 文件/688 例全绿 + 变异自证 |
+| T-16 | 四个 common 宿主接上字体链路：各加 `fontsOf(tpl)`（多页合并、按 family 去重）并在 `el.template` 之后赋 `el.fonts`；证据：`verify-demo` 新增 3 条断言——带字体示例声明 3 个字体 / `@font-face` 3 条进文档 / 下拉 1 默认 + 3 候选；**变异自证**：撤掉 vue3 宿主的注入后两条立即变红（matched=0/3、options=1），恢复即绿 | 四宿主 42/42 ×4 实跑 |
+| T-19b | 预览缩放档位断言补齐：五档齐（点阵 203dpi/适配/100%/200%/400%）、默认档与出纸文档缩放一致（实测 `html{zoom:2.11458}` = 203/96）、说明文案与 `@media print{html{zoom:1 !important}}` 复位守卫在位；`verify-demo` 由 36 项增至 **42 项** | 四宿主 42/42 ×4 实跑 |
 | D-1 / D-2 / D-3 / D-4 | 拍板 `em` / CSS 值原样透传 / 删除字段 / 工具栏自适应收纳 | 随各条 |
 | T-01 | 长文本首行缩进出纸生效：新增 `indentStyle()` 仅 `case 'longText'` 出 `text-indent:Nem`，画布与 common 两处 `pt`→`em` | 代码坐标 + core/canvas/common 单测 + render 集成 30 例全绿 |
 | T-02 | 独立 image 的 `object-fit` 不再写死 `contain`，改 `opts.fit \|\| 'contain'`；未设 `fit` 的存量模板逐字不变 | 同上（缺省路径已用断言锁死） |
