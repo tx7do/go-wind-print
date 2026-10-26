@@ -1,11 +1,9 @@
 # TODO — 待办与对账台账
 
 > 取证基线：`master` @ `d913e32`（含 T-26 的 `8bac872`；本轮 C1/T-27/T-15 改动尚在工作区未提交）。上一轮全量复验基线 `cd6e7c1`（tag `v1.3.10`）；包版本 core/canvas/print-client `1.3.10`、common `1.3.7-beta.0`。
-> **2026-10-26 本轮交接口径（四条阻断项收口后）**：本轮改动已落 **5 笔本地提交**（`19f0a63` 修复+用例+两条自检脚本 / `261f72a` 文档与技能口径 / `8990944` 台账 / `96652e2` 升版 V1.3.11 / `ae3ebe7` 令牌口径与归档），
-> **均未推送**，工作区干净。V1.3.11 已到「可发布态」：`npm run check:release-carriers` FAIL 0，dist 内旧包已整批 mv 至 `~/print-client-dist/1.3.10/`（18 件，未删除，可移回）。
-> **只剩两步需要你的 npm 登录态**：① `node scripts/check-common-dist-tag.mjs --fix` 摘掉被预览版占用的 `latest`；
-> ② `npm run publish:npm` 发 core/canvas `1.3.11`，随后重打七件安装包并挂 Release（GitHub 附件 + Gitee 发行版正文用 `.github/release/notes.md` 与中文版本段）。
-> 发完可跑 `npm run check:release-carriers -- --post` 与线上 `npm pack` 载荷复验（本轮已用同法证过 1.3.10 缺这三条、1.3.11 全带）。
+> **2026-10-26 交接口径（最新）**：本轮全部改动已双推，`origin`/`github` 同指 `1eed485`，工作区干净。
+> **V1.3.11 已发布到除 npm 外的全部渠道**：annotated tag `v1.3.11`（落点 `f728137`）、GitHub Release（七件附件 digit 7/7 对账）、Gitee 发行版（id `1242392`，正文 4889 字）、README 七条直链实测可达。
+> **唯一未完成**：npm 上 core/canvas 仍是 `1.3.10`（本机 `whoami` 401），common 的 `latest` 仍指预览版。
 > 另：#IKPXQL 的公开错话已按载荷级实测更正（评论 id 51816315，复核 `state=closed / comments=2`）。
 > **2026-10-26 续作**：T-28（longText 缺省行高）已按方案 A 修完并折进尚未发布的 V1.3.11 段，四载体同步、sync-assets 已重跑；T-29（`wordWrap:false` 三份手写实现收编）已完成并双推；T-22（canvas 测试类型错 53→0 并接入 pretest）已完成并双推；T-24（GitHub #6 右键菜单）已定性为**本机两宿主自动化下均正常、未能复现**，并撤回了上一稿的误报（见该条）。
 > **2026-10-26 再续**：T-16（四宿主字体链路）与 T-19b（预览缩放档位断言）已完成并双推，`verify-demo` 42 项 ×4 全绿。
@@ -38,7 +36,7 @@
 
 ## 一、待办清单
 
-### T-15 common 预览版发布面（dist-tag + 落后主线 40 个提交）　【成立】+【新增】
+### T-15 common 预览版发布面 —— **只剩维护者 npm 两步**（dist-tag 摘除 + 预览版重发）
 
 - **dist-tag 实况未变**：官方 registry `@worm-vue3-print/common` 的 `latest` 与 `next` **同指 `1.3.7-beta.0`**（首次发布 npm 自动打了 latest）。
   后果仍在：`npm i @worm-vue3-print/common`（不带 `@next`）装到的是预览版，与 `CONTRIBUTING.md`「方式三」的预览版定位冲突。
@@ -61,33 +59,6 @@
   `verify-demo` 四宿主 36/36 ×4 本轮新鲜重跑；技能 `template-schema.md` 的 `wordWrap` 行与 `docs/中文/指南/模板设计器.md` 的 `textFit` 三档已回写单行溢出/版本边界口径；`build_template.py` 的 `COMMON_ALIAS` 补了 `keepLineBreaks`（此前技能生成不出该字段），端到端跑通：生成→校验 0 项→core 落值出 nowrap 不出 pre-wrap。
 - **剩一条只能维护者本机做**：`npm login` 后跑 `node scripts/check-common-dist-tag.mjs --fix` 摘掉 `latest`；
   以及按既有口径走 `publish:common:beta` 重发预览版（该包已落后主线 40+ 笔提交）。
-
-### T-23 【已验证，2026-10-26】#IKPXQL 的跟随区：主路径已解决，需求2 只解决了一半
-
-- 复现方式：把报告人三件诉求做成一份可控模板（表格绑 6 条明细 + **汇总行**放「温馨提示」四行正文 + 表格下方放四类元素），
-  走**真实两趟管线**（Chromium 测量 → 分页 → 最终 HTML），再把最终 HTML 落页量纸面相对坐标与行盒（Range 按 `top` 聚类，不用高度÷line-height）。
-  验证件按 `services/print-render/spike/` 约定跑完即删，render 套件已回到 9/30 全绿。
-- 实测（mm，纸面相对坐标；表格设计底 34、实际底 **112.53**）：
-
-| 诉求 | 判据 | 实测 | 结论 |
-|---|---|---|---|
-| 需求1 表格里「温馨提示」挤成一行 | 该 td 行盒数与 `white-space` | **4 行**、`white-space:pre-wrap`、td 由声明 8 撑到 **25.28** | ✅ 已解决（V1.3.10 单元格断行那条） |
-| 需求1 元素跟随表格底部 | 设计相对偏移 6 → 实测落点 | 实测 y **118.53** = 表底 112.53 + 6 | ✅ 跟随在出纸态成立 |
-| 需求1「没有固定跟随效果」 | 画布侧有无跟随逻辑 | canvas/common 源码 `flow-follow`/`followElementIds`/分页引擎 **0 命中**，画布元素纯 `position:absolute` | ⚠️ 属**两态差异**：跟随只在出纸发生，画布上永远不动——要解释，不是修 |
-| 需求2 缩进 | longText 的 `text-indent` | **21.3333px**（2 × 8pt 折算） | ✅ 走「首行缩进 (字符)」字段这条径已解决 |
-| 需求2 换行 | text / longText 元素里显式 `\n` | 两者都 **1 行**、computed `white-space: normal` → `\n` 被折叠 | ❌ **未解决**，见 T-26 |
-| 需求2 手工空格缩进 | text 元素前导全角空格 | 首行左缘 19.99 = 元素盒 x 19.99 → 空格被吞 | ❌ 同上，见 T-26 |
-| C1 | 跟随区 vline 实际高度 | **0mm**（设计 14mm） | ❌ 未修 |
-| C2 | 横向零交集元素是否被吸收 | 仍被吸收，实测 y 118.53（设计 top 40 → **偏 78.53mm**） | ❌ 未修 |
-
-- **对外结论**：1.3.10 把报告人的主路径（单元格内固定温馨提示 + 出纸跟随 + `longTextIndent` 缩进）确实修好了，
-  关闭站得住；但需求2 的字面形态——**在文本/长文本元素里用换行符排版**——仍未支持。
-  回帖口径已随 T-26 落地改写（2026-10-26）：**不是「不支持」，而是「下个版本支持」**——
-  元素级 `\n` 需在属性台打开「保留换行符」（`keepLineBreaks`），缩进另有「首行缩进 (字符)」字段；
-  而 npm 当前 `latest` 是 `1.3.10`、**不含该档**，所以回帖写明「随 V1.3.11 发出」（本轮三条修复按 minor 计，版本段已折叠），否则报告人装最新版重试还是看不到。
-  #IKPXQL 现 `closed`，补通知需先重开（见 §三 通路）。
-- 顺带一条对本台账的更正：本报告人诉求里的「跟随」是**要跟随**，与 T-11 那份模板里「被误吸收导致漂移」是同一机制的两面——
-  修 C2 时必须把「用户确实想要跟随」这条需求钉在判据里，别把跟随改成不跟随。
 
 ### T-24 GitHub #6 表格右键菜单很难唤醒 —— **本机两宿主自动化下均正常，未能复现**（2026-10-26 定性）
 
@@ -126,33 +97,6 @@
   `bootstrap_look_up ... Permission denied`，故取证脚本只调一次 `renderPdf`（内部自含 prepare）。
 - **仍缺**：Linux 三包真机安装与出纸；本机无 Linux 设备与签名凭据。
 
-
-### T-26 【已按方案 B 实施，2026-10-26】元素级 `\n` 与前导空格不出纸 —— #IKPXQL 需求2
-
-- 现象（真实管线实测）：`text` 与 `longText` 元素内容里写显式换行符，出纸只出 **1 行**、computed `white-space: normal`；手工全角空格缩进也被吞。
-- 根因是**声明缺失**：`html-generator` 的缺省档不输出任何 `white-space`，落回 UA 默认 `normal`。画布与 common 同样没有该规则 → **不是分叉，是这条能力从来没支持过**。
-  误导点在属性台：`ExpressionEditor.vue:604` 的预览区是 `pre-wrap`，面板看得见分行、画布与纸面都没有。
-- **落地（方案 B，缺省关）**：
-  - 判据单点 core `render/text-fit.ts` 新增 `resolveElementWhiteSpace(opts)`（随 `/designer` 导出）：未开→`undefined`（不出声明）、开→`'pre-wrap'`、`wordWrap === false` 时**让位返回 `undefined`**（单行优先）。
-  - 三端消费同一份：出纸 `html-generator` 新增 `whiteSpaceStyle()`、画布 `TextElement`/`LongTextElement`、print-common `textLikeStyle`。
-    **刻意不进 `elementFitStyle`**——`longText` 缺省显示形式是 `autoHeight`，该函数在该分支提前 `return`，声明放进去会被整条吞掉。
-    这条坑由用例钉住并做过变异自证：把声明移进 `elementFitStyle` 后 `text` 仍绿、两条 `longText` 断言必红。
-  - 属性台在「自动换行」下方各加一行「保留换行符」（画布 + common 同位置同文案）。
-    开关行沿用既有口径**两侧都不挂说明气泡**——先挂了 `.pd-help` 后发现会造成「注册表里有没人消费的死文案 + 两端不对称」，已收回。
-    「恢复默认值」按派生出厂值判脏（出厂未设 → 灰态）。新 key `ap-keep-line-breaks`，与「自动换行/不换行」互不串台（双向反面对照）。
-- **存量零变化不是推理，是逐字比对**：真实两趟管线（Chromium 测量 → 分页 → 最终 HTML）跑 **27 份**产物（demo 示例库 11 份可出纸示例 + 15 组元素档位组合 + 1 份单元格矩阵），
-  改前/改后 **25 份字节级一致**，只有显式打开新档的 2 份各多出一条 `white-space:pre-wrap;`（+21 字符）；「新档开 + 不换行」那组也逐字一致，证明单行优先成立。
-  局限如实记：`asset-tag`、`roll-label` 两份拼版示例在该离线 harness 下出不了纸，未计入比对集。
-- UI 级实测（导入含预置值的模板，非同一会话写入自测）：画布 9303 与 Common 9331 **逐条同值** ——
-  打开的 text/longText 均 3 行 `pre-wrap`，未开的 2 行 `normal`；属性台回显未开 `checked=false/dirty=false`、已开 `true/true`；
-  重选未开元素 → 点该行 → 画布由 2 行 `normal` 变 3 行 `pre-wrap`，预览出纸同步；页面 0 异常。
-- 门禁：`npm run build` exit 0；`npm test` exit 0（core 77/1129、canvas 73/687、common 27/322、print-client 14/110）；
-  `verify-demo` 四宿主 36/36 ×4；canvas `vue-tsc` 仍 53 条（**未新增**，且无一条来自本次文件，见 T-22）；
-  render 服务单跑 `multipage` 两条通过，全量并发下出现过 5s 超时红灯（冷启动 Chromium 与五个 dev 服务争 CPU，属该文件既有 flaky 形态，非断言失败）。
-- 文档已同步：`docs/中文/指南/使用指南.md`、中英 CHANGELOG「未发布」段、技能 `template-schema.md`——
-  并**更正技能里那句「`wordWrap` 缺省 `true` 时 `\n` 也生效」**（旧断言只对单元格成立）。
-- 版本建议：新增可选字段 + 打开后才改行为 → **minor**。发版时记得把该条折进版本段并同步两份 `help-content/changelog.ts`。
-- 对外动作：#IKPXQL 已 closed，需求2 现在两侧都能解释了——单元格侧 1.3.10 已生效，元素级这一档随下个版本补上；回帖时给字段名与属性台行名即可（见 T-23）。
 
 ---
 
@@ -226,6 +170,8 @@
 | T-07b | `resolveToolbarOverflow` 按推荐口径 ① 定性为**公开契约**：core README 新增「`/designer` 的稳定面」小节，登记收纳判据（入参 + 链序）、三档文字显示判据、`resolveElementWhiteSpace`/`resolveElementNowrap`、预览缩放六个导出、元素边框五个编辑函数，并写明破坏性变更需 minor 及以上；方案 ②（收回）因四个宿主断链不采用。登记前逐个核过真实导出名（我初稿里编的 `resolvePreviewZoomPresets` 并不存在，已按源码改正） | README 登记 + `designer/index.ts` 导出链核对 |
 | T-11 C2 | 跟随区不再无条件吸收：`buildFollowMap` 增「与表格横向相交」判据（表格横向区间取列宽和，缺列宽退回元素宽），零交集的元素保持原地；**并保留同列正下方照旧跟随**。用例：旁侧 far/over 不被跟随 + 贴右缘视为不相交/压住一格则相交；**变异自证**：撤判据后两条用例变红（2 failed），恢复即绿；**存量**：20 份产物逐字比对 20/20 一致 | RED→GREEN + 资产级逐字比对 + 变异自证 |
 | T-14 ② | #IKOYG0 那条重复评论已删：`DELETE /issues/comments/51703090` 回 **204**，保留首条 51703062；匿名复核评论数 **5 → 4**、issue `comments=4`、`state=closed` | 删除前读回正文与时间确认重复、删后匿名复核 |
+| T-26 | 元素级 `\n` 与前导空格已支持：新增 `keepLineBreaks` 档（缺省关），判据单点 core `resolveElementWhiteSpace`，三端消费同一份；属性台两端同位置同文案；已折进 V1.3.11 段并随 tag 发出 | 27 份真实管线产物逐字比对 + 两端 UI 实测 |
+| T-23 | #IKPXQL 已闭环：需求1（单元格内温馨提示 + 出纸跟随 + 首行缩进）1.3.10 已生效；需求2 的元素级换行随 V1.3.11 的 `keepLineBreaks` 支持；C1/C2 两条同源缺陷均已修；公开更正帖已发（id 51816315）。**唯一遗留**：npm 上仍是 1.3.10，装不到该档 | 真实两趟管线 + 载荷级核对 + 匿名复核 |
 | D-1 / D-2 / D-3 / D-4 | 拍板 `em` / CSS 值原样透传 / 删除字段 / 工具栏自适应收纳 | 随各条 |
 | T-01 | 长文本首行缩进出纸生效：新增 `indentStyle()` 仅 `case 'longText'` 出 `text-indent:Nem`，画布与 common 两处 `pt`→`em` | 代码坐标 + core/canvas/common 单测 + render 集成 30 例全绿 |
 | T-02 | 独立 image 的 `object-fit` 不再写死 `contain`，改 `opts.fit \|\| 'contain'`；未设 `fit` 的存量模板逐字不变 | 同上（缺省路径已用断言锁死） |
