@@ -90,7 +90,7 @@ worm-vue3-print/
 |----|------|------|------|
 | `@worm-vue3-print/core` | `packages/print-core` | npm | 模板表达式引擎与同构渲染管线（数据绑定 / HTML 生成 / 分页，含连续纸探针推导），纯 TypeScript，无 Vue、无宿主依赖，浏览器与 Node 均可运行；浏览器端静默打印 SDK 经子路径 `@worm-vue3-print/core/client` 提供 |
 | `@worm-vue3-print/canvas` | `packages/print-canvas` | npm | Vue 3 可视化设计器画布（原生控件，无 Element Plus；含 `PrintDesigner`、`PrintHtmlPreview` 组件） |
-| `@worm-vue3-print/common` | `packages/print-common` | npm 预览版（`next`）· **实验性** | ⚠️ 通用宿主适配设计器 `<print-designer>`（零框架运行时，实现为原生 Custom Element + Shadow DOM）：**支持多种运行时框架**，功能与样式对齐 `@worm-vue3-print/canvas`，供 React / Vue2 / jQuery 等非 Vue3 宿主接入（详见包内 `PARITY.md`）。**以预览版发布，`latest` 尚不存在**，安装须写 `@worm-vue3-print/common@next`；**尚在实验阶段、未完全稳定测试，不建议用于生产**，Vue 3 项目请继续使用 `@worm-vue3-print/canvas`（成熟方案） |
+| `@worm-vue3-print/common` | `packages/print-common` | npm 预览版（`next`）· **实验性** | ⚠️ 通用宿主适配设计器 `<print-designer>`（零框架运行时，实现为原生 Custom Element + Shadow DOM）：**支持多种运行时框架**，功能与样式对齐 `@worm-vue3-print/canvas`，供 React / Vue2 / jQuery 等非 Vue3 宿主接入（详见包内 `PARITY.md`）。**以预览版发布，安装须写 `@worm-vue3-print/common@next`**（`--tag next` 挡不住 npm 给新包首发自动打的 `latest`，实测 `latest` 与 `next` 同指预览版，裸装会静默吃到实验包；判据 `npm run publish:common:check`）；**尚在实验阶段、未完全稳定测试，不建议用于生产**，Vue 3 项目请继续使用 `@worm-vue3-print/canvas`（成熟方案） |
 | `@worm-vue3-print/render` | `services/print-render` | 内部 | 基于 Playwright（Headless Chromium）的服务端 PDF 渲染微服务，Docker 部署；与浏览器预览、桌面客户端共用同一份渲染管线，保证三端出纸一致 |
 | `@worm-vue3-print/print-client` | `clients/print-client` | 内部 | 跨平台静默打印桌面客户端（Electron，回环 WebSocket + core 同构渲染 + `webContents.print` 静默出纸） |
 
@@ -143,7 +143,7 @@ npm install @worm-vue3-print/canvas
 
 静默打印浏览器端 SDK 随 core 提供，无需单独安装，从 `@worm-vue3-print/core/client` 导入（需配合本机运行的桌面打印客户端）。
 
-> core / canvas 当前版本：`1.3.10`。
+> core / canvas 当前版本：`1.3.11`。
 
 ## 更新
 
@@ -267,19 +267,19 @@ function onLoadDefaultLayout() {
 
 安装包**不在 npm 发布，也不入仓库**，而是作为 GitHub 发行版（Releases）的附件提供：
 
-> **[GitHub Releases 页面](https://github.com/worm-longliu/worm-vue3-print/releases)** —— 点击下载，无需登录。当前最新版本为 `v1.3.10`。
+> **[GitHub Releases 页面](https://github.com/worm-longliu/worm-vue3-print/releases)** —— 点击下载，无需登录。当前最新版本为 `v1.3.11`。
 
-下表是 `v1.3.10` 各安装包的完整直链，可直接点击或复制；发版后请同步更新行内的版本号与文件名（可用 `gh release view v1.3.10 --json assets --jq '.assets[].name'` 核对包名是否对得上）。
+下表是 `v1.3.11` 各安装包的完整直链，可直接点击或复制；发版后请同步更新行内的版本号与文件名（可用 `gh release view v1.3.11 --json assets --jq '.assets[].name'` 核对包名是否对得上）。
 
 | 安装包直链 | 适用系统 |
 | --- | --- |
-| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-mac-x64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-mac-x64.dmg) | Intel Mac |
-| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-mac-arm64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-mac-arm64.dmg) | Apple Silicon Mac |
-| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-win-x64.exe](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-win-x64.exe) | Windows 10 / 11 x64（NSIS 安装程序，可选择安装目录、创建桌面快捷方式） |
-| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-linux-amd64.deb](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-linux-amd64.deb) | Debian / Ubuntu x64（`sudo apt install ./<文件>`） |
-| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-linux-x86_64.rpm](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-linux-x86_64.rpm) | Fedora / RHEL / openSUSE x64（`sudo rpm -i <文件>`） |
-| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-linux-x86_64.AppImage](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/WormPrintClient-1.3.10-linux-x86_64.AppImage) | 任意 x64 发行版，免安装单文件（需 `libfuse2`） |
-| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/SHA256SUMS.txt](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.10/SHA256SUMS.txt) | 上述安装包的 SHA-256 校验和 |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-mac-x64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-mac-x64.dmg) | Intel Mac |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-mac-arm64.dmg](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-mac-arm64.dmg) | Apple Silicon Mac |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-win-x64.exe](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-win-x64.exe) | Windows 10 / 11 x64（NSIS 安装程序，可选择安装目录、创建桌面快捷方式） |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-linux-amd64.deb](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-linux-amd64.deb) | Debian / Ubuntu x64（`sudo apt install ./<文件>`） |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-linux-x86_64.rpm](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-linux-x86_64.rpm) | Fedora / RHEL / openSUSE x64（`sudo rpm -i <文件>`） |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-linux-x86_64.AppImage](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/WormPrintClient-1.3.11-linux-x86_64.AppImage) | 任意 x64 发行版，免安装单文件（需 `libfuse2`） |
+| [https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/SHA256SUMS.txt](https://github.com/worm-longliu/worm-vue3-print/releases/download/v1.3.11/SHA256SUMS.txt) | 上述安装包的 SHA-256 校验和 |
 
 下载不动或速度很慢时（GitHub 附件在国内直连常掉速，大文件容易中途断开）：
 

@@ -1,6 +1,6 @@
 {
   "name": "worm-vue3-print",
-  "version": "1.3.10",
+  "version": "1.3.11",
   "private": true,
   "type": "module",
   "description": "Vue 3 可视化打印模板设计器 + 表达式引擎 + 同构渲染管线（开源 monorepo）",
@@ -36,7 +36,9 @@
     "publish:local": "npm run build && npm -w @worm-vue3-print/core exec yalc push && npm -w @worm-vue3-print/canvas exec yalc push",
     "publish:npm": "npm run build && npm test && npm publish -w @worm-vue3-print/core --registry=https://registry.npmjs.org --access public && npm publish -w @worm-vue3-print/canvas --registry=https://registry.npmjs.org --access public",
     "publish:dry-run": "npm run build && npm test && npm publish -w @worm-vue3-print/core --dry-run --registry=https://registry.npmjs.org --access public && npm publish -w @worm-vue3-print/canvas --dry-run --registry=https://registry.npmjs.org --access public",
-    "publish:common:beta": "npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/canvas && npm run build -w @worm-vue3-print/common && npm test -w @worm-vue3-print/core && npm test -w @worm-vue3-print/canvas && npm test -w @worm-vue3-print/common && npm publish -w @worm-vue3-print/common --tag next --registry=https://registry.npmjs.org --access public",
-    "publish:common:dry-run": "npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/canvas && npm run build -w @worm-vue3-print/common && npm test -w @worm-vue3-print/core && npm test -w @worm-vue3-print/canvas && npm test -w @worm-vue3-print/common && npm publish -w @worm-vue3-print/common --dry-run --tag next --registry=https://registry.npmjs.org --access public"
+    "check:release-carriers": "node scripts/check-release-carriers.mjs",
+    "publish:common:check": "node scripts/check-common-dist-tag.mjs",
+    "publish:common:beta": "npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/canvas && npm run build -w @worm-vue3-print/common && npm test -w @worm-vue3-print/core && npm test -w @worm-vue3-print/canvas && npm test -w @worm-vue3-print/common && npm publish -w @worm-vue3-print/common --tag next --registry=https://registry.npmjs.org --access public && node scripts/check-common-dist-tag.mjs --fix",
+    "publish:common:dry-run": "npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/canvas && npm run build -w @worm-vue3-print/common && npm test -w @worm-vue3-print/core && npm test -w @worm-vue3-print/canvas && npm test -w @worm-vue3-print/common && npm publish -w @worm-vue3-print/common --dry-run --tag next --registry=https://registry.npmjs.org --access public && node scripts/check-common-dist-tag.mjs --dry-run --warn-only"
   }
 }

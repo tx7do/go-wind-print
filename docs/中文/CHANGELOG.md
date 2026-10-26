@@ -4,11 +4,20 @@
 
 ## 未发布
 
+
+## V1.3.11(2026-10-26)
+
 ### 新增
 
 - 文本与长文本元素新增**「保留换行符」**档（`keepLineBreaks`，缺省关）。起因是 Gitee #IKPXQL 的需求2「文本有缩进和换行，打印的时候都会在一行里面」：V1.3.10 把**表格单元格**的断行修好了（`pre-wrap` 三端同源），但**元素级这一路从来没支持过**——`text`/`longText` 的缺省档不输出任何 `white-space`，落回浏览器默认 `normal`，内容里手打的 `\n`、行首空格与连续空格一律折叠成一行；而属性台的表达式预览区是 `white-space: pre-wrap`，于是「面板里看得见分行、画布和纸面都没有」，这正是报告人观感的来源。打开该档后出纸带 `white-space:pre-wrap`：`\n` 各占一行、行首与连续空格原样保留，同时仍按框宽自动换行；与「自动换行」冲突时**单行优先**（`wordWrap === false` 时本档不出声明）。
   判据单点在 core `resolveElementWhiteSpace`（`render/text-fit.ts`，随 `/designer` 导出），出纸 `html-generator`、画布 `TextElement`/`LongTextElement`、print-common `textLikeStyle` 三处消费同一份。刻意**不放进 `elementFitStyle`**：`longText` 的缺省显示形式是 `autoHeight`，而那个函数在 autoHeight 分支提前 `return`，声明放进去会被整条吞掉——用例已把这条坑钉住（把声明移进 `elementFitStyle` 后，`text` 仍绿、两条 `longText` 断言必红，已实测验证）。属性台在「自动换行」下方各加一行，画布与 common 同位置同文案，**开关行沿用既有口径两侧都不挂说明气泡**（避免注册表里出现没人消费的死文案）；「恢复默认值」按派生出厂值判脏，出厂未设即灰态。注册表新 key `ap-keep-line-breaks`，可按「保留换行符 / 换行符 / 手动换行 / 保留空格 / 连续空格 / 行首空格」检索，与「自动换行 / 不换行」互不串台（用例配了双向反面对照）。
   **存量模板与三条出纸链路零变化**：该字段缺省不写键、也不进 `createDefaultOptions`，未打开时不产出任何声明。判据不是推理——用真实两趟管线（Chromium 测量 → 分页 → 最终 HTML）对 **27 份**产物（demo 示例库 11 份可出纸示例 + 15 组元素档位组合 + 1 份单元格矩阵）做改前/改后逐字比对，字节级一致；另有两份拼版示例（`asset-tag`、`roll-label`）在该离线 harness 下出不了纸，属取证局限，不计入比对集。行为变更只在用户显式打开后发生（行数增加会撑高元素并可能牵动分页），故按 **minor** 计。文档已同步 `docs/中文/指南/使用指南.md` 与技能 `print-template-json/references/template-schema.md`——后者原先那句「`wordWrap` 缺省 `true` 时 `\n` 也生效」只对单元格成立，已按实测更正。
+
+### 修复
+
+- **表格跟随区里的竖线出纸高度为 0（整条消失）**（Gitee #IKPXQL 同源的台账 T-11 C1）。跟随区（`flow-follow`）的跟随元素只由 `html-generator` 的 `needsHeight` 决定要不要把设计高度写进行内样式，此前只认 `rect`/`oval`/`image`；而 `case 'vline'` 只输出 `border-left` + `width:0`，长度全靠传入的 `height`——于是放在跟随区的竖线在设计器里看得见、纸上 0 高。现把 `vline` 补进该判据。**`hline` 刻意没一起改**：它的 `height:0` 是有意为之（长度走 `width`），已用负面对照用例钉住「跟随区横线仍不出 `height`」。正对照同时钉住 `rect`/`oval`/`image` 照旧出 `height`，防止改 vline 时挪走既有档。真实 Chromium 落纸实测（跟随区同一容器内放 vline 14mm + hline 80mm 做对照）：改前 vline 实际绘制高度 **0px**（整条在纸上不存在）、hline 1px×302.36px 正常；改后 vline **52.91px = 14mm** 精确命中，hline 逐值不变（80mm×1px）——既证实缺陷，也证实「横线不该动」这条边界。**存量影响**：仅影响「表格下方有竖线且该竖线被吸进跟随区」的模板，从整条不印变为按设计长度印出。
+- **长文本关掉「自动换行」在出纸端不生效**（台账 T-27，本轮实测撞出的存量分叉）。`text` 关自动换行会出 `white-space:nowrap;text-overflow:ellipsis;`，`longText` 却只出 `overflow:visible;`——根因是 `elementFitStyle()` 在 `fit === 'autoHeight'` 分支提前 `return`，而 `longText` 的缺省显示形式正是 `autoHeight`，那句 nowrap 永远走不到；画布与 print-common 两端都在 `wordWrap === false` 时挂 `nowrap` + 省略号，所以**设计器里单行省略、纸面上照样多行折**。现把两值拼接（`overflow:visible;` 与 `nowrap` 并存，与画布/Common 逐字同形），三端同源。**存量影响（可见行为变更，按 minor 计）**：凡「关了自动换行、又没显式设溢出形式」的文本/长文本，出纸从多行折行变单行；`autoHeight` 的实测高度随之从 N 行收缩为 1 行。**分页落点不因此改变**（此处撤回上一稿「可能牵动分页落点」的说法，已用真实两趟管线实测推翻）：把长文本放到内容底边越出内容区 3mm 的形态，关与不关两档都留在同一页——独立元素按 `top` 归页，`flow-follow` 容器高度取设计几何而非实测值。逐字比对给出范围：31 份产物（demo 示例库 13 份 + 15 组元素档位组合 + 4 种跟随区线型/形状）中 **25 份字节级一致**，差异只多出这一条声明，且仅落在 `wordWrap:false` + `autoHeight` 那 5 组组合上；示例库 13 份全部一致（没有示例用该组合）。发版时需在文档写明触发条件。真实 Chromium 行盒取证（同一段 60mm 宽、78 字长文，`lineHeight:5pt`）：改前 `white-space:normal` → **4 行**、元素高 26.69px；改后 `white-space:nowrap` → **1 行**、元素高 6.67px、内容 `scrollWidth` 816px 横向溢出框宽 226.77px。**如实记一条限制**：`autoHeight` 档保留 `overflow:visible`，而省略号只在裁剪容器里才画得出，所以这一组合的落纸形态是**单行溢出**（不折行、也不截断成「…」），与画布同一形态；需要省略号请把溢出形式显式设为「截断」。文档回写：`docs/中文/指南/模板设计器.md` 的 `textFit` 三档一节与技能 `print-template-json/references/template-schema.md` 的 `wordWrap` 行都补了这条边界（含「V1.3.10 及更早不生效」的版本口径与判据命令）。**与「保留换行符」不冲突**：两档同时打开时单行优先（判据仍返回 `undefined`），用例已配对照。
+- **`@worm-vue3-print/common` 的 `latest` 被 npm 自动打在预览版上**（台账 T-15）。`npm publish --tag next` 只约束本次发布写入的 tag，挡不住 npm 给新包首次发布自动打 `latest`，实测官方 registry `latest` 与 `next` 同指 `1.3.7-beta.0` ⇒ 宿主裸写 `npm i @worm-vue3-print/common`（不带 `@next`）不会报错，而是**静默装到实验包**，与该包「实验性、不建议用于生产」的定位相反；此前 README / 包内 README / 集成技能三处都写成「`latest` 尚不存在，省略 `@next` 会报 `No matching version found`」，与实况不符，已按实测更正。新增退出码分级的自检脚本 `scripts/check-common-dist-tag.mjs`（0 健康 / 1 红灯并给出修复命令 / 2 读不到），已串进 `publish:common:beta`（发布后自动 `--fix` 摘除 `latest`）与 `publish:common:dry-run`（`--dry-run` 只报不改），单独复查走 `npm run publish:common:check`。**registry 上的实际摘除需维护者本机执行**（要 npm 登录态），仓库侧已把判据与通路固化。
 
 ## V1.3.10(2026-10-24)
 
