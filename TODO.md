@@ -132,33 +132,6 @@
 - 顺带一条对本台账的更正：本报告人诉求里的「跟随」是**要跟随**，与 T-11 那份模板里「被误吸收导致漂移」是同一机制的两面——
   修 C2 时必须把「用户确实想要跟随」这条需求钉在判据里，别把跟随改成不跟随。
 
-### T-23b 【新增·2026-10-26 取证实撞出】#IKPXQL 的公开结单语与已发布产物不符　【成立】
-
-- **实况（匿名 API 读回）**：`state=closed`、comments=**1**，唯一一条是维护者 2026-10-26 08:52:45 发的
-  「**请更新最新版本，当前最新版本已经解决**」。报告人至今没再回复，所以这条还没被验证过。
-- **为什么这条是问题**：载荷级核对官方 `core@1.3.10` tarball（`npm pack` 解包查 `dist/` 全树），
-  `keepLineBreaks` **0 命中**、`elementFitStyle` 仍是 `autoHeight` 提前 return 的旧形态 ⇒
-  「最新版本」只解决了**单元格**那半（V1.3.10 段确实写了），**元素级换行**（需求2 的字面形态）不在 1.3.10 里。
-  报告人照这句话更新后按原用法（在 text/longText 里手打换行）重试，仍然是一行 → 大概率二次提单。
-- **仓库文档没有同类错**：V1.3.10 段不含 `IKPXQL`，「保留换行符」条目正确落在「未发布」段。所以这是**对外话术错，不是发布记录错**。
-- **两条处置（都要你点头，我不代发动作）**：
-  A. **现在就更正**（重开 → 回帖 → 再关闭）：文本可用
-  「更正上一条：1.3.10 已解决表格单元格内的换行与跟随；元素（文本/长文本）里手打的换行符需要下一个版本的**「保留换行符」**开关（属性台文本类元素、自动换行下方），缩进请用**「首行缩进 (字符)」**。给您带来不便抱歉。」
-  B. **等发版再一起说**：风险是这期间报告人自己撞墙。推荐 A，成本一次重开+一条评论。
-- 通路照 §三：重开用 `PATCH /repos/{owner}/issues/{number}`（body `state=open`），回帖 `POST .../issues/{number}/comments`，写完一律匿名 GET 复核 `state` 与 `comments` 计数。
-
-### T-29 【新增·做 T-27 时的 neighbourhood 观察】`wordWrap === false → nowrap` 这条规则有三份手写实现　【成立】
-
-- 实况（逐坐标）：core `html-generator.ts:407`（元素级，本次改的）、`common/src/shell/elements.ts:89`、
-  `canvas/TextElement.vue:61` 与 `LongTextElement.vue:61`，另加 core `:630`/`:733` 的单元格两处与 `canvas/TableElement.vue:292/328`。
-  元素级这条**同一判断写了三份**，靠人工保持同步——T-27 这条分叉正是因为三份里只有一端漏了才存在了这么久。
-- 对照：T-26 的「保留换行符」已经确立正确形态——判据单点在 core `resolveElementWhiteSpace`，画布与 common 都消费它。
-  按项目「重复实现一律收编替换、不并存」的既有取向，`nowrap` 这条也该收成 core `resolveElementWordWrap(opts)`（返回 `'nowrap' | undefined`），三端消费同一份。
-- **本轮没做**：它与四条阻断项无必需关系，且会同时动 core/canvas/common 三包，属独立一轮的重构；在刚验完的改动上再叠三层改动会把存量影响面搅浑。
-- 建议：单独一轮做，验收判据是「三端产物与本表逐值一致 + 用例覆盖 `clip/shrink/autoHeight × wordWrap` 九宫格」。要开我就开。
-
----
-
 ### T-24 【新增】GitHub #6 表格右键菜单很难唤醒 —— 未定性
 
 - 实况：`#6` [bug] 表格的右键菜单很难唤醒，**仍 open**，2026-10-22T04:02Z 提出，正文**只有一段录屏外链**
@@ -264,7 +237,7 @@
 
 ## 三、对外动作的通路（执行 T-14 与对外回帖前先看）
 
-- 私人令牌在 `~/.zshenv`（`GITEE_TOKEN`），`Bearer` 头对 GET/POST 均生效；回帖所需的 `notes` scope 已于 2026-10-22 补通。
+- 私人令牌在 `~/.zshenv`，**变量名是 `GITEE_ACCESS_TOKEN`**（2026-10-26 实测 `GITEE_TOKEN` 长度为 0，用它发写请求回 `401 Access token does not exist`）。`access_token` 表单参数对 issue 写操作有效；`Bearer` 头这次实测回「登录失效，无权限访问该资源」，**别再按旧口径用 Bearer 试写操作**。
 - **issue 写操作走 owner 级端点**：`POST /api/v5/repos/{owner}/issues`、`PATCH .../issues/{number}`，body 的 `repo` 只填仓库名；
   GitHub 式 `/repos/{owner}/{repo}/issues` 在写操作上不存在，误用报的 404 措辞不指向格式错误。
   发行版：`POST /repos/{owner}/{repo}/releases` **必须带 `target_commitish`**（漏了回 400），`PATCH .../releases/{id}` 改正文不必带。
@@ -285,6 +258,7 @@
 
 | 项 | 一句话结论 | 本轮验证方式 |
 |---|---|---|
+| T-23b | #IKPXQL 那条「请更新最新版本，当前最新版本已经解决」已按载荷级实测更正：重开 → 贴更正（评论 id 51816315，逐条区分 1.3.10 已生效 / V1.3.11 才有的元素级换行）→ 再关闭；匿名复核 `state=closed`、`comments=2` | 三步写操作 + 匿名 GET 复核 |
 | D-1 / D-2 / D-3 / D-4 | 拍板 `em` / CSS 值原样透传 / 删除字段 / 工具栏自适应收纳 | 随各条 |
 | T-01 | 长文本首行缩进出纸生效：新增 `indentStyle()` 仅 `case 'longText'` 出 `text-indent:Nem`，画布与 common 两处 `pt`→`em` | 代码坐标 + core/canvas/common 单测 + render 集成 30 例全绿 |
 | T-02 | 独立 image 的 `object-fit` 不再写死 `contain`，改 `opts.fit \|\| 'contain'`；未设 `fit` 的存量模板逐字不变 | 同上（缺省路径已用断言锁死） |
