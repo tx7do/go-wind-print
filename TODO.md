@@ -1,6 +1,13 @@
 # TODO — 待办与对账台账
 
 > 取证基线：`master` @ `d913e32`（含 T-26 的 `8bac872`；本轮 C1/T-27/T-15 改动尚在工作区未提交）。上一轮全量复验基线 `cd6e7c1`（tag `v1.3.10`）；包版本 core/canvas/print-client `1.3.10`、common `1.3.7-beta.0`。
+> **2026-10-26 本轮交接口径（四条阻断项收口后）**：本轮改动已落 **5 笔本地提交**（`19f0a63` 修复+用例+两条自检脚本 / `261f72a` 文档与技能口径 / `8990944` 台账 / `96652e2` 升版 V1.3.11 / `ae3ebe7` 令牌口径与归档），
+> **均未推送**，工作区干净。V1.3.11 已到「可发布态」：`npm run check:release-carriers` FAIL 0，dist 内旧包已整批 mv 至 `~/print-client-dist/1.3.10/`（18 件，未删除，可移回）。
+> **只剩两步需要你的 npm 登录态**：① `node scripts/check-common-dist-tag.mjs --fix` 摘掉被预览版占用的 `latest`；
+> ② `npm run publish:npm` 发 core/canvas `1.3.11`，随后重打七件安装包并挂 Release（GitHub 附件 + Gitee 发行版正文用 `.github/release/notes.md` 与中文版本段）。
+> 发完可跑 `npm run check:release-carriers -- --post` 与线上 `npm pack` 载荷复验（本轮已用同法证过 1.3.10 缺这三条、1.3.11 全带）。
+> 另：#IKPXQL 的公开错话已按载荷级实测更正（评论 id 51816315，复核 `state=closed / comments=2`）。待裁决新登记：**T-28**（longText 缺省行高 1.5 vs 出纸 normal）、**T-29**（`wordWrap:false` 三份手写实现待收编），以及原有 T-11 C2、T-24 定性、T-16/T-19b、T-22、T-25。
+
 > **本文件只挂未完成项。** 已完成条目压成文末「已完成归档」一行一条；原实施正文、批次记录、浏览器验证实测与探针坑明细
 > 已从本文件移出，可在 `git show HEAD:TODO.md`（截至 `cd6e7c1` 的 775 行版）与中英 CHANGELOG 里取回。
 >
