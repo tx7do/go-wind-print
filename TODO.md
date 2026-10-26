@@ -9,6 +9,8 @@
 > 另：#IKPXQL 的公开错话已按载荷级实测更正（评论 id 51816315，复核 `state=closed / comments=2`）。
 > **2026-10-26 续作**：T-28（longText 缺省行高）已按方案 A 修完并折进尚未发布的 V1.3.11 段，四载体同步、sync-assets 已重跑；T-29（`wordWrap:false` 三份手写实现收编）已完成并双推；T-22（canvas 测试类型错 53→0 并接入 pretest）已完成并双推；T-24（GitHub #6 右键菜单）已定性为**本机两宿主自动化下均正常、未能复现**，并撤回了上一稿的误报（见该条）。
 > **2026-10-26 再续**：T-16（四宿主字体链路）与 T-19b（预览缩放档位断言）已完成并双推，`verify-demo` 42 项 ×4 全绿。
+> **2026-10-26 发版进展**：`v1.3.11` annotated tag 已建并双推，落点 `f728137`（最后把改动登记进 V1.3.11 段的提交）；GitHub Release 已创建（`V1.3.11(2026-10-26)`，非草稿、0 附件、正文来自 `.github/release/notes.md`）。
+> **仍待维护者**：npm 发布 core/canvas 1.3.11（本机 `whoami` 401）、七件安装包重打与上传、Gitee 发行版、common 预览版重发与 `latest` 摘除。
 > **2026-10-26 发布前复核**：`npm pack` 三包产物里四条修复全在（`needsHeight` 含 `vline`、`overflow:visible;${nowrap}`、`keepLineBreaks`、`resolveElementNowrap`、`line-height:1.5`），canvas 内置更新记录含 V1.3.11；`npm publish --dry-run`：core 1.3.11 / 30 文件 / 346.0 kB / tag latest，canvas 1.3.11 / 86 文件 / 241.7 kB / tag latest，common 1.3.7-beta.0 / 44 文件 / 423.8 kB / tag next（需带脚本那组 flag）。**本机默认 registry 是 npmmirror**，手敲 publish 会发错源，已在 CONTRIBUTING 记红线。
 > **T-11 C2 已按口径 A 实施并双推**（相交才跟随；20/20 产物一致，变异自证红→绿）。原影响面记录：：资产级横向零交集成员 0 例（8 份模板/15 成员），复现确认 `far`/`over` 仍被吸收、`under` 应当跟随；口径 A/B 待你选，选完按「与 C3 同一轮」实施。待裁决新登记：**T-28**（longText 缺省行高 1.5 vs 出纸 normal）、**T-29**（`wordWrap:false` 三份手写实现待收编），以及原有 T-11 C2、T-24 定性、T-16/T-19b、T-22、T-25。
 
@@ -32,12 +34,6 @@
 ---
 
 ## 一、待办清单
-
-### T-14 ② #IKOYG0 重复评论待删　【成立】
-
-- 2026-10-26 匿名复核评论时间线：`16:38` 与 `16:39` 两条几乎相同的「已定位并修复…」**仍在**（其余 17:35 是报告人表情、
-  次日 11:24 是 1.3.8 通知）。issue 现 `closed`，删评论不必重开。
-- 自己评论的删除菜单不进无障碍快照，只能网页端手工删一条。
 
 ### T-15 common 预览版发布面（dist-tag + 落后主线 40 个提交）　【成立】+【新增】
 
@@ -226,6 +222,7 @@
 | T-19b | 预览缩放档位断言补齐：五档齐（点阵 203dpi/适配/100%/200%/400%）、默认档与出纸文档缩放一致（实测 `html{zoom:2.11458}` = 203/96）、说明文案与 `@media print{html{zoom:1 !important}}` 复位守卫在位；`verify-demo` 由 36 项增至 **42 项** | 四宿主 42/42 ×4 实跑 |
 | T-07b | `resolveToolbarOverflow` 按推荐口径 ① 定性为**公开契约**：core README 新增「`/designer` 的稳定面」小节，登记收纳判据（入参 + 链序）、三档文字显示判据、`resolveElementWhiteSpace`/`resolveElementNowrap`、预览缩放六个导出、元素边框五个编辑函数，并写明破坏性变更需 minor 及以上；方案 ②（收回）因四个宿主断链不采用。登记前逐个核过真实导出名（我初稿里编的 `resolvePreviewZoomPresets` 并不存在，已按源码改正） | README 登记 + `designer/index.ts` 导出链核对 |
 | T-11 C2 | 跟随区不再无条件吸收：`buildFollowMap` 增「与表格横向相交」判据（表格横向区间取列宽和，缺列宽退回元素宽），零交集的元素保持原地；**并保留同列正下方照旧跟随**。用例：旁侧 far/over 不被跟随 + 贴右缘视为不相交/压住一格则相交；**变异自证**：撤判据后两条用例变红（2 failed），恢复即绿；**存量**：20 份产物逐字比对 20/20 一致 | RED→GREEN + 资产级逐字比对 + 变异自证 |
+| T-14 ② | #IKOYG0 那条重复评论已删：`DELETE /issues/comments/51703090` 回 **204**，保留首条 51703062；匿名复核评论数 **5 → 4**、issue `comments=4`、`state=closed` | 删除前读回正文与时间确认重复、删后匿名复核 |
 | D-1 / D-2 / D-3 / D-4 | 拍板 `em` / CSS 值原样透传 / 删除字段 / 工具栏自适应收纳 | 随各条 |
 | T-01 | 长文本首行缩进出纸生效：新增 `indentStyle()` 仅 `case 'longText'` 出 `text-indent:Nem`，画布与 common 两处 `pt`→`em` | 代码坐标 + core/canvas/common 单测 + render 集成 30 例全绿 |
 | T-02 | 独立 image 的 `object-fit` 不再写死 `contain`，改 `opts.fit \|\| 'contain'`；未设 `fit` 的存量模板逐字不变 | 同上（缺省路径已用断言锁死） |
