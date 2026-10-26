@@ -129,11 +129,23 @@
 - 本项**未改任何代码**；一次性探针已全部删除。
 
 
-### T-25 【新增】Linux 三包真机与 `cross-end` 比对
+### T-25 Linux 三包真机与 `cross-end` 比对（cross-end 已跑通两腿，Linux 真机仍缺）
 
-- AppImage/deb/rpm 已在 Docker（`node:22-bookworm` + rpmbuild）内出包并做过载荷与校验和级核对，但**未做真机安装与出纸验证**；
-  `cross-end`（浏览器直印 / 服务端 PDF / 客户端静默三链路比对）因缺客户端 PDF 产物**未执行**。
-- 本机无 Linux 设备、无签名与公证凭据，这两条只能由维护者在目标机上跑。
+- **2026-10-26：cross-end 已在两腿之间真实执行**（此前台账写「因缺客户端 PDF 未执行」）：
+  - 服务端腿：直接走 print-render 的代码路径（`createDomHostRuntime` + playwright driver + `renderPdf`）产 PDF，
+    模板刻意含 T-27（关自动换行）与 T-28（longText 缺省行高）的三段长文本 → `pageCount=1`、47507 字节；
+  - 客户端腿：用客户端自己的 `createElectronDriverFactory`（Electron 隐藏窗口测量 + `printToPDF`，与打印引擎同一套代码）产 PDF
+    → `pageCount=1`、47416 字节；
+  - 比对：`node services/print-render/src/cross-end.parity.mjs` → 两端 `MediaBox [0 0 595.91998 841.91998]`、**页数与纸尺寸一致，exit 0**。
+- **顺带修掉比对脚本自身的两个缺陷**（此前台账把失败误诊成「解析不了服务端 PDF」）：
+  1. **位置参数错位**：`const [, serverPdf, clientPdf] = process.argv` 把 `argv[1]`（脚本自身路径）当成了服务端 PDF，
+     第二份文件从未被读取 —— 所以无论喂什么，服务端一栏恒为「未解析到」。已改为 `[, , serverPdf, clientPdf]`；
+  2. 读不到文件时抛原始 ENOENT 栈且 exit 1，现改为一句可读提示 + **exit 2**（与「不一致 exit 1」区分）。
+- **本机跑 Electron 的坑（记下来）**：agent shell 里 `ELECTRON_RUN_AS_NODE=1` 已设置，直接 `npx electron x.cjs` 会以 Node 模式跑、
+  `require('electron').app` 为 undefined；必须先 `env -u ELECTRON_RUN_AS_NODE`。另外**同一进程连开两个隐藏窗口**会报
+  `bootstrap_look_up ... Permission denied`，故取证脚本只调一次 `renderPdf`（内部自含 prepare）。
+- **仍缺**：Linux 三包真机安装与出纸；本机无 Linux 设备与签名凭据。
+
 
 ### T-26 【已按方案 B 实施，2026-10-26】元素级 `\n` 与前导空格不出纸 —— #IKPXQL 需求2
 

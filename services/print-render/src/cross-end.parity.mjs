@@ -6,7 +6,12 @@ import { readFileSync } from 'node:fs'
 
 /** Chromium 产物中页面对象以明文出现，可直接抓 MediaBox */
 export function readMediaBoxes(file) {
-  const text = readFileSync(file, 'latin1')
+  let text
+  try {
+    text = readFileSync(file, 'latin1')
+  } catch (e) {
+    throw new Error(`读不到 ${file}：${e.message}`)
+  }
   return [...text.matchAll(/MediaBox\s*\[([^\]]+)\]/g)].map(match => match[1].trim())
 }
 
@@ -23,13 +28,24 @@ export const A4_TEMPLATE = {
 }
 
 if (process.argv[1]?.endsWith('cross-end.parity.mjs')) {
-  const [, serverPdf, clientPdf] = process.argv
+  // 注意：argv[0]=node、argv[1]=本脚本 —— 跳过两个，否则会把脚本自己当成服务端 PDF（2026-10-26 实测踩到）
+  const [, , serverPdf, clientPdf] = process.argv
   if (!serverPdf || !clientPdf) {
     console.error('用法：node cross-end.parity.mjs <服务端 PDF> <客户端 PDF>')
     process.exit(2)
   }
-  const server = readMediaBoxes(serverPdf)
-  const client = readMediaBoxes(clientPdf)
+  let server, client
+  try {
+    server = readMediaBoxes(serverPdf)
+    client = readMediaBoxes(clientPdf)
+  } catch (e) {
+    console.error(String(e.message ?? e))
+    process.exit(2)
+  }
+  if (!server.length || !client.length) {
+    console.error(`解析不到 MediaBox：服务端=${server.length} 客户端=${client.length}（文件是否存在？是否是 PDF？）`)
+    process.exit(2)
+  }
   console.log('服务端 MediaBox:', server.join(' | ') || '（未解析到）')
   console.log('客户端 MediaBox:', client.join(' | ') || '（未解析到）')
   const same = server.length === client.length && server.join('|') === client.join('|')
