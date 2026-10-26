@@ -10,7 +10,9 @@
 > **2026-10-26 续作**：T-28（longText 缺省行高）已按方案 A 修完并折进尚未发布的 V1.3.11 段，四载体同步、sync-assets 已重跑；T-29（`wordWrap:false` 三份手写实现收编）已完成并双推；T-22（canvas 测试类型错 53→0 并接入 pretest）已完成并双推；T-24（GitHub #6 右键菜单）已定性为**本机两宿主自动化下均正常、未能复现**，并撤回了上一稿的误报（见该条）。
 > **2026-10-26 再续**：T-16（四宿主字体链路）与 T-19b（预览缩放档位断言）已完成并双推，`verify-demo` 42 项 ×4 全绿。
 > **2026-10-26 发版进展**：`v1.3.11` annotated tag 已建并双推，落点 `f728137`（最后把改动登记进 V1.3.11 段的提交）；GitHub Release 已创建（`V1.3.11(2026-10-26)`，非草稿、0 附件、正文来自 `.github/release/notes.md`）。
-> **仍待维护者**：npm 发布 core/canvas 1.3.11（本机 `whoami` 401）、七件安装包重打与上传、Gitee 发行版、common 预览版重发与 `latest` 摘除。
+> **Gitee 发行版已建**（2026-10-26）：id `1242392`，tag `v1.3.11`，`target_commitish=f728137`，正文＝中文 CHANGELOG 的 V1.3.11 段（4889 字），匿名复核 15 条发行版里已有 v1.3.11、assets 2（自动源码包）。**首次用 owner 级路径 POST 回 405**——releases 必须走仓库级 `/repos/{owner}/{repo}/releases`。
+> **安装包**：按用户口径先查「客户端是否变更」——客户端**源码**只改了 package.json 版本号，但客户端 `"@worm-vue3-print/core": "*"` 且内置 core，而 core 的 `render/*`（html-generator / pagination-engine / text-fit）有实质改动 ⇒ 装进客户端的出纸行为变了，按判据必须本版重打；mac/win 与 Linux 三包已在后台构建。
+> **仍待维护者**：npm 发布 core/canvas 1.3.11（本机 `whoami` 401）、common 预览版重发与 `latest` 摘除。
 > **2026-10-26 发布前复核**：`npm pack` 三包产物里四条修复全在（`needsHeight` 含 `vline`、`overflow:visible;${nowrap}`、`keepLineBreaks`、`resolveElementNowrap`、`line-height:1.5`），canvas 内置更新记录含 V1.3.11；`npm publish --dry-run`：core 1.3.11 / 30 文件 / 346.0 kB / tag latest，canvas 1.3.11 / 86 文件 / 241.7 kB / tag latest，common 1.3.7-beta.0 / 44 文件 / 423.8 kB / tag next（需带脚本那组 flag）。**本机默认 registry 是 npmmirror**，手敲 publish 会发错源，已在 CONTRIBUTING 记红线。
 > **T-11 C2 已按口径 A 实施并双推**（相交才跟随；20/20 产物一致，变异自证红→绿）。原影响面记录：：资产级横向零交集成员 0 例（8 份模板/15 成员），复现确认 `far`/`over` 仍被吸收、`under` 应当跟随；口径 A/B 待你选，选完按「与 C3 同一轮」实施。待裁决新登记：**T-28**（longText 缺省行高 1.5 vs 出纸 normal）、**T-29**（`wordWrap:false` 三份手写实现待收编），以及原有 T-11 C2、T-24 定性、T-16/T-19b、T-22、T-25。
 
