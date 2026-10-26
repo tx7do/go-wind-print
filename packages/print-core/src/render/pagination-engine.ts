@@ -56,19 +56,31 @@ function buildFollowMap(
   const map = new Map<string, string[]>()
   let currentTableId: string | null = null
   let currentTableBottom = -1
+  let currentTableLeft = 0
+  let currentTableRight = 0
   for (const el of sorted) {
     if (isTableEl(el)) {
       currentTableId = el.id
       currentTableBottom = tableDesignBottom(el)
+      // 表格横向区间：列宽和与实际表宽同口径，缺列宽时退回元素宽（T-11 C2）
+      const left = el.options?.left ?? 0
+      const cols = el.options?.tableColWidths ?? []
+      const width = cols.length > 0 ? cols.reduce((sum: number, w: number) => sum + w, 0) : (el.options?.width ?? 0)
+      currentTableLeft = left
+      currentTableRight = left + width
       map.set(el.id, [])
       continue
     }
     // 显式编组成员不归属任何表格跟随区，交由组逻辑统一分页
     if (excludedIds?.has(el.id)) continue
+    if (!currentTableId) continue
     const top = el.options?.top ?? 0
-    if (currentTableId && top >= currentTableBottom) {
-      map.get(currentTableId)!.push(el.id)
-    }
+    if (top < currentTableBottom) continue
+    // 与表格横向零交集的元素保持原地绝对定位：它既不在表格列上，也不该随表格底部漂移（T-11 C2）
+    const left = el.options?.left ?? 0
+    const right = left + (el.options?.width ?? 0)
+    if (right <= currentTableLeft || left >= currentTableRight) continue
+    map.get(currentTableId)!.push(el.id)
   }
   return map
 }

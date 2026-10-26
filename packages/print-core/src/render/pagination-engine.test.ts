@@ -252,6 +252,30 @@ describe('方案 A+B：表格下方跟随区 flow-group', () => {
     })
   })
 
+  // T-11 C2：横向零交集的元素不该被吸进跟随区；同列正下方的元素仍应跟随
+  it('跟随区只吸收与表格横向相交的元素：旁侧远方元素保持原地', () => {
+    const tpl = makeFollowTemplate([
+      makeFollowEl('under'), // left 10..90，与表 10..110 相交
+      { id: 'far', type: 'text', options: { left: 200, top: 60, width: 15, height: 8 } },
+      { id: 'over', type: 'text', options: { left: 260, top: 70, width: 20, height: 8 } },
+    ])
+    ;(tpl.elements[0] as any).options._renderRows = makeFollowTable(3).options._renderRows
+    const pages = paginate(tpl, measureFollow([8, 8, 8], [
+      { id: 'under', h: 8 }, { id: 'far', h: 8 }, { id: 'over', h: 8 },
+    ]))
+    expect(pages[0].sections[0]).toMatchObject({ type: 'flow-group', followElementIds: ['under'] })
+  })
+
+  it('边界：刚好贴住表格右缘（left === 表右）视为不相交，压住右缘一格则相交', () => {
+    const tpl = makeFollowTemplate([
+      { id: 'touch', type: 'text', options: { left: 110, top: 60, width: 20, height: 8 } },
+      { id: 'overlap', type: 'text', options: { left: 109, top: 70, width: 20, height: 8 } },
+    ])
+    ;(tpl.elements[0] as any).options._renderRows = makeFollowTable(3).options._renderRows
+    const pages = paginate(tpl, measureFollow([8, 8, 8], [{ id: 'touch', h: 8 }, { id: 'overlap', h: 8 }]))
+    expect(pages[0].sections[0]).toMatchObject({ type: 'flow-group', followElementIds: ['overlap'] })
+  })
+
   it('表格不跨页：flow-group 含全部行 + 跟随区，容器 top=表格设计 top', () => {
     const tpl = makeFollowTemplate([makeFollowEl()])
     const rows = makeFollowTable(3).options._renderRows // 3 行×8mm
