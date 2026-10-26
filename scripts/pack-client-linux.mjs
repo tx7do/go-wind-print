@@ -36,8 +36,11 @@ if (!existsSync(join(root, 'clients/print-client/out'))) {
 }
 
 // 容器内步骤：装 rpmbuild → 拷源码（跳过 node_modules/dist/out）→ npm ci → 出包到 /out
+// 受限网络下可换 Debian 源（如 https://mirrors.aliyun.com）；不设则保持官方源
+const aptMirror = process.env.APT_MIRROR
 const script = `
 set -euo pipefail
+${aptMirror ? `echo "使用 APT_MIRROR=${aptMirror}"; sed -i 's|http://deb.debian.org|${aptMirror}|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true; sed -i 's|http://deb.debian.org|${aptMirror}|g' /etc/apt/sources.list 2>/dev/null || true` : ''}
 apt-get update -qq
 apt-get install -y -qq --no-install-recommends rpm ca-certificates >/dev/null
 command -v rpmbuild >/dev/null || { echo "容器内缺少 rpmbuild"; exit 1; }
@@ -85,7 +88,7 @@ const args = [
 
 const result = spawnSync(docker.bin, args, { stdio: 'inherit' })
 if (result.status !== 0) {
-  console.error(`Linux 打包失败（退出码 ${result.status}）。首次构建需下载镜像与依赖，网络受限时先设置 ELECTRON_MIRROR / ELECTRON_BUILDER_BINARIES_MIRROR。`)
+  console.error(`Linux 打包失败（退出码 ${result.status}）。首次构建需下载镜像与依赖，网络受限时先设置 ELECTRON_MIRROR / ELECTRON_BUILDER_BINARIES_MIRROR；若容器内 apt 拉不到 deb.debian.org，用 APT_MIRROR=https://mirrors.aliyun.com 换源。`)
   process.exit(result.status ?? 1)
 }
 
