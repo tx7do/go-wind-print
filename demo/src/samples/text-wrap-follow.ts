@@ -14,6 +14,7 @@ const PARAGRAPH = '温馨提示：本单据为一式三联，第一联存根、�
  * 表格列宽和=元素宽（60+60=120）、行高和=元素高（10+10×3=40），每行 2 格。
  */
 const template: TemplateData = {
+  unit: 'mm',
   paperSize: 'A4',
   orientation: 'portrait',
   margins: { top: 10, right: 10, bottom: 10, left: 10 },
@@ -22,6 +23,7 @@ const template: TemplateData = {
   elements: [
     el('table', {
       left: 10, top: 10, width: 120, height: 40,
+      tableMode: 'static',
       tableColWidths: [60, 60],
       tableDefaultFontSize: 10,
       tableRows: [

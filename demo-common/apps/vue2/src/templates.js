@@ -3337,6 +3337,7 @@ export const SAMPLES = [
     fields: [],
     data: {},
     template: {
+      unit: 'mm',
       paperSize: 'A4',
       orientation: 'portrait',
       margins: { top: 10, right: 10, bottom: 10, left: 10 },
@@ -3351,6 +3352,7 @@ export const SAMPLES = [
             top: 10,
             width: 120,
             height: 40,
+            tableMode: 'static',
             tableColWidths: [60, 60],
             tableDefaultFontSize: 10,
             tableRows: [

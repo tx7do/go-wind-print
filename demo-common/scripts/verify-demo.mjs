@@ -403,6 +403,10 @@ await page.locator('.gallery-mask .sample-card', { hasText: '文本换行与跟�
 await page.waitForTimeout(200)
 await clickByText(page, '使用该模板')
 await waitHidden(page, '.gallery-mask')
+// 第 3 节开过的批量开关会延续到本节预览，多份数会把纸面行数与 flow-group 计数翻倍，先复位
+if (await page.locator('.demo-batch-switch input').isChecked()) {
+  await page.locator('.demo-batch-switch input').uncheck()
+}
 await page.waitForTimeout(400)
 const wrapCanvas = await page.evaluate(() => {
   const root = document.querySelector('print-designer').shadowRoot ?? document
@@ -439,15 +443,25 @@ const wrapPaper = await page.evaluate(() => {
   const pick = txt => [...doc.querySelectorAll('.print-element')].find(e => (e.textContent || '').startsWith(txt))
   const keep = pick('温馨提示')
   const nowrap = pick('关掉自动换行')
+  // 跟随区与静态表格：这两条曾因示例缺 unit:'mm'/static 而失效，全绿掩盖过，断言必须钉死
+  const followEl = doc.querySelector('.flow-follow')
+  const sideRect = [...doc.querySelectorAll('.print-element')].find(e => (e.getAttribute('style') || '').includes('left:140mm;top:55mm'))
   return {
     keepLines: keep ? lineCount(keep) : 0,
     nowrapLines: nowrap ? lineCount(nowrap) : 0,
     keepLh: keep ? getComputedStyle(keep).lineHeight : '',
+    tableRows: doc.querySelectorAll('.print-table tr').length,
+    flowGroups: doc.querySelectorAll('.flow-group').length,
+    sideRectStandalone: !!sideRect && !(followEl && followEl.contains(sideRect)),
   }
 })
 check('纸面：保留换行符真的分成多行', wrapPaper.keepLines >= 2, `行数=${wrapPaper.keepLines}`)
 check('纸面：关自动换行是单行', wrapPaper.nowrapLines === 1, `行数=${wrapPaper.nowrapLines}`)
 check('纸面行高与画布同值（20px）', Math.abs(parseFloat(wrapPaper.keepLh) - 20) <= 1.5, `line-height=${wrapPaper.keepLh}`)
+check('纸面：静态表格正文行完整（4 行）', wrapPaper.tableRows === 4, `行数=${wrapPaper.tableRows}`)
+check('纸面：表格跟随区生成 flow-follow', wrapPaper.flowGroups === 1, `flow-group=${wrapPaper.flowGroups}`)
+check('纸面：表格旁侧一栏保持绝对定位、不在跟随区内', wrapPaper.sideRectStandalone,
+  `sideRect=${wrapPaper.sideRectStandalone}`)
 await page.keyboard.press('Escape')
 await waitHidden(page, '.preview-mask')
 
