@@ -15,7 +15,7 @@ function setup(type: 'barcode' | 'qrcode', options: Record<string, any> = {}) {
 }
 
 function rowOf(w: any, text: string) {
-  const row = w.findAll('.pd-field').find(f => f.find('.pd-label').exists() && f.find('.pd-label').text().includes(text))
+  const row = w.findAll('.pd-field').find((f: any) => f.find('.pd-label').exists() && f.find('.pd-label').text().includes(text))
   if (!row) throw new Error(`未找到属性行：${text}`)
   return row
 }

@@ -242,7 +242,7 @@ describe('useFormatToolbar 单边状态与切换（WPS 式菜单）', () => {
   })
 
   it('部分单元格有上边框时为 MIXED', () => {
-    const t = tableEl([[cell({ borders: { top: b } }), cell({})]])
+    const t = tableEl([[cell({ id: 'c1', borders: { top: b } }), cell({})]])
     const { toolbar } = setup([t], ['t1'], sel)
     expect(toolbar.cellEdges.value!.top).toBe(MIXED)
     expect(toolbar.cellEdges.value!.left).toBe(false)
@@ -290,7 +290,7 @@ describe('useFormatToolbar 元素分边边框', () => {
   })
 
   it('部分元素有该边时 elementEdges 为 MIXED，再点补齐全部', () => {
-    const a = el('a', 'text', { borders: { top: { width: 1 } } })
+    const a = el('a', 'text', { id: 'c2', borders: { top: { width: 1 } } })
     const bEl = el('b', 'text')
     const { toolbar } = setup([a, bEl], ['a', 'b'])
     expect(toolbar.elementEdges.value!.top).toBe(MIXED)
@@ -299,7 +299,7 @@ describe('useFormatToolbar 元素分边边框', () => {
   })
 
   it('「所有边框」写整圈并清分边残留；「无边框」同时清整圈与分边', () => {
-    const a = el('a', 'text', { borders: { top: { width: 1 } } })
+    const a = el('a', 'text', { id: 'c3', borders: { top: { width: 1 } } })
     const { toolbar } = setup([a], ['a'])
     toolbar.applyElementBorder('all', spec)
     expect(a.options.borderWidth).toBe(2)
@@ -321,7 +321,7 @@ describe('useFormatToolbar 单元格边框回读', () => {
   const b = (width: number, style: 'solid' | 'dashed' | 'dotted', color = '#ff0000') => ({ width, style, color })
 
   it('单选：取该格已有边的一致规格；部分边也照实回显', () => {
-    const { toolbar } = setup([tableEl([[{ borders: { top: b(2, 'dashed'), left: b(2, 'dashed') } }]])], ['t1'],
+    const { toolbar } = setup([tableEl([[{ id: 'c0', borders: { top: b(2, 'dashed'), left: b(2, 'dashed') } }]])], ['t1'],
       { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
     expect(toolbar.cellBorderDraft.value).toMatchObject({
       style: 'dashed', width: 2, color: '#ff0000',
@@ -330,7 +330,7 @@ describe('useFormatToolbar 单元格边框回读', () => {
   })
 
   it('单选四边不一致：逐字段标 mixed，兜底值仍可用于批写', () => {
-    const { toolbar } = setup([tableEl([[{
+    const { toolbar } = setup([tableEl([[{ id: 'c1',
       borders: { top: b(2, 'dashed'), right: b(0.75, 'solid', '#333333') },
     }]])], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
     expect(toolbar.cellBorderDraft.value).toMatchObject({
@@ -341,8 +341,8 @@ describe('useFormatToolbar 单元格边框回读', () => {
 
   it('多选不回读单格：落缺省档且无 mixed', () => {
     const { toolbar } = setup([tableEl([[
-      { borders: { top: b(3, 'dotted', '#123456') } },
-      { borders: { top: b(2, 'dashed') } },
+      { id: 'c4', borders: { top: b(3, 'dotted', '#123456') } },
+      { id: 'c5', borders: { top: b(2, 'dashed') } },
     ]])], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 1 })
     expect(toolbar.cellBorderDraft.value).toMatchObject({
       style: 'solid', width: 0.75, color: '#333333',

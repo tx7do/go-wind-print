@@ -189,7 +189,7 @@ describe('FormatToolbar 单元格边框回读', () => {
     ['solid', 'dashed', 'dotted', 'double'].filter(k => panel.find(`[data-test=style-${k}]`).classes().includes('on'))
 
   it('单选：线型 / 粗细 / 颜色取该格真实规格，预设沿用该规格批写', async () => {
-    const t = tableEl([[{ borders: { top: b(2, 'dashed') } } as TableCell]])
+    const t = tableEl([[{ id: 'c1', borders: { top: b(2, 'dashed') } } as TableCell]])
     const w = mountToolbar([t], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 0 })
     const panel = await openPanel(w)
     expect(styleOn(panel as never)).toEqual(['dashed'])
@@ -198,7 +198,7 @@ describe('FormatToolbar 单元格边框回读', () => {
 
     await panel.find('[data-test=preset-all]').trigger('click')
     expect(cell0(t).borders!.top).toEqual(b(2, 'dashed'))
-    expect(cell0(t).borders!.right).toEqual(b(2, 'dashed'), '预设按回读规格铺满四边')
+    expect(cell0(t).borders!.right, '预设按回读规格铺满四边').toEqual(b(2, 'dashed'))
     expect(cell0(t).borders!.left).toEqual(b(2, 'dashed'))
   })
 
@@ -236,8 +236,8 @@ describe('FormatToolbar 单元格边框回读', () => {
 
   it('多选不回读单格：三行落缺省档作批写源', async () => {
     const t = tableEl([[
-      { borders: { top: b(3, 'dotted', '#123456') } as TableCell },
-      { borders: { top: b(2, 'dashed') } as TableCell },
+      { id: 'c2', borders: { top: b(3, 'dotted', '#123456') } },
+      { id: 'c3', borders: { top: b(2, 'dashed') } },
     ]])
     const w = mountToolbar([t], ['t1'], { elementId: 't1', r1: 0, c1: 0, r2: 0, c2: 1 })
     const panel = await openPanel(w)

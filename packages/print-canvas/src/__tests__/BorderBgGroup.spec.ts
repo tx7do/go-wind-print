@@ -129,7 +129,7 @@ describe('BorderBgGroup 预设与单边落盘', () => {
     const element = makeElement('text')
     const w = mountGroup(element)
     await w.findAll('.pd-checkbox-group input[type="checkbox"]')[1].setValue(true)
-    expect(element.options.borders.right).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
+    expect(element.options.borders!.right).toEqual({ width: 0.75, style: 'solid', color: '#333333' })
     expect(element.options.borderWidth).toBeUndefined()
   })
 })

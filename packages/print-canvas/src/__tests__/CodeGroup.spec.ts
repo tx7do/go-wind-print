@@ -293,7 +293,7 @@ describe('CodeGroup 条形码元素：条高 (mm)', () => {
     expect(input!.attributes('min')).toBe('1')
     expect(input!.attributes('max')).toBe('100')
     // 回显已填档位
-    expect(input!.element.value).toBe('20')
+    expect((input!.element as HTMLInputElement).value).toBe('20')
     expect(field!.find('.pd-help').attributes('data-tip')).toContain('条宽')
   })
 

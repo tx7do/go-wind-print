@@ -10,7 +10,7 @@ describe('designBackground 序列化透传', () => {
       designBackground: { src: 'https://host.example.com/bg.png', rotation: 270 },
     })
     const json = state.getTemplateJson()
-    expect(json.designBackground).toEqual({ src: 'https://host.example.com/bg.png', rotation: 270 })
+    expect((json as any).designBackground).toEqual({ src: 'https://host.example.com/bg.png', rotation: 270 })
     expect(JSON.stringify(json)).toContain('designBackground')
   })
 

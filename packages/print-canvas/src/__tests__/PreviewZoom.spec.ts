@@ -91,7 +91,7 @@ describe('PrintHtmlPreview 档位状态', () => {
     const wrapper = await make(TEMPLATE_WITH_DPI)
     expect(wrapper.vm.zoomKey).toBe('dots')
     const dots = wrapper.vm.presets.find((p: any) => p.key === 'dots')
-    expect(dots.value).toBeCloseTo(300 / 96, 6)
+    expect(dots!.value).toBeCloseTo(300 / 96, 6)
     wrapper.unmount()
   })
 

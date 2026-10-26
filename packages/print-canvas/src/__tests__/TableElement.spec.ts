@@ -242,9 +242,9 @@ describe('TableElement 列宽拖拽', () => {
     const handle = wrapper.findAll('.col-resize-handle')[0]!
     await handle.trigger('mousedown', { clientX: 100 })
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 140 })) // dx=40px → 40/3.78≈10.58mm
-    expect(element.options.tableColWidths[0]).toBe(50.6) // 40 + 10.58，四舍五入到 0.1mm
-    expect(element.options.tableColWidths[1]).toBe(40)
-    expect(element.options.tableColWidths[2]).toBe(40)
+    expect(element.options.tableColWidths![0]).toBe(50.6) // 40 + 10.58，四舍五入到 0.1mm
+    expect(element.options.tableColWidths![1]).toBe(40)
+    expect(element.options.tableColWidths![2]).toBe(40)
     expect(recordHistory).not.toHaveBeenCalled() // 拖拽过程中不记历史
     document.dispatchEvent(new MouseEvent('mouseup'))
     expect(recordHistory).toHaveBeenCalledTimes(1)
@@ -257,7 +257,7 @@ describe('TableElement 列宽拖拽', () => {
     const handle = wrapper.findAll('.col-resize-handle')[0]!
     await handle.trigger('mousedown', { clientX: 100 })
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 140 }))
-    expect(element.options.tableColWidths[0]).toBe(45.3) // 40 + 40/(2*3.78)≈5.29，四舍五入到 0.1mm
+    expect(element.options.tableColWidths![0]).toBe(45.3) // 40 + 40/(2*3.78)≈5.29，四舍五入到 0.1mm
     document.dispatchEvent(new MouseEvent('mouseup'))
   })
 
@@ -267,7 +267,7 @@ describe('TableElement 列宽拖拽', () => {
     const handle = wrapper.findAll('.col-resize-handle')[0]!
     await handle.trigger('mousedown', { clientX: 100 })
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 300 })) // dx=200px → 200/3.78≈52.9mm
-    expect(element.options.tableColWidths[0]).toBe(40) // 120 - 40 - 40
+    expect(element.options.tableColWidths![0]).toBe(40) // 120 - 40 - 40
     document.dispatchEvent(new MouseEvent('mouseup'))
   })
 
@@ -277,9 +277,9 @@ describe('TableElement 列宽拖拽', () => {
     const handle = wrapper.findAll('.col-resize-handle')[0]!
     await handle.trigger('mousedown', { clientX: 100 })
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 0 })) // dx=-100px → -100/3.78≈-26.46mm
-    expect(element.options.tableColWidths[0]).toBe(13.5) // 40 - 26.46，四舍五入到 0.1mm
-    expect(element.options.tableColWidths[1]).toBe(40) // 右侧列不动
-    expect(element.options.tableColWidths[2]).toBe(40)
+    expect(element.options.tableColWidths![0]).toBe(13.5) // 40 - 26.46，四舍五入到 0.1mm
+    expect(element.options.tableColWidths![1]).toBe(40) // 右侧列不动
+    expect(element.options.tableColWidths![2]).toBe(40)
     document.dispatchEvent(new MouseEvent('mouseup'))
     expect(recordHistory).toHaveBeenCalledTimes(1)
     expect(element.options.width).toBe(93.5) // 13.5 + 40 + 40
@@ -291,9 +291,9 @@ describe('TableElement 列宽拖拽', () => {
     const handle = wrapper.findAll('.col-resize-handle')[0]!
     await handle.trigger('mousedown', { clientX: 100 })
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: -300 })) // dx=-400px → -400/3.78≈-105.83mm
-    expect(element.options.tableColWidths[0]).toBe(5) // 40 - 105.83 被钳制到最小列宽
-    expect(element.options.tableColWidths[1]).toBe(40)
-    expect(element.options.tableColWidths[2]).toBe(40)
+    expect(element.options.tableColWidths![0]).toBe(5) // 40 - 105.83 被钳制到最小列宽
+    expect(element.options.tableColWidths![1]).toBe(40)
+    expect(element.options.tableColWidths![2]).toBe(40)
     document.dispatchEvent(new MouseEvent('mouseup'))
   })
 
@@ -303,9 +303,9 @@ describe('TableElement 列宽拖拽', () => {
     const handle = wrapper.findAll('.col-resize-handle')[1]! // 第 2/3 列之间
     await handle.trigger('mousedown', { clientX: 100 })
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 60 })) // dx=-40px → -40/3.78≈-10.58mm
-    expect(element.options.tableColWidths[0]).toBe(40)
-    expect(element.options.tableColWidths[1]).toBe(29.4) // 40 - 10.58
-    expect(element.options.tableColWidths[2]).toBe(40)
+    expect(element.options.tableColWidths![0]).toBe(40)
+    expect(element.options.tableColWidths![1]).toBe(29.4) // 40 - 10.58
+    expect(element.options.tableColWidths![2]).toBe(40)
     document.dispatchEvent(new MouseEvent('mouseup'))
   })
 
@@ -337,8 +337,8 @@ describe('TableElement 列宽拖拽', () => {
     const last = wrapper.findAll('.col-resize-handle')[2]!
     await last.trigger('mousedown', { clientX: 100 })
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 300 })) // dx=200px → 200/3.78≈52.9mm
-    expect(element.options.tableColWidths[0]).toBe(40)
-    expect(element.options.tableColWidths[2]).toBe(40) // 120 - 40 - 40
+    expect(element.options.tableColWidths![0]).toBe(40)
+    expect(element.options.tableColWidths![2]).toBe(40) // 120 - 40 - 40
     document.dispatchEvent(new MouseEvent('mouseup'))
   })
 })

@@ -32,6 +32,7 @@
     "canvas"
   ],
   "scripts": {
+    "pretest": "vue-tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "vite build && vue-tsc -p tsconfig.build.json && node ../../scripts/inject-license-banner.mjs dist"

@@ -33,7 +33,7 @@ describe('TableElement with image cell', () => {
   it('renders table with image cell', () => {
     const wrapper = mount(TableElement, {
       props: {
-        element: mockElement,
+        element: mockElement as any,
         designMode: true,
         isSelected: true,
       },

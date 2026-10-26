@@ -102,7 +102,7 @@ describe('AppearanceGroup 新增入口（issue #4 属性台暴露）', () => {
     // 属性台里有多个 number 输入（字号/行高/字间距…），必须按标签锁定缩进那一行
     const row = w.findAll('.pd-field').find(f => (f.find('.pd-label').text() || '').includes('首行缩进'))
     expect(row).toBeTruthy()
-    expect(row!.find('input[type="number"]').element.value).toBe('1')
+    expect((row!.find('input[type="number"]').element as HTMLInputElement).value).toBe('1')
     await row!.find('.pd-step-plus').trigger('click')
     expect(w.props('element').options.longTextIndent).toBe(2)
     await row!.find('.pd-step-minus').trigger('click')
@@ -132,7 +132,7 @@ describe('AppearanceGroup 新增入口（issue #4 属性台暴露）', () => {
     const w = mount(AppearanceGroup, { props: { element: el, isTextType: false } })
     const anchorSelect = w.find('[data-field="ap-img-object-position"] select')
     // top left = 水平贴左、垂直贴顶
-    expect(anchorSelect.element.value).toBe('0,0')
+    expect((anchorSelect.element as HTMLSelectElement).value).toBe('0,0')
     await anchorSelect.setValue('50,50')
     expect(w.props('element').options.objectPosition).toBeUndefined()
   })

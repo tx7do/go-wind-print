@@ -116,7 +116,7 @@ describe('TableCellGroup 二维码单元格静区', () => {
   it('已设置的档位原样回显，单元格类型切走时清除该字段', async () => {
     const element = makeElement({ cellType: 'qrcode', qrQuietZone: 4 })
     const w = mountGroup(element)
-    expect(quietField(w)!.find('input[type="number"]').element.value).toBe('4')
+    expect((quietField(w)!.find('input[type="number"]').element as HTMLInputElement).value).toBe('4')
 
     await w.find('input[type="radio"][value="text"]').setValue()
     expect(cellOf(element).qrQuietZone).toBeUndefined()
@@ -216,7 +216,7 @@ describe('单元格图片裁剪锚点（仅剪裁档）', () => {
 
   it('二维码与文本单元格都不出锚点行（只有图片会裁）', () => {
     expect(anchorRow(mountGroup(makeElement({ cellType: 'qrcode', fit: 'cover' })))).toBeUndefined()
-    expect(anchorRow(mountGroup(makeElement({ content: '文本' })))).toBeUndefined()
+    expect(anchorRow(mountGroup(makeElement({ content: '文本' } as any)))).toBeUndefined()
   })
 
   it('可挪量按可用内容框算（扣内边距），与出纸钉盒同一口径', async () => {
@@ -278,7 +278,7 @@ describe('TableCellGroup 条形码单元格条高 (mm)', () => {
   it('已填档位原样回显，单元格类型从条形码切走时清除 barHeight', async () => {
     const element = makeElement({ cellType: 'barcode', barHeight: 20 })
     const w = mountGroup(element)
-    expect(heightField(w)!.find('input[type="number"]').element.value).toBe('20')
+    expect((heightField(w)!.find('input[type="number"]').element as HTMLInputElement).value).toBe('20')
     await w.find('input[type="radio"][value="text"]').setValue()
     expect(cellOf(element).barHeight).toBeUndefined()
   })

@@ -20,7 +20,7 @@ function lastEmit(wrapper: ReturnType<typeof mount>) {
 
 function mountConfig(modelValue: Record<string, any> = {}) {
   return mount(WatermarkConfig, {
-    props: { modelValue, fields },
+    props: { modelValue, fields: fields as any },
   })
 }
 

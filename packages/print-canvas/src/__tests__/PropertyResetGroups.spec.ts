@@ -19,7 +19,7 @@ const TABLE_EDIT_PROVIDE = { tableSelection: { value: null }, setTableSelection:
 
 /** 按标签文本定位属性行。用 .pd-label 而非 .pd-label-t：后者只存在于已接入的行，排除项行要能查到才能断言"没挂图标" */
 function rowOf(w: any, text: string) {
-  const row = w.findAll('.pd-field').find(f => f.find('.pd-label').exists() && f.find('.pd-label').text().includes(text))
+  const row = w.findAll('.pd-field').find((f: any) => f.find('.pd-label').exists() && f.find('.pd-label').text().includes(text))
   if (!row) throw new Error(`未找到属性行：${text}`)
   return row
 }
