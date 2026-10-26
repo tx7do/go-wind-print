@@ -404,9 +404,10 @@ function cropStyle(fit: string | undefined, fitScale: number | undefined, object
  * - 自适应行高：放开裁剪，内容撑开盒子（测量趟同时省略高度，使实测高度等于内容高度）
  */
 function elementFitStyle(fit: string, opts: Record<string, any>): string {
-  if (fit === 'autoHeight') return 'overflow:visible;'
-  if (opts.wordWrap === false) return 'white-space:nowrap;text-overflow:ellipsis;'
-  return ''
+  const nowrap = opts.wordWrap === false ? 'white-space:nowrap;text-overflow:ellipsis;' : ''
+  // 自适应行高只决定裁剪，与「不换行」并不互斥（画布/Common 同为两值并存），故必须与 nowrap 拼接而非提前 return
+  if (fit === 'autoHeight') return `overflow:visible;${nowrap}`
+  return nowrap
 }
 
 /**
@@ -891,7 +892,7 @@ function renderFlowGroup(
       const mHeight = m.options?.height ?? 0
       const mZ = m.options?.zIndex
       const type = m.type || m.printElementType?.type || 'text'
-      const needsHeight = type === 'rect' || type === 'oval' || type === 'image'
+      const needsHeight = type === 'rect' || type === 'oval' || type === 'image' || type === 'vline'
       const flowStyle = [
         'position:absolute',
         `left:${mm(mLeft - tableLeft)}`,

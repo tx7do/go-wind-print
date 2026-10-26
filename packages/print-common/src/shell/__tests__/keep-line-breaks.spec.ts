@@ -29,6 +29,19 @@ describe('textLikeStyle 消费同一份 white-space 判据', () => {
     expect(textLikeStyle(el('longText', { keepLineBreaks: true })).style.whiteSpace).toBe('pre-wrap')
   })
 
+  // T-27：longText 关自动换行时 common 也是「overflow:visible + nowrap」并存，
+  // 与 core 出纸、画布三端同形（曾经只有出纸端漏了 nowrap）
+  it('longText 关自动换行：overflow:visible 与 nowrap 并存（与 core/画布同形）', () => {
+    const s = textLikeStyle(el('longText', { wordWrap: false })).style
+    expect(s.overflow).toBe('visible')
+    expect(s.whiteSpace).toBe('nowrap')
+    expect(s.textOverflow).toBe('ellipsis')
+    // 负对照：没关自动换行不出 nowrap，且缺省仍是自适应行高
+    const d = textLikeStyle(el('longText')).style
+    expect(d.whiteSpace).toBeUndefined()
+    expect(d.overflow).toBe('visible')
+  })
+
   it('与「自动换行」冲突时单行优先：保留 nowrap，不被新档覆盖', () => {
     const s = textLikeStyle(el('text', { keepLineBreaks: true, wordWrap: false })).style
     expect(s.whiteSpace).toBe('nowrap')

@@ -291,3 +291,38 @@ describe('保留换行符的出纸落值', () => {
     expect(render(mkTable({ keepLineBreaks: true }))).toBe(plain)
   })
 })
+
+// ─── T-27：长文本关「自动换行」的出纸分叉（画布/Common 都出 nowrap，出纸没出）───
+
+describe('longText 关自动换行的出纸落值', () => {
+  const longElement = (options: Record<string, any>): TemplateElement =>
+    ({ ...textElement(options), type: 'longText' })
+
+  it('缺省 fit（autoHeight）+ 关自动换行：出 nowrap，且 overflow:visible 不被挪走', () => {
+    const html = render(longElement({ wordWrap: false }))
+    expect(html).toContain('overflow:visible;')
+    expect(html).toContain('white-space:nowrap;text-overflow:ellipsis;')
+  })
+
+  it('正对照：text 关自动换行本就出 nowrap（这条一直是绿的）', () => {
+    expect(render(textElement({ wordWrap: false }))).toContain('white-space:nowrap;text-overflow:ellipsis;')
+  })
+
+  it('正对照：longText 显式截断 + 关自动换行也出 nowrap', () => {
+    const html = render(longElement({ wordWrap: false, textFit: 'clip' }))
+    expect(html).toContain('white-space:nowrap;text-overflow:ellipsis;')
+    expect(html).not.toContain('overflow:visible')
+  })
+
+  it('负对照：开着自动换行的 longText 不该被顺手塞进 nowrap', () => {
+    const html = render(longElement({}))
+    expect(html).toContain('overflow:visible;')
+    expect(html).not.toContain('nowrap')
+  })
+
+  it('单行优先：与「保留换行符」同时打开时只出 nowrap、不出 pre-wrap', () => {
+    const html = render(longElement({ wordWrap: false, keepLineBreaks: true }))
+    expect(html).toContain('white-space:nowrap;text-overflow:ellipsis;')
+    expect(html).not.toContain('pre-wrap')
+  })
+})

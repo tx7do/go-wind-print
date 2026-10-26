@@ -946,6 +946,69 @@ describe('renderFlowGroup 相对容器', () => {
     expect(html).toMatch(/class="flow-group"[^>]*z-index:5;/)
     expect(html).toMatch(/position:absolute;left:2mm;top:5mm;width:80mm;[^"]*z-index:9;/)
   })
+
+  // T-11 C1：跟随区的 vline 靠 style 里的 height 定长，缺 height 即 0 高整条消失
+  it('跟随区竖线保留设计高度（case vline 只出 border-left+width:0，长度全靠 height）', () => {
+    const followVline = {
+      id: 'follow-1', type: 'vline',
+      options: { left: 12, top: 39, width: 1.8, height: 14 },
+    }
+    const t = makeTemplate(flowGroupOptions())
+    t.elements.push(followVline as any)
+    const html = generateHtml(t, pageWith([
+      { elementId: 'tbl-1', type: 'flow-group', startRow: 0, endRow: 2, followElementIds: ['follow-1'], groupTop: 10 },
+    ]))
+    expect(html).toMatch(/position:absolute;left:2mm;top:5mm;width:1.8mm;height:14mm;/)
+  })
+
+  it('跟随区矩形/椭圆/图片照旧出 height（正对照，防止改 vline 时挪走既有档）', () => {
+    for (const type of ['rect', 'oval', 'image']) {
+      const t = makeTemplate(flowGroupOptions())
+      t.elements.push({ id: 'follow-1', type, options: { left: 12, top: 39, width: 40, height: 14 } } as any)
+      const html = generateHtml(t, pageWith([
+        { elementId: 'tbl-1', type: 'flow-group', startRow: 0, endRow: 2, followElementIds: ['follow-1'], groupTop: 10 },
+      ]))
+      expect(html, type).toMatch(/position:absolute;left:2mm;top:5mm;width:40mm;height:14mm;/)
+    }
+  })
+
+  it('跟随区横线仍不出 height（hline 的 height:0 是有意为之，别顺手一起改）', () => {
+    const t = makeTemplate(flowGroupOptions())
+    t.elements.push({ id: 'follow-1', type: 'hline', options: { left: 12, top: 39, width: 80, height: 1.8 } } as any)
+    const html = generateHtml(t, pageWith([
+      { elementId: 'tbl-1', type: 'flow-group', startRow: 0, endRow: 2, followElementIds: ['follow-1'], groupTop: 10 },
+    ]))
+    expect(html).toMatch(/position:absolute;left:2mm;top:5mm;width:80mm;[^"]*"/)
+    expect(html).not.toMatch(/top:5mm;width:80mm;height:1.8mm;/)
+  })
+})
+
+// ─── 同族形态对账：区域元素（页眉/页脚）不该跟着跟随区一起漏 height ───
+
+describe('区域元素的线条高度', () => {
+  function withAreaLines(header: any[], footer: any[] = []): TemplateData {
+    return {
+      paperSize: 'A4', orientation: 'portrait',
+      margins: { top: 10, right: 10, bottom: 10, left: 10 },
+      header: { height: 20, elements: header },
+      footer: { height: 20, elements: footer },
+      elements: [],
+    } as unknown as TemplateData
+  }
+
+  it('页眉 vline 走 elementPositionStyle：height 原样落纸（区别于跟随区那条判据）', () => {
+    const html = generateHtml(withAreaLines([
+      { id: 'hv', type: 'vline', options: { left: 10, top: 2, width: 1.8, height: 14 }, printElementType: { type: 'vline' } },
+    ]), [{ pageIndex: 0, sections: [] }])
+    expect(html).toMatch(/width:1\.8mm;height:14mm;[^"]*border-left:0\.75pt solid/)
+  })
+
+  it('页眉 hline 末尾仍以 height:0 覆盖（长度走 width），别把它当成缺陷顺手改', () => {
+    const html = generateHtml(withAreaLines([
+      { id: 'hl', type: 'hline', options: { left: 10, top: 2, width: 80, height: 1.8 }, printElementType: { type: 'hline' } },
+    ]), [{ pageIndex: 0, sections: [] }])
+    expect(html).toMatch(/width:80mm;height:1\.8mm;[^"]*border-top:0\.75pt solid[^"]*height:0;/)
+  })
 })
 
 // ─── 小计行 / 汇总行渲染 ───

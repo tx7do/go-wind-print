@@ -191,3 +191,58 @@ describe('截断与缺省（无需二分）', () => {
     expect(clip).not.toContain('data-fit="shrink"')
   })
 })
+
+// ─── T-27：长文本关「自动换行」的两趟真实管线行为（此前只有单趟声明级证据）───
+
+const WRAP_TEXT = '温馨提示：本单据为一式三联，第一联存根、第二联客户、第三联财务；货物出门后七天内可凭单退换，逾期不候。'
+
+function longTextTemplate(patch: Record<string, any> = {}): PrintTemplateData {
+  return {
+    paperSize: 'A4',
+    orientation: 'portrait',
+    margins: { top: 10, right: 10, bottom: 10, left: 10 },
+    header: { height: 0, elements: [] },
+    footer: { height: 0, elements: [] },
+    // 顶边 265mm：四行折行会越过 A4 内容底边 287mm，单行则留在本页
+    elements: [
+      {
+        id: 'lt1',
+        type: 'longText',
+        options: { left: 0, top: 265, width: 60, height: 8, fontSize: 12, formatter: WRAP_TEXT, ...patch },
+      },
+    ],
+  } as unknown as PrintTemplateData
+}
+
+describe('长文本关自动换行（真实 Chromium 两趟）', () => {
+  it('实测高度从多行收缩为单行，且收缩后的单行高度 ≈ 一行行高（12pt×1.5）', async () => {
+    const wrapTpl = longTextTemplate()
+    const nowrapTpl = longTextTemplate({ wordWrap: false })
+    const viewport = paperViewportPx(getPaperDimensions(wrapTpl))
+    let wrapPx = 0
+    let nowrapPx = 0
+    await runtime.withSession({}, async (session) => {
+      wrapPx = (await session.measure(generateHtml(wrapTpl, [], {}, { isMeasurementPass: true }), viewport))
+        .measurements[0].heightPx
+      nowrapPx = (await session.measure(generateHtml(nowrapTpl, [], {}, { isMeasurementPass: true }), viewport))
+        .measurements[0].heightPx
+    })
+    const oneLinePx = 12 * 1.5 * 96 / 72 // 12pt × 1.5 行高的 CSS px
+    expect(wrapPx).toBeGreaterThan(nowrapPx * 2) // 折行 vs 单行：至少两倍
+    expect(nowrapPx).toBeLessThanOrEqual(oneLinePx * 1.3) // 单行就是一行行高
+    expect(wrapPx / oneLinePx).toBeGreaterThanOrEqual(3) // 折行确实是多行，不是探针假象
+  }, 120000)
+
+  it('分页落点不因此改变：独立元素按 top 归页，两档都留在同一页（实测，非推断）', async () => {
+    const wrapped = await prepareDocument({ templateJson: longTextTemplate(), printData: {} }, runtime)
+    const nowrap = await prepareDocument({ templateJson: longTextTemplate({ wordWrap: false }), printData: {} }, runtime)
+    // 内容底边 265 + 折行 ≈ 290mm 已越出内容底 287mm，引擎仍按 top 归页 ⇒ 换页风险不在这条档上
+    expect(wrapped.pageCount).toBe(1)
+    expect(nowrap.pageCount).toBe(1)
+    expect(nowrap.html).toContain('top:265mm') // 归页位置两档一致
+    expect(wrapped.html).toContain('top:265mm')
+    expect(elementStyle(nowrap.html)).toContain('white-space:nowrap;text-overflow:ellipsis;')
+    expect(elementStyle(nowrap.html)).toContain('overflow:visible;')
+    expect(elementStyle(wrapped.html)).not.toContain('nowrap') // 对照：没关就不该出现
+  }, 120000)
+})

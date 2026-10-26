@@ -46,6 +46,18 @@ describe('画布元素消费「保留换行符」判据', () => {
     expect(s).toContain('white-space:nowrap')
     expect(s).not.toContain('pre-wrap')
   })
+
+  // T-27：画布对 longText 关自动换行的形态是「overflow:visible 与 nowrap 并存」，
+  // core 出纸改成的正是这一组声明；这里钉住两端同形，防止再出现「画布单行、纸面多行」的分叉。
+  it('longText 关自动换行：overflow:visible 与 nowrap 并存（与 core 出纸同形）', () => {
+    const s = styleOf('longText', { wordWrap: false })
+    expect(s).toContain('overflow:visible')
+    expect(s).toContain('white-space:nowrap')
+    expect(s).toContain('text-overflow:ellipsis')
+    expect(s).not.toContain('pre-wrap')
+    // 负对照：没关自动换行时不该出现 nowrap
+    expect(styleOf('longText')).not.toContain('nowrap')
+  })
 })
 
 describe('外观组的「保留换行符」行', () => {
