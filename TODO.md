@@ -1,775 +1,259 @@
-# TODO — GitHub issue #4 拆解与实施顺序
+# TODO — 待办与对账台账
 
-> 取证基线：`master` @ `29386ab`，包版本 1.3.6。
-> 提报人基于 v1.3.5 测试；本清单涉及的 8 个文件自 tag `v1.3.5` 起 **零提交**（`git log v1.3.5..HEAD -- <file>` 全为 0），代码与提报人所测完全一致。
-> 所有坐标已用 ripgrep + 行号打印逐条复核；运行时证据见文末「取证方式」。
+> 取证基线：`master` @ `cd6e7c1`（tag `v1.3.10`）；包版本 core/canvas/print-client `1.3.10`、common `1.3.7-beta.0`。
+> **本文件只挂未完成项。** 已完成条目压成文末「已完成归档」一行一条；原实施正文、批次记录、浏览器验证实测与探针坑明细
+> 已从本文件移出，可在 `git show HEAD:TODO.md`（截至 `cd6e7c1` 的 775 行版）与中英 CHANGELOG 里取回。
+>
+> **2026-10-26 全量复验**（新鲜跑，非引用旧记录）：`npm run build` exit 0；`npm test` exit 0
+> （core 77 文件/1118 例、canvas 72/679、common 26/315、print-client 14/110，合计 189 文件/2222 例零失败）；
+> `npm run test -w @worm-vue3-print/render` exit 0（9/30，真实 Chromium）；`verify-demo.mjs` 四宿主 36/36 ×4；
+> canvas `npx vue-tsc --noEmit` **exit 2 / 53 条**（T-22）。
 
 ## 标记口径
 
 | 标记 | 含义 |
 |---|---|
 | 【成立】 | 断言与代码一致，已逐坐标或运行时确认 |
-| 【口径修正】 | 现象成立，但提报人对性质/影响面的描述需改 |
+| 【口径修正】 | 现象成立，但原描述的性质/影响面需改 |
 | 【已推翻】 | 断言不成立，**不要按原话实施** |
-| 【新增】 | 本次核实时新发现，issue 未提及 |
+| 【新增】 | 核实时新发现，原台账/issue 未提及 |
 
 ---
 
-## 一、前置决策（阻塞后续多条，需先拍板）
+## 一、待办清单
 
-| # | 待决问题 | 备选 | 阻塞项 |
+### T-07b `resolveToolbarOverflow` 的公共面定性　【口径修正】
+
+- 原待办「发版前确认是否只作内部共用（则从导出面收回）」**已不可执行**：该函数现被 canvas `useToolbarOverflow.ts` 与
+  demo-common 四宿主 `apps/*/src/topbar-overflow.js` 直接消费（vue2/vue3/react 引 `@worm-vue3-print/core/designer`，
+  jQuery 从 `window.WormPrintCommon` 取），且 V1.3.10 已带此导出发布。
+- 现状坐标：`packages/print-core/src/designer/index.ts:27` `export * from './utils/toolbar-overflow.js'`（同文件 `:34` 是 `preview-zoom.js`，同一形态）。
+- 改判后二选一：① 按**公开契约**对待——在文档里登记其入参与链序属稳定面，破坏性变更走 minor 及以上；
+  ② 坚持收回——则必须先给宿主等价入口，否则四个宿主 demo 直接断链。推荐 ①，收回省下的边际收益小于抽走已发布公共面的代价。
+
+### T-11 #IKOUJI 剩余两条根因 C1 / C2　【成立】
+
+- **C1 跟随区内 `vline` 丢高度（一行可修）**
+  - 落点：`packages/print-core/src/render/html-generator.ts:882` → `needsHeight = type === 'rect' || type === 'oval' || type === 'image'`，**缺 `vline`**。
+  - 2026-10-26 动态复现（直调 dist `generateHtml` + `flow-group` section）：跟随区内 vline 输出
+    `left:2mm;top:5mm;width:1.8mm;…width:0;` **无 `height`**；同容器内 rect 对照拿到 `height:30mm` ⇒ 探针可信。
+  - 机制：`case 'vline'`（`:466`）只出 `border-left` + `width:0`，长度全靠传入 style 的 `height`；跟随区不给就是 0 高、整条消失。
+  - **别顺手把 `hline` 一起改**：`hline` 走 `height:0` 是有意为之（`:465`）。
+  - 验收：加 `|| type === 'vline'` + 一条断言钉住「跟随区 vline 出 `height`、hline 仍不出」。
+- **C2 跟随区无条件几何吸收**（需先定口径，代价中等）
+  - 落点：`packages/print-core/src/render/pagination-engine.ts:52-72` `buildFollowMap` → 判据只有 `top >= currentTableBottom`
+    （显式编组成员靠 `excludedIds` 豁免），**完全不看 X 轴**。
+  - 2026-10-26 动态复现（直调 dist `paginate`）：表格占 x[25.83..175.83]，另放一个 x[200..215]、top 60 的
+    **横向零交集**元素，结果 `followElementIds = ["far","over"]` —— 零交集元素照样被吸进跟随区。
+  - 上一轮量化后果：加 3 条数据行后实测横线 y=103.1（设计 86.87，+16.2mm）并越过内容区底边 99.7。
+  - 需要先拍板：跟随归属是否引入「与表格列横向相交」判据；若引入，与 C3 已落地的「同列扣高」记账（同文件 2D 占用那轮）
+    都改 X 轴语义，**分开做会互相打脸。这条不要直接动代码。**
+
+### T-14 ② #IKOYG0 重复评论待删　【成立】
+
+- 2026-10-26 匿名复核评论时间线：`16:38` 与 `16:39` 两条几乎相同的「已定位并修复…」**仍在**（其余 17:35 是报告人表情、
+  次日 11:24 是 1.3.8 通知）。issue 现 `closed`，删评论不必重开。
+- 自己评论的删除菜单不进无障碍快照，只能网页端手工删一条。
+
+### T-15 common 预览版发布面（dist-tag + 落后主线 40 个提交）　【成立】+【新增】
+
+- **dist-tag 实况未变**：官方 registry `@worm-vue3-print/common` 的 `latest` 与 `next` **同指 `1.3.7-beta.0`**（首次发布 npm 自动打了 latest）。
+  后果仍在：`npm i @worm-vue3-print/common`（不带 `@next`）装到的是预览版，与 `CONTRIBUTING.md`「方式三」的预览版定位冲突。
+  `latest` 要收回需 registry 上先存在别的稳定版可指向（当前没有）→ 要么改文档强制宿主带 `@next`，要么改发布脚本。
+  在此之前，「实验性、不建议用于生产」那句是最后防线，不能删。
+- **【新增】预览版已落后主线 40 个提交**：仓库内该包版本仍是 `1.3.7-beta.0`，而自 10-19 那次发布起 `packages/print-common`
+  已有 **40 笔提交**未随预览版发出（属性台 75 行「恢复默认值」、单元格台单选回显与边框三行回读、条码静区/字体候选按画布收口、
+  缩放档位挂 `WormPrintCommon`、`flowList` 等），而主线 core/canvas 已发到 `1.3.10`。
+  ⇒ **四个 common 宿主 demo 的观感 ≠ npm 上能装到的 common 的观感**。
+- 待办：按既有口径走 `publish:common:beta` 本地手工发一版（`1.3.7-beta.N`、dist-tag `next`、不进 `latest`），顺手处置 dist-tag。
+
+### T-16 demo-common 四宿主没接 `fonts`，字体链路在 Common 宿主上是暗的　【成立】
+
+- 2026-10-26 复核：四入口 `grep -c fonts` **仍全为 0**（`apps/vue3/src/App.vue`、`apps/vue2/src/App.vue`、`apps/react/src/App.jsx`、`apps/jquery/src/app.js`）。
+- 2026-10-26 浏览器动态取证（Playwright + 系统 Chrome，载入示例「综合示例模板」——该示例声明 3 个字体）：
+  - 9331（vue3 Common 宿主）：宿主传入 `fonts=null`、`document` 与 shadow 的 `@font-face` **均 0 条**、`document.fonts.size = 0`。
+  - **正对照** 9303（canvas 主 demo，同一探针同一示例）：`@font-face` **3 条**、`document.fonts.size = 3`
+    ⇒ 缺口确在宿主侧，不是探针假象。
+- 外壳契约本身正常：`print-common/src/shell/controls.ts` 收 `fonts`，`property-panel.ts` 透传给 core `normalizeFontCatalog`。
+- 待办三条：① 四宿主各补一份与主 demo 同算法的 `activeFonts`（参照 `demo/src/App.vue:78` + `:243`，直挂宿主就地实现）；
+  ② `verify-demo.mjs` 补字体断言（应用该示例后 `document.fonts` 应出 3 条 face、下拉行数 = 1 默认 + 3）；
+  ③ 核对 PARITY §宿主契约是否已把 `fonts` 标成「demo 未演示」。
+
+### T-19b 残余：`verify-demo` 缺「预览缩放档位」与「字体链路」两条断言　【口径修正】
+
+- **更正原话**：T-19b 写的是「verify-demo 的 36 项不含**顶栏收纳**与预览缩放档位断言」——前半句不属实。
+  顶栏收纳两条早已随 T-10 入库：`demo-common/scripts/verify-demo.mjs:118`「顶栏接入自适应收纳（T-10）」、
+  `:119`「收纳数与「更多」组显隐一致」。2026-10-26 实测该脚本仍是 **36 项、四宿主 36/36**。
+- 真实缺口只剩两条：**预览缩放档位**与**字体链路**（后者即 T-16 的 ②，两条一并做成第 37-38 项）。
+- 功能本身是好的，本轮已动态验证：9331 与 9334（jQuery 直挂形态）预览都量到五档齐、默认 active「点阵 203dpi」、
+  iframe `computed zoom = 2.11458`、`@media print` 复位守卫在位、说明文案在位。缺的只是把一次性探针固化进脚本。
+
+### T-22 canvas 测试文件类型错误　【成立】+ 数字更正
+
+- **49 → 53**（2026-10-26 于包目录内跑 `npx vue-tsc --noEmit`，exit 2）。全部落在 `src/__tests__/*.spec.ts`，
+  `src/components/**` 与 `src/composables/**` **零错**（该结论复核未变）。
+- 分布（条数）：`TableElement` 16、`PageTabs` 11、`FormatToolbar` 5、`useFormatToolbar` 4、`TableCellGroup` 3，其余散在 14 个 spec；
+  **较上轮涨的 4 条落在近期改动过的 spec**（工具栏回读、恢复默认值、排版一组）。
+- 主要形态：`element.options.tableColWidths` 可能 undefined、`findAll(...)` 回调隐式 any、`VueNode<Element>` 上取 `.value` 未转
+  `HTMLInputElement`、字段夹具缺 `PrintBusinessField` 必填项。
+- 长期项：把 `vue-tsc`/`typecheck` 串进 `npm test` 或 CI 门禁——canvas 的 `test` 只跑 vitest、`build` 走 `tsconfig.build.json`
+  排除测试，所以这类红长期不可见。按 spec 分文件推进，别批量改（容易把断言语义一起改掉）。
+
+### T-23 【已验证，2026-10-26】#IKPXQL 的跟随区：主路径已解决，需求2 只解决了一半
+
+- 复现方式：把报告人三件诉求做成一份可控模板（表格绑 6 条明细 + **汇总行**放「温馨提示」四行正文 + 表格下方放四类元素），
+  走**真实两趟管线**（Chromium 测量 → 分页 → 最终 HTML），再把最终 HTML 落页量纸面相对坐标与行盒（Range 按 `top` 聚类，不用高度÷line-height）。
+  验证件按 `services/print-render/spike/` 约定跑完即删，render 套件已回到 9/30 全绿。
+- 实测（mm，纸面相对坐标；表格设计底 34、实际底 **112.53**）：
+
+| 诉求 | 判据 | 实测 | 结论 |
 |---|---|---|---|
-| D-1 | `text-indent` 落纸单位 | A：`em`（随 `textFit='shrink'` 缩放字号跟随）；B：`pt`（与画布现有实现逐字一致，零分叉） | T-01 |
-| D-2 | `objectPosition` 形态 | A：CSS 值原样透传 `string`；B：枚举预设（居中/偏上/偏下）+ 自定义输入 | T-03 |
-| D-3 | 僵尸可选字段的处置 | A：删除 `lHeight` + `leftSpaceRemoved`；B：保留并标注 deprecated | T-06 |
-| D-4 | 顶部工具栏窄视口策略　**已定案：自适应收纳**（按优先级链把按钮组收进「更多」，收尽仍不足则品牌区省略号兜底） | A：仅 `nowrap`；B：收起文字只留图标；C：允许换两行 —— 均未采纳 | T-07 已完成 |
+| 需求1 表格里「温馨提示」挤成一行 | 该 td 行盒数与 `white-space` | **4 行**、`white-space:pre-wrap`、td 由声明 8 撑到 **25.28** | ✅ 已解决（V1.3.10 单元格断行那条） |
+| 需求1 元素跟随表格底部 | 设计相对偏移 6 → 实测落点 | 实测 y **118.53** = 表底 112.53 + 6 | ✅ 跟随在出纸态成立 |
+| 需求1「没有固定跟随效果」 | 画布侧有无跟随逻辑 | canvas/common 源码 `flow-follow`/`followElementIds`/分页引擎 **0 命中**，画布元素纯 `position:absolute` | ⚠️ 属**两态差异**：跟随只在出纸发生，画布上永远不动——要解释，不是修 |
+| 需求2 缩进 | longText 的 `text-indent` | **21.3333px**（2 × 8pt 折算） | ✅ 走「首行缩进 (字符)」字段这条径已解决 |
+| 需求2 换行 | text / longText 元素里显式 `\n` | 两者都 **1 行**、computed `white-space: normal` → `\n` 被折叠 | ❌ **未解决**，见 T-26 |
+| 需求2 手工空格缩进 | text 元素前导全角空格 | 首行左缘 19.99 = 元素盒 x 19.99 → 空格被吞 | ❌ 同上，见 T-26 |
+| C1 | 跟随区 vline 实际高度 | **0mm**（设计 14mm） | ❌ 未修 |
+| C2 | 横向零交集元素是否被吸收 | 仍被吸收，实测 y 118.53（设计 top 40 → **偏 78.53mm**） | ❌ 未修 |
+
+- **对外结论**：1.3.10 把报告人的主路径（单元格内固定温馨提示 + 出纸跟随 + `longTextIndent` 缩进）确实修好了，
+  关闭站得住；但需求2 的字面形态——**在文本/长文本元素里用换行符排版**——仍未支持。
+  建议补一句限定回帖（元素级 `\n` 目前不落纸，多行文字请放单元格，缩进请用「首行缩进 (字符)」字段），
+  否则报告人按原用法重试还会提一次。补回帖前无需重开（结论是「部分已解决」）。
+- 顺带一条对本台账的更正：本报告人诉求里的「跟随」是**要跟随**，与 T-11 那份模板里「被误吸收导致漂移」是同一机制的两面——
+  修 C2 时必须把「用户确实想要跟随」这条需求钉在判据里，别把跟随改成不跟随。
+
+### T-24 【新增】GitHub #6 表格右键菜单很难唤醒 —— 未定性
+
+- 实况：`#6` [bug] 表格的右键菜单很难唤醒，**仍 open**，2026-10-22T04:02Z 提出，正文**只有一段录屏外链**
+  （`github.com/user-attachments`），无复现步骤与版本号；维护者 10-22 只回了「已收到，将进行测试验证」，此后零进展。
+  此前未进本台账。
+- 仓库既有口径：右键菜单四条（右键先单选命中、外点关闭带菜单内守卫、**表格单元格右键不要求先选中**、菜单项点击一律收起）
+  已在 2026-09-29 / 10-01 修复并有回归覆盖（`CanvasAreaContextMenu.spec.ts`、`TableElement.spec.ts`、common `table.spec.ts` / `context-menu.spec.ts`）。
+  所以「难唤醒」要么是这四条之外的新形态，要么是命中区/时序问题——**先定性再决定改不改**。
+- 待办：在 demo 9303 与 common 宿主 9331 上实测表格单元格右键的**命中率**（多点几个位置逐个右键，量菜单是否出、是否要求先选中）。
+  录屏外链在本机网络可能不可达，取不到就按文字复现，不要靠猜。
+- 已知干扰项：示例两个表格都是 277mm 满宽，插列会弹宽度守卫 alert——那是正确行为不是 bug；
+  自动化验证必须处理 dialog，否则 alert 阻塞后续操作会造成假失败。
+
+### T-25 【新增】Linux 三包真机与 `cross-end` 比对
+
+- AppImage/deb/rpm 已在 Docker（`node:22-bookworm` + rpmbuild）内出包并做过载荷与校验和级核对，但**未做真机安装与出纸验证**；
+  `cross-end`（浏览器直印 / 服务端 PDF / 客户端静默三链路比对）因缺客户端 PDF 产物**未执行**。
+- 本机无 Linux 设备、无签名与公证凭据，这两条只能由维护者在目标机上跑。
+
+### T-26 【已按方案 B 实施，2026-10-26】元素级 `\n` 与前导空格不出纸 —— #IKPXQL 需求2
+
+- 现象（真实管线实测）：`text` 与 `longText` 元素内容里写显式换行符，出纸只出 **1 行**、computed `white-space: normal`；手工全角空格缩进也被吞。
+- 根因是**声明缺失**：`html-generator` 的缺省档不输出任何 `white-space`，落回 UA 默认 `normal`。画布与 common 同样没有该规则 → **不是分叉，是这条能力从来没支持过**。
+  误导点在属性台：`ExpressionEditor.vue:604` 的预览区是 `pre-wrap`，面板看得见分行、画布与纸面都没有。
+- **落地（方案 B，缺省关）**：
+  - 判据单点 core `render/text-fit.ts` 新增 `resolveElementWhiteSpace(opts)`（随 `/designer` 导出）：未开→`undefined`（不出声明）、开→`'pre-wrap'`、`wordWrap === false` 时**让位返回 `undefined`**（单行优先）。
+  - 三端消费同一份：出纸 `html-generator` 新增 `whiteSpaceStyle()`、画布 `TextElement`/`LongTextElement`、print-common `textLikeStyle`。
+    **刻意不进 `elementFitStyle`**——`longText` 缺省显示形式是 `autoHeight`，该函数在该分支提前 `return`，声明放进去会被整条吞掉。
+    这条坑由用例钉住并做过变异自证：把声明移进 `elementFitStyle` 后 `text` 仍绿、两条 `longText` 断言必红。
+  - 属性台在「自动换行」下方各加一行「保留换行符」（画布 + common 同位置同文案）。
+    开关行沿用既有口径**两侧都不挂说明气泡**——先挂了 `.pd-help` 后发现会造成「注册表里有没人消费的死文案 + 两端不对称」，已收回。
+    「恢复默认值」按派生出厂值判脏（出厂未设 → 灰态）。新 key `ap-keep-line-breaks`，与「自动换行/不换行」互不串台（双向反面对照）。
+- **存量零变化不是推理，是逐字比对**：真实两趟管线（Chromium 测量 → 分页 → 最终 HTML）跑 **27 份**产物（demo 示例库 11 份可出纸示例 + 15 组元素档位组合 + 1 份单元格矩阵），
+  改前/改后 **25 份字节级一致**，只有显式打开新档的 2 份各多出一条 `white-space:pre-wrap;`（+21 字符）；「新档开 + 不换行」那组也逐字一致，证明单行优先成立。
+  局限如实记：`asset-tag`、`roll-label` 两份拼版示例在该离线 harness 下出不了纸，未计入比对集。
+- UI 级实测（导入含预置值的模板，非同一会话写入自测）：画布 9303 与 Common 9331 **逐条同值** ——
+  打开的 text/longText 均 3 行 `pre-wrap`，未开的 2 行 `normal`；属性台回显未开 `checked=false/dirty=false`、已开 `true/true`；
+  重选未开元素 → 点该行 → 画布由 2 行 `normal` 变 3 行 `pre-wrap`，预览出纸同步；页面 0 异常。
+- 门禁：`npm run build` exit 0；`npm test` exit 0（core 77/1129、canvas 73/687、common 27/322、print-client 14/110）；
+  `verify-demo` 四宿主 36/36 ×4；canvas `vue-tsc` 仍 53 条（**未新增**，且无一条来自本次文件，见 T-22）；
+  render 服务单跑 `multipage` 两条通过，全量并发下出现过 5s 超时红灯（冷启动 Chromium 与五个 dev 服务争 CPU，属该文件既有 flaky 形态，非断言失败）。
+- 文档已同步：`docs/中文/指南/使用指南.md`、中英 CHANGELOG「未发布」段、技能 `template-schema.md`——
+  并**更正技能里那句「`wordWrap` 缺省 `true` 时 `\n` 也生效」**（旧断言只对单元格成立）。
+- 版本建议：新增可选字段 + 打开后才改行为 → **minor**。发版时记得把该条折进版本段并同步两份 `help-content/changelog.ts`。
+- 对外动作：#IKPXQL 已 closed，需求2 现在两侧都能解释了——单元格侧 1.3.10 已生效，元素级这一档随下个版本补上；回帖时给字段名与属性台行名即可（见 T-23）。
+
+### T-27 【新增·存量分叉，实施 T-26 时实测撞出】长文本关「自动换行」在出纸端不生效
+
+- 2026-10-26 直调 dist `generateHtml` 实测三种组合：
+  - `text` + `wordWrap:false` → 出 `white-space:nowrap;text-overflow:ellipsis;` ✅ 与画布一致
+  - `longText` + `wordWrap:false`（未显式设 `textFit`）→ **只出 `overflow:visible;`，没有 nowrap** ❌
+  - `longText` + `wordWrap:false` + 显式 `textFit:'clip'` → 出 nowrap ✅
+- 根因与 T-26 同一个函数：`elementFitStyle()` 在 `fit === 'autoHeight'` 分支**提前 `return`**，而 `longText` 的缺省显示形式正是 `autoHeight`，
+  于是后面那句 `if (opts.wordWrap === false) return 'white-space:nowrap;…'` 永远走不到。
+  画布与 print-common 两端都在 `wordWrap === false` 时挂了 `nowrap` + 省略号 → **设计器里单行省略、纸面上照样多行折**。
+- 这不是我这次改出来的：本次刻意把新声明放在 `elementFitStyle` **之前**并另走判据，正是为了不被这个早 return 吞掉（已用变异自证，见 T-26）。
+- 修法要先出存量影响结论：把 nowrap 补到 autoHeight 分支之前会**改变存量长文本模板的出纸**（凡「关了自动换行、又没显式设溢出形式」的长文本，从多行变单行截断），
+  属可见行为变更，建议单独一轮按 minor 走，并在 CHANGELOG 写明触发条件；也可先在属性台把两档联动显式化（关自动换行即写 `textFit:'clip'`）绕开渲染端改动。
+- **不自作主张并入 T-26**，等裁决。
 
 ---
 
-## 二、待办清单
-
-### T-01 长文本首行缩进出纸不生效（画布/出纸分叉）　【口径修正】
-
-- **复验（2026-10-19，最新代码）**：结论不变，运行时仍红；坐标漂移见文末「五」。`longTextIndent` 声明现为 `types.ts:342`。
-- **提报原话错在哪**：正文缺口 2 说 `longTextIndent`「仅声明、全仓库无消费」。实际画布与 common 都消费了它，真问题是 **core 渲染端不输出**，性质是「一致性缺陷」而非「功能缺失」，优先级应上调。
-- **判断依据**
-  - 声明：`packages/print-core/src/designer/types.ts:334`（`// 长文本特有` 段 :333）
-  - 画布消费：`packages/print-canvas/src/components/elements/LongTextElement.vue:49` → `textIndent: o.longTextIndent ? o.longTextIndent + 'pt' : '0'`（**单位现为 pt**，非正文推测的 mm）
-  - common 消费：`packages/print-common/src/shell/elements.ts:76` → 同口径 `pt`
-  - 渲染端零消费：`packages/print-core/src/render/html-generator.ts` 全文 `text-indent` 计数 **0**；`textStyle()`（:335-353）与 `longText` 分支（:438-439）均未产出
-  - 运行时：`longText` 元素 `longTextIndent: 2` 出纸 HTML 无 `text-indent`
-- **改哪**：`textStyle()` 按 D-1 选定的单位输出 `text-indent`；若选 `em` 需同步把 :49 与 common :76 两处从 `pt` 改为 `em`，三端一致。
-- **验收**：探针断言输出含 `text-indent:`；画布 / common / 出纸三端同一份 JSON 的缩进逐字比对；`npm run build` + `npm test -w @worm-vue3-print/core`。
-
-### T-02 独立 image 元素的 fit 出纸被写死 contain　【成立】+「无类型级声明」【已推翻】
-
-- **成立的部分**：画布按 `fit` 裁剪、出纸恒为 `contain`，两端分叉。
-  - 画布消费：`packages/print-canvas/src/components/elements/ImageElement.vue:45` → `objectFit: (props.element.options.fit || 'contain')`
-  - common 消费：`packages/print-common/src/shell/elements.ts:121` → `objectFit: o.fit || 'contain'`
-  - 渲染端写死：`packages/print-core/src/render/html-generator.ts:412` → `object-fit:contain;`
-  - 对照（单元格图片反而生效）：同文件 `:610` → `object-fit:${fit}`
-  - 运行时：image 元素 `fit: 'cover'` 出纸得 `object-fit:contain`
-- **被推翻的部分**：正文/补充 1 称「独立 image 元素无类型级 `fit` 声明，建议把 fit 提升到 ElementOptions 级」。**该声明已存在**：`packages/print-core/src/designer/types.ts:303`，且 :302 注释明写「内容缩放模式（image/qrcode）」。另 :213 那个 `fit` 所在接口是 `TableCell`（:177），不叫 `TableCellOptions`。→ 建议②「类型归位」无需实施。
-- **影响面降级**：属性面板的缩放控件在 `packages/print-canvas/src/components/property/CodeGroup.vue:63`（写入 :132），挂载条件 `isCodeType = ['barcode','qrcode']`（`PropertyPanel.vue:26` + :243-246）——**独立 image 在 UI 上没有 fit 入口**。分叉仅对手写/导入模板 JSON 与宿主程序化赋值成立。
-- **改哪**：`html-generator.ts:412` 把硬编码换成 `opts.fit` 变量（缺省 `contain`，行为与画布对齐）。是否顺带给 image 补 UI 控件属扩大范围，单列 T-02b 由 D-4 之外的产品决策。
-- **验收**：`fit` 五档逐一出纸探针；`none`/`scale-down` 不劣化；未设 `fit` 的存量模板输出逐字不变。
-
-### T-03 image 补 object-position 裁剪锚点　【成立】
-
-- **判断依据**：全仓（含 `print-common`、`services/print-render`、`clients/print-client`、demo）`object-position` / `objectPosition` 命中 **0**；运行时出纸亦无。`cover` 恒按默认 `50% 50%` 居中裁剪。
-- **改哪**：`ElementOptions`（types.ts:253 起，紧邻 :303 的 `fit`）加 `objectPosition`，按 D-2 定形态；`html-generator.ts:412`（独立 image）与 `:610`（单元格图片）的 `<img>` 补 `object-position`；画布 `ImageElement.vue:44-46`、`CellImage.vue:50`、common `elements.ts:121` 同步；属性面板 image 分组加入口。
-- **验收**：`fit:'cover'` × `object-position:'center 20%'` 出纸与画布逐端比对；缺省（不设该字段）时输出不含 `object-position`，存量模板零变化。
-
-### T-04 TextAlign 增加 justify　【成立】+【新增连带项】
-
-- **复验（2026-10-19，最新代码）**：结论不变，`justify` 仍能原样透传落纸，`justify`×`verticalAlign` 仍回落 `flex-start`。**影响面比本条所列更宽**，见文末「五·T-04 的真实改档入口」。
-- **判断依据**
-  - 枚举缺档：`packages/print-core/src/designer/types.ts:101` → `export type TextAlign = 'left' | 'center' | 'right'`
-  - 值已透传：`html-generator.ts:351` → `text-align:${opts.textAlign}`，运行时写入 `'justify'` 确实出纸（证实「实现成本主要在类型与面板」）
-  - 回落缺陷：`html-generator.ts:332` `H_ALIGN_FLEX` 无 `justify` 键，:347-350 的 `verticalAlign` 分支对 justify 回落 `flex-start`
-- **【新增·重要】回落不是输出端独有**：画布同一份逻辑 `TextElement.vue:57-61`、`LongTextElement.vue:61`、common `elements.ts:89` 都用 `H_ALIGN_FLEX[...] ?? 'flex-start'`。即 `justify` × `verticalAlign` 组合在**画布和出纸两端都**退化成左对齐（当前无分叉）。修的时候必须 core + canvas + common 三端同改，否则修完一端反而制造新分叉。
-- **改哪**：`TextAlign` 加 `'justify'`；三端 `H_ALIGN_FLEX` 对 justify 的映射策略统一（建议容器转 `text-align:justify` 并让 flex 项取满宽）；属性面板对齐选择器加档位（表格单元格 `align?`（types.ts:198）同源，一并核）。
-- **验收**：四端（画布 / common 预览 / 浏览器打印 / PDF）同一份 JSON 的段落右缘一致；模板重存后 `justify` 不被序列化白名单丢弃。
-- **实施后补录（2026-10-19）**：主轴转纵向只解决了「行盒取不满宽」，单行文本仍不生效——CSS `justify` 不拉伸段落末行，一行文本的那一行就是末行。已按「撑满行宽含末行」口径在三端补 `text-align-last:justify`（core `textStyle()`、canvas `TextElement`/`LongTextElement`/`PageNumberElement`、common `textLikeStyle` 与 pageNumber 分支）。真实设计器实测：元素盒 349px、改前单行行盒 140px → 改后撑满 349px。
-- **单元格同源缺口也已补**（本条「一并核」的那项）：工具栏在单元格上下文早能写 `align:'justify'`，属性台却只有三档、出纸也只出 `text-align:justify`。现 canvas/common 属性台补第 4 档「两端」，core `matrixCellStyle()` 与两端单元格样式成对输出。`<td>` 不需要主轴转纵向（实测非末行本来就齐右缘），只有末行这一条规则。实测：83px 表头格内容 48px → 撑满内容宽 73px。
-
-### T-05 主题变量接通：把硬编码浅色改成 `var(--pd-*, 原值)`　【成立】
-
-提报人评论 3 的坐标清单**逐条命中**，且「变量机制本身可用、只是这批控件漏接」的证据也成立：`--pd-surface` 定义于 `packages/print-canvas/src/components/PrintDesigner.vue:521`，并在 LeftPanel / DesignerToolbar / HelpModal 正常消费。建议按文件拆 4 个可独立合入的小项：
-
-- **T-05a `packages/print-canvas/src/styles/native-controls.css`**
-  - `:34` `.pd-input, .pd-select, textarea.pd-input` → `background: #fff`（同一条规则内 :32 的 border 已用 `var(--pd-border, #d9dde6)`，混用铁证）
-  - `:107-116` `.pd-radio, .pd-checkbox` → `background: #fff`
-  - `:226` `.pd-dialog` → `background: #fff`
-  - `:267` `scrollbar-color: rgba(23, 32, 60, .18)`、`:277` `::-webkit-scrollbar-thumb` `rgba(23, 32, 60, .16)`（提报人把两处都记成 `.16`，:267 实为 `.18`；结论不受影响）
-  - 参照正确实现：`:140` `.pd-button` 已走 `var(--pd-bg, #f4f6fa)`
-- **T-05b `packages/print-canvas/src/components/ExpressionEditor.vue`**
-  - `:464` `.ee-nav-tab:not(.active)` `background: white`（紧邻 :459 `.active` 已用 `var(--pd-accent)`；提报人记的 :461 是花括号行，实际属性在 :459）
-  - `:470`、`:550` hover `#ecf5ff`；`:605-608` 预览错误态 `#e53e3e`/`#fef2f2`/`#fecaca`
-  - `:650-684` 四张帮助卡片（字段/函数/变量/条件）底色+边框+标题字色共 **12 处**写死，计数与提报人一致
-- **T-05c `packages/print-canvas/src/components/elements/TableContextMenu.vue`**
-  - 整个 `<style scoped>` 段（:90-127）内 `var(--` 出现次数为 **0**；:96 本体 `#fff`、:105 文字 `#333`、:108 hover `#f5f7fa`、:120 分隔线 `#ebeef5`、:125 `#909399`
-- **T-05d `packages/print-canvas/src/components/PresetColorPicker.vue`**
-  - `:365` 触发器衬底、`:397` 色板浮层本体 `background: #fff`
-- **统一形态**：写死值 → `var(--pd-*, 原值)`，fallback 取原值，浅色默认逐像素不变，向后兼容。
-- **验收**：在 `.designer-container` 注入深色 `--pd-*` 变量集后，属性面板输入框、表达式弹窗、表格右键菜单、色板浮层无一处残留白底；未注入时截图基线与改前一致。
-
-### T-06 清理零消费可选字段　【成立】+【新增】
-
-- **判断依据**
-  - `lHeight`：`types.ts:336` 仅声明，全仓零消费；与既有 `lineHeight`（渲染于 `html-generator.ts:345`）语义重复
-  - **【新增】`leftSpaceRemoved`**：`types.ts:335` 同样仅声明、零消费，提报人未列出
-- **改法**：按 D-3 选 A 则删除两字段；`longTextIndent` 属 T-01 激活范围，不在本项。
-- **风险提示**：可选字段删除对旧模板表现为「残留键被忽略」，但仍需过一遍 designer 的模板 migrate 与 golden 夹具，避免断言基线漂移。
-
-### T-07 顶部工具栏窄视口文本折行　【已解决】（2026-10-18，见「已完成」）
-
-- **处置**：未按「加 nowrap」的最小方案做，改为**自适应收纳**（D-4 定案为收纳方案）：
-  放不下时按优先级链把按钮组收进「更多」下拉，收尽仍不足才由品牌区省略号兜底。
-  判定函数 `resolveToolbarOverflow` 上收到 `packages/print-core/src/designer/utils/toolbar-overflow.ts`，
-  canvas 与 print-common 共用同一链序。
-- **判断依据（运行时，改前）**：视口 1600 无折行；**1520 起 `.tb-btn-text`「排列」「视图」与 `.ft-btn-text`「对齐」「边框」全部折成 2 行**；
-  980 / 850 / 700 逐档恶化，`.tb-title-name`→4 行 / 62px、`.tb-title-sub`→7 行 / 84px、`.tb-title` 整块 146px。
-  提报人截图宽 1508，正落在折行侧。
-- **【口径修正】不是「撑高」**：`.designer-toolbar` 高度钉死 `height: 50px`，工具栏本身不涨，
-  实测折行内容**溢出条底 47px** 压到画布区。
-- **根因**：文本类标签无 `white-space: nowrap` 且 flex-shrink 默认 1；组件内无任何 `@media` 断点。
-- **验收（改后已跑）**：1600 / 1280 / 900 / 640 四档叶子文本折行数均 **0**，收纳数分别 1 / 4 / 6 / 9，
-  `contentBleedBelowBar` 归 0；canvas 侧「边框」面板内选定的线型经「收窄→拉宽→再收窄」往返后仍在
-  （证明 Teleport 未重挂实例）；common 侧 resize 往返可自动复位且控制台无告警。
-- **修后补记（同日）**：初版把收纳单元做成了包装组件 `ToolbarOverflowUnit.vue`，其根节点是 `<Teleport>`
-  而非元素，Vue 无法把宿主 scoped 属性挂上去 → 单元元素拿不到 `data-v-*` → `.tb-group` / `.ft-group`
-  规则全部落空、退化成 `display:block`，字体与字号被竖排（用户反馈即此）。已改为宿主模板内联
-  `<Teleport>` + `v-overflow-unit` 指令注册，组件删除；回归判据补上「单元必须 flex + 带作用域 + 单行」。
-  修好内边距后自然宽变大，故 1600 档收纳数由 0 变 1。
-
-### T-07a 遗留：嵌套浮层横向溢出（低优先，视觉）
-
-- 现象：「更多」面板宽约 186px，而其内「边框」子面板实测 216px 宽，子面板向右溢出约 30px。
-- 影响：功能可用、点击与关闭正常，仅视觉越界。
-- 建议：给 `.tb-more-panel` 设定与内容匹配的最小宽，或让子面板按可用宽右对齐。
-
-### T-07b 遗留：`resolveToolbarOverflow` 已进入 core 公共面
-
-- 现状：由 `src/designer/index.ts` 导出，属 `/designer` 子路径的公开 API。
-- 待办：发版前确认是否只作内部共用（则从导出面收回），避免宿主误以为是稳定契约。
-
-### T-08 PresetColorPicker 多根导致 class 透传告警　【成立】，后果被掩盖
-
-- **判断依据（运行时）**：页面加载即复现 `[Vue warn]: Extraneous non-props attributes (class) ... component renders fragment or text or teleport root nodes`，定位 `at <PresetColorPicker ... class="page-bg-picker">`。
-  - 结构：`PresetColorPicker.vue:2-12` 是 `<button>`，:14 起是 `<Teleport>` → 双根
-  - 全文件无 `inheritAttrs` 声明
-  - 传入点：`PropertyPanel.vue:119`
-- **【新增】class 是真的丢了**：DOM 查询 `.page-bg-picker` 结果为空，`PropertyPanel.vue:609-612` 的 `flex: 1; min-width: 0` **从未生效**。当前视觉无异常仅因触发器自带 `width: 100%`（`PresetColorPicker.vue:360`）掩盖，属潜在样式失效。
-- **改哪**：组件收单根，或 `inheritAttrs: false` 后显式把 attrs 绑到触发器；同时确认 :609 样式是否需要改挂到实际生效节点。
-- **验收**：console 该条警告归零；`.page-bg-picker` 在 DOM 中存在且 `flex` 生效；深色主题下面板位置不变（Teleport 到 body 的行为回归）。
-
-### T-09 文档与技能同步（非独立需求，随上面各条）
-
-- 新增/变更的模板字段（`objectPosition`、`TextAlign` 加档、`longTextIndent` 生效）须同步 `docs/`（中文权威全集 + 英文薄层）与 `skills/worm-vue3-print-integration`，并按既有惯例登记 CHANGELOG 三处同步点、`git diff` 级审查包边界。
-- **注意**：`print-template-json` 技能脚本 `skills/print-template-json/scripts/build_template.py:81` 已有 `'indent': 'longTextIndent'` 映射，T-01 落地后该技能的示例模板会从「填了没用」变成「真生效」，需一并复核技能文档口径。
-
-### T-10 demo-common 四个子 demo 顶部区同步收纳　【已完成 2026-10-19】
-
-- 背景：主 demo（9303）顶部区已接入同一机制，demo-common 的 vue3 / vue2 / react / jquery 四个子 demo 顶部区**暂时落后**。
-- 约束：仓库既有口径要求「子 demo 版式必须与 demo 完全一致」，不同步会形成新的观感漂移；`npm run styles:demo-common` 只同步样式，收纳链序与面板 DOM 需各宿主自己接。
-- 现成可复用的口子：canvas 已公开 `provideToolbarOverflow` / `createOverflowUnitDirective` / `emptyToolbarOverflow`，落位槽与排除项走 `data-overflow-slot` / `data-overflow-more` / `data-overflow-spacer` 属性契约，宿主无需沿用 canvas 类名；vue2/react/jquery 需各自实现等价的「移动节点但不丢组件实例」搬运（vue2 无 Teleport 语义差异、jQuery 无组件实例概念，预期比 canvas 简单，直接搬 DOM 即可）。
-- 验收判据照主 demo：逐子项断言「display:flex + 单行高度 ≤34 + 无文本折行 + 无溢出条底」，并实测面板内按钮事件仍生效。
-
-
-**实施结论（2026-10-19）**：
-
-- 四个子 demo 各自新增 `src/topbar-overflow.js`（判定与 core `resolveToolbarOverflow` 一致——直挂与无打包器宿主拿不到 core 子路径，故就地实现同一算法）与 `src/styles/topbar-overflow.css`（`demo-ui.css` 由 `sync-demo-styles.mjs` 同源生成、禁止手改）。
-- 顶栏可折叠项统一包 `.demo-ou`（`display:inline-flex; flex:0 0 auto`），面板内 `data-overflow-slot` 落位；归位规则是「插到链中第一个仍内联的后继单元之前」，简单 append 会打乱原顺序。自然宽取 `scrollWidth`：用 `getBoundingClientRect().width` 会拿到被 flex 压缩后的值，误判「放得下」而让顶栏文本折行（即 T-07 原症状，实测踩过一次）。
-- 入口时序：`demo-common/apps/react` 在 `main.jsx` 渲染后调用、vue2 在 `mounted()`、vue3 在 `onMounted()`；**Vite 下改入口文件必须整页重载**，只热更组件会看到「面板在但永不收纳」的假失败。
-- 五档实测（1600/1280/900/700/640）：四宿主文本折行 0、内容溢出条底 0、顶栏恒 45px；收纳数 vue3/vue2/react 为 0/0/3/5/8，jquery 为 0/3/3/5/6（其常驻项更宽）。被移进面板的复选框仍随框架状态更新（class 加 `on`、文案「批量打印（3 份）」）且不被拉回行内。
-- 三宿主 `npm run build` 全通过；`demo-common/scripts/verify-demo.mjs` 已扩到 **36 项**并四宿主 **36/36 全绿**（动作数排除 `.demo-more-trigger`；新增「顶栏接入自适应收纳」与「收纳数与组显隐一致」）。
-- 顺带修掉一个既有缺陷：`.demo-host-switch-menu { display:flex }` 盖住 `<details>` 闭合态的 UA 隐藏，导致「宿主示例」下拉常驻并压在画布上；已在各宿主 `topbar-overflow.css` 补闭合态隐藏，**根治仍需落到 demo 样式源并重跑 `npm run styles:demo-common`**。
----
-
-## 三、实施先后顺序
-
-按「先拍板 → 零风险独立项先合 → 同文件冲突区合并做 → schema 变更殿后」排：
-
-| 序 | 项 | 为什么这个位置 | 风险 |
-|---|---|---|---|
-| 0 | D-1 ~ D-3 决策（D-4 已定案） | T-01/T-03/T-06 的改法都被它锁死，不拍板动工会返工 | — |
-| 1 | **T-05a–d** 主题变量 | 纯 CSS，`var(--pd-*, 原值)` 形态浅色默认逐像素不变，与 core 渲染管线零交集；可独立合成 `1.3.7` 先给社区可见进展 | 低 |
-| 2 | **T-08** 多根告警 | canvas 单组件，10 分钟级，清掉每次进面板必现的 console 噪音，给后续 UI 验证留干净控制台 | 低 |
-| 3 | ~~**T-07** 工具栏折行~~ **已完成**（自适应收纳，canvas + common 双宿主，core 共用判定） | 遗留 T-07a 嵌套浮层横向溢出、T-07b 是否收回 core 导出面 | — |
-| 4 | **T-02 + T-03** image 一组 | 两项都改 `html-generator.ts:412`（独立 image 的 `<img>`）和 `:610`（单元格图片），拆开做必冲突 → 一个 PR；T-02 修分叉、T-03 在同位置加锚点 | 中（出纸行为变） |
-| 5 | **T-01 + T-04** 文本一组 | 两项都改 `textStyle()`（:335-353），且 T-04 要同时动 `H_ALIGN_FLEX` 的 core/canvas/common 三端；同批做可共用「多端一致性」用例 | 中-高（跨三包） |
-| 6 | **T-06** 僵尸字段清理 | schema 变更涉及 migrate 与 golden 夹具，放最后避免与 4/5 的基线刷新互相干扰 | 中（存量） |
-| 7 | **T-09** 文档/技能/CHANGELOG 回写 | 字段最终形态定了才写，防止文档反复改 | 低 |
-
-补充建议：
-
-1. **发版切分**：1→3 归 `1.3.7`（纯修复，模板 schema 零变更）；4→6 归 `1.4.0`（新增可选字段 + 排版能力，向后兼容）。T-06 若走删除分支，按仓库既有口径评估是否该并进 major。
-2. **T-02 与 T-04 的存量影响必须先各自出一轮结论**：`:412` 改用变量后，历史模板里若已带 `fit: 'fill'` 之类值，出纸会从 contain 变为 fill——这是**可见行为变更**，需在 PR 描述里写清并给迁移建议。
-3. **发版时别忘了第三处同步点**：设计器内置「更新记录」`packages/print-canvas/src/help-content/changelog.ts` 只有已发布版本段，T-07 这条目前只登记在中英 CHANGELOG 的「未发布」里，切版本时需一并写进该文件（`<h2>V1.3.7<small>(日期)</small></h2>` 形态）。
-4. **反向验收门禁**：T-02/T-03/T-01/T-04 每条合入后，重跑文末探针脚本，确认断言从红变绿、且「缺省不设字段」路径的输出与基线逐字一致（防止把兼容路径改坏）。
+## 二、本轮对台账的更正（2026-10-26 复验）
+1. **T-22 的 49 条 → 实测 53 条**（涨幅来自近期改动过的 spec）。
+2. **T-19b「verify-demo 不含顶栏收纳断言」不属实**——收纳两条在 T-10 轮已入库；真实缺口只剩缩放档位与字体链路。
+3. **V1.3.10「待办：npm 由维护者手工发 `1.3.10`」实际已完成**：官方 registry `core` 与 `canvas` 的 `latest` 均为 `1.3.10`。
+4. **T-07b 的前提被推翻**，改为公共面定性题（见该条）。
+5. **Gitee 台账缺两条**：`#IKPMYK`（条码打印问题·严重，10-22 提，10-26 08:58 以「1.3.10 版本已经修复更新」关闭，comments 5）
+   与 `#IKPXQL`（10-26 08:52 关闭）此前完全未登记。`#IKPMYK` 的修复确实落在 V1.3.10 段（条高 `barHeight`、静区 `barQuietZone`、
+   条宽倍率上限 4→8、按 `printerDpi` 给推荐档、单元格条码字号改取 `barFontSize ?? fontSize`），只是 issue 编号没进任何载体。
+6. **`#IKIPD9` 状态已变**：原台账写「未动（无证据表明同一缺陷）」，实况是 10-22 被标为 `rejected`（comments 2）。对外已收口，只是没登记。
 
 ---
 
-## 四、取证方式（复现用）
+## 三、对外动作的通路（执行 T-14 与对外回帖前先看）
 
-- **渲染层**：`node /tmp/issue4-probe.cjs`——离线直调 `packages/print-core/dist/index.cjs` 的 `generateHtml()`，一次给出 6 条判据（justify 透传 / justify×verticalAlign 回落 / `text-indent` 缺失 / `object-position` 缺失 / `fit:'cover'`→`object-fit:contain` / 实际落档）。
-- **UI 层**：demo dev server 已在 `localhost:9303`（`vite.config.ts:27`，走源码别名，改即生效）。用 DevTools `resize_page` 逐档缩放后跑行数检测器。
-- **检测器坑（务必照此写）**：判折行要用「Range 取 text 矩形后按 `top` 聚类数行数」。中文按字换行时每个字符矩形等高，用「矩形高度 ÷ line-height」会**假阴性**——本次首轮就这么漏掉了 900 档的折行，换检测器后才纠正。
-- 本次验证未在仓库内留下任何文件，`git status` 干净；探针脚本置于 `/tmp`，属一次性验证件。
-
----
-
-## 五、文本一组复验（2026-10-19，按工作区最新代码重跑）
-
-复验环境：HEAD `1f5e906` + 未提交改动（二维码静区那批）。先 `npm run build -w @worm-vue3-print/core` 重建 dist，再跑 `node /tmp/issue4-text-probe.cjs`——探针改为**每个用例单独成模板出纸**，避免同页多样本时靠样式串扰定位。
-
-### 基线漂移（只影响坐标，不影响结论）
-
-- 文本一组涉及的源文件（`html-generator.ts`、`designer/types.ts`、`TextElement.vue`、`LongTextElement.vue`、`shell/elements.ts`、`html-generator.test.ts`）自 `v1.3.5` 起 `git log` 仍为 **0 提交**；差异全部来自未提交的 QR 改动。
-- `types.ts` 坐标整体 **+8**：`longTextIndent` 334→**342**，`fit` 303→**311**，`ElementOptions` 起点 253→**254**，`TableCell.align` 198→**199**。
-- `html-generator.ts`：`textStyle()`（:335-353）、`H_ALIGN_FLEX`（:332）、独立 image 硬编码（:412）**逐字未变**；单元格图片 `object-fit:${fit}` 610→**612**。
-- 技能映射行号：`build_template.py` 的 `'indent': 'longTextIndent'` 81→**82**。
-- 回归基线：`npm test -w @worm-vue3-print/core` → **62 文件 / 828 用例全绿**。
-
-### 运行时判据
-
-| 项 | 判据 | 结论 | 实测回显 |
-|---|---|---|---|
-| T-01 | `longText` + `longTextIndent:2` 出纸含 `text-indent` | **红（成立，待修）** | `position:absolute;left:0mm;top:24mm;width:60mm;font-size:10pt;overflow:visible;` |
-| T-01 | `longTextIndent:3` × `textAlign:'right'` | **红** | 同上，仍无 `text-indent` |
-| T-04 | `textAlign:'justify'` 原样透传 | **绿（证实「值已透传」）** | 末档 `text-align:justify` |
-| T-04 | `justify` × `verticalAlign:'middle'` 不退化 | **红（成立，待修）** | `display:flex;align-items:center;justify-content:flex-start;text-align:justify` |
-| T-02 | `image fit:'cover'` 不被写死 | **红**（顺带复跑，非文本项） | `<img … object-fit:contain;>` |
-| T-03 | `object-position` 缺失 | **红**（顺带复跑） | 全仓命中仍为 0 |
-
-### 【新增】T-04 的真实改档入口比清单列的多
-
-原清单「属性面板对齐选择器加档位」只覆盖了一半，`justify` 要落地还需：
-
-- canvas：`property/AppearanceGroup.vue:23-25`（左/中/右三个 radio）、`FormatToolbar.vue:82-88`（**顶部格式工具栏对齐按钮组**）、`FormatToolbar.vue:263-264`（按 `textAlign` 选图标，需补 justify 图标）
-- common：`shell/property-panel.ts:96-98`（radio 组）、`shell/format-bar.ts:102-105`（按钮组）、`shell/format-bar.ts:185`（`ALIGN_ICON` 映射，缺档时回落 `'TextAlignStart'`）
-- 写入通路：`composables/useFormatToolbar.ts:131`（单元格写 `c.align`）与 `:148`（元素写 `o.textAlign`）——两条都要认 justify
-- 硬 cast：`elements/PageNumberElement.vue:24` 写死 `as 'left' | 'center' | 'right'`，类型加档后此处需同步放开
-
-### 【新增】两处原判据可以作废
-
-- **「重存后 justify 被序列化白名单丢弃」不存在**：导出与复制走 `JSON.parse(JSON.stringify(...))` 深拷贝（`useDesignerState.ts:192`、`:208`、`:535`），designer 侧不存在 options 键白名单（`ZONE_ALLOWED_TYPES` 管的是元素类型，不是键）。T-04 验收项按「无过滤」处理。
-- **docs 里根本没有 `longTextIndent`**：`grep -rn longTextIndent docs` 命中 **0**。T-09 对本项不是「同步」而是**补写**（中文权威全集 + 英文薄层都缺）。
-
-### 对 T-01 改法的一点补充（需与 D-1 一并拍板）
-
-`textStyle()` 被 `longText`（:439）与 default/`text`（:443）共用，而画布与 common 只在 **longText** 元素上消费 `longTextIndent`（`LongTextElement.vue:49`、`shell/elements.ts:76`）。若照原计划把 `text-indent` 放进 `textStyle()`，手写 JSON 给 `text` 元素塞 `longTextIndent` 时会「出纸生效、画布不生效」——**修一个分叉造出另一个**。建议改在 `case 'longText'` 分支输出，与画布语义逐字对齐。
-
-- 技能链闭环已实测：`build_template.py` 吃简写 scene（`align: justify` + `indent: 2` + `fit: cover` + `anchor: center 20%`）→ `validate_template.py` 0 错 0 警 → 产物直喂 `generateHtml()`，出纸样式为 `text-align:justify;text-indent:2em` 与 `object-fit:cover;object-position:center 20%`，即 SKILL.md 里写的判据自查通过。
-- `skills/` 两份技能已按「权威在仓库、方向仓库→全局」同步到 `~/.agents/skills`（先备份到 `/tmp/skills-backup-*`，`diff -rq` 差异 0）。
-### 待决
-
-- **D-1 仍未拍板**（`em` vs `pt`）。实测事实：画布与 common 现均为 **`pt`**（两处逐字相同），选 B 则 core 单边对齐、零分叉；选 A 要同时改两处宿主代码。
-
----
-
-## 六、下一批规划（2026-10-19，结合 GitHub issue 现状）
-
-issue 面：`#4` 是仓库**唯一 open** issue（#1–#3 已 closed），提报人四组反馈 = 排版三缺口 + 视口折行 + PresetColorPicker 告警 + 深色变量；最后一条是维护者 10-18 的「反馈已经收到」。**下一个该修 = T-05a–d + T-08 合并为一个批次**，理由：
-
-- 排版三项撞 core 渲染管线，属**可见行为变更**且被 D-1/D-2 锁死，不宜当下一批；
-- T-05/T-08 零 schema 变更、纯 UI 层、与在途 WIP（T-10 那批：`DesignerToolbar.vue`/`ToolbarMore.vue`/`useToolbarOverflow.ts`/`index.ts`/demo）**文件零交集**，可并行；
-- **T-08 与 T-05d 同改 `PresetColorPicker.vue`**，拆开会自撞，必须同批；
-- 折行（T-07）已在 `1f5e906` 但尚未发版 → 本批合入后切 `1.3.7`，是提报人能看到的第一版。
-
-**2026-10-22 更新**：本节所列 T-05/T-07/T-08 等批次已在 1.3.7 全部落地；`#4` 已于 10-22 回帖并关闭，仓库当前 open issue 为 `#5`（流式列表建议）。
-
-### 复验后的坐标修正（`native-controls.css` 在 `db39f37` 后有 1 个提交，其余四个文件仍 0 提交）
-
-| 项 | 最新坐标 | 说明 |
-|---|---|---|
-| T-05a 输入类 | `:96`（规则起 `:86`） | `.pd-input, .pd-select, textarea.pd-input` |
-| T-05a 选项 chip | `:178`（规则起 `:169`） | `.pd-radio, .pd-checkbox` |
-| T-05a 弹窗 | `:288` | `.pd-dialog` |
-| T-05a 滚动条 | `:329` `.18` / `:339` `.16` / **`:345` hover `.30`** | 【新增】TODO 原记两处，实为三处 |
-| T-05b | `:464` `white`、`:470`/`:550` `#ecf5ff`、`:606-608` 红三件、帮助卡片 `:650-684` | 坐标未变 |
-| T-05c | `:96/:105/:108/:120/:125`，整文件 `var(--` 计数仍为 0 | 坐标未变 |
-| T-05d | `:365` 触发器衬底、`:397` 浮层本体 | 坐标未变 |
-| T-08 | `:2-12` button + `:14` Teleport 双根、全文件无 `inheritAttrs`、`PropertyPanel.vue:119` 传 class、`:609`/`:613` **两条** `.page-bg-picker` 规则 | 双根告警原样复现 |
-
-### 【新增】两处会卡住实现的坑
-
-1. **`:144` 的 `background: #fff` 属 `.pd-switch::after`（开关滑块），必须豁免**。它是深色轨道上的正确形态，机械换成变量会把深色态开关涂黑。扫描写死值时按选择器归属逐条判定，不能按颜色值批量替换。
-2. **「浅色默认逐像素不变」与提报人建议的变量映射相冲突**。现令牌表（`PrintDesigner.vue:520-546`）里：`--pd-field-bg` = `#f4f6fa`（≠ 输入框的 `#fff`）、`--pd-sidebar-hover` = `#f0f3f9`（≠ `#ecf5ff`）、`--pd-text` = `#2a2e37`（≠ `#333`）、`--pd-border-soft` = `#e9ecf2`（≠ `#ebeef5`）。按建议直接挪用会让浅色默认变色。
-   → 采**新增令牌**路线：`.designer-container` 变量块补 `--pd-input-bg`、`--pd-chip-bg`、`--pd-menu-text`、`--pd-menu-hover`、`--pd-menu-divider`、`--pd-scrollbar` / `--pd-scrollbar-thumb` / `--pd-scrollbar-thumb-hover`，浅色值取原值；使用处写 `var(--pd-*, 原值)`。令牌只在一处定义，深色主题方可逐位覆盖。
-   `--pd-surface` = `#ffffff` 与 dialog/浮层/右键菜单本体的原写死值同色，**可以直接挪用**。
-
-### 【新增】common 侧不用改第二遍
-
-`packages/print-common/scripts/gen-styles.mjs` 从 `print-canvas/dist/canvas.css` + `native-controls.css` 派生 `src/styles/designer.css`（已 gitignore，构建时生成）。改完 canvas 只需：
-
-```
-npm run build -w @worm-vue3-print/canvas
-npm run styles -w @worm-vue3-print/common
-```
-
-四个宿主（vue3/vue2/react/jquery）自动同源，T-05 的「多端一致」在 CSS 层是免费的——但**验收必须跑这两步并核对派生结果**，否则 common 侧继续留白底。
-
-### 验收（本批）
-
-1. 浅色基线不变：同一构建下取 `.pd-input`/`.pd-radio`/`.pd-dialog`/右键菜单/色板浮层/表达式弹窗的 computed background，改前改后逐字比对（含 `:144` 仍为 `#fff`）。
-2. 深色注入：`.designer-container` 挂深色令牌集后，上述位点无白底残留，滚动条可见。
-3. console：`Extraneous non-props attributes (class)` 归零，`.page-bg-picker` 在 DOM 中存在且 `flex:1` 生效（`PropertyPanel.vue` 两条重复合并）。
-4. `npm run build` + `npm test -w @worm-vue3-print/canvas` + common 侧重跑 `styles` 与 `test`。
-5. 发版登记三处同步点：中英 CHANGELOG + `help-content/changelog.ts`（`<h2>V1.3.7<small>(日期)</small></h2>`）。
-
-### 后续排序（不变，各批的首个动作是拍板）
-
-| 批 | 内容 | 需先定 | 版本 |
-|---|---|---|---|
-| B（下一个） | T-05a–d + T-08 | — | 1.3.7 |
-| C | T-02 + T-03（同改 `html-generator.ts:412`/`:612`，一个 PR） | **D-2** | 1.4.0 |
-| D | T-01 + T-04（同改 `textStyle()`，三端） | **D-1** | 1.4.0 |
-| E | T-06 僵尸字段 | **D-3** | 1.4.0 / 待评 major |
-| F | T-09 文档·技能·CHANGELOG 回写 | — | 随各批 |
-
-建议拍板口径：D-2 取 **A（CSS 值原样透传）**——提报人要的 `center 20%` 用「居中/偏上/偏下」三档预设表达不了；D-1 取 **A（`em`）**——与 Word/WPS「首行缩进 2 字符」形态一致，且 `textFit='shrink'` 缩字号时缩进跟随，代价是 canvas/common 两处 `pt`→`em` 同改；D-3 取 **A（删除）**——两字段自 `v1.3.5` 起零消费，按 minor 发并在 CHANGELOG 写明「残留键被忽略」。
-
----
-
-## 七、实施记录（2026-10-19，批次 B/C/D/E + 文档回写）
-
-拍板按「六·建议口径」执行：D-1 = **em**、D-2 = **CSS 值原样透传**、D-3 = **删除**。
-
-### 已落地
-
-| 项 | 落点 | 关键实现 |
-|---|---|---|
-| T-01 | `html-generator.ts` 新增 `indentStyle()`，仅 `case 'longText'` 输出 `text-indent:Nem`；画布 `LongTextElement.vue:49` 与 common `elements.ts` 两处 `pt`→`em` | 不放 `textStyle()`——它被 `text` 共用，会造出「出纸生效、画布不生效」的新分叉 |
-| T-04 | `TextAlign` 加 `'justify'`；core `textStyle()`、画布 `TextElement/LongTextElement`、common `textLikeStyle()` 三端同策：**justify × verticalAlign 时把 flex 主轴改纵向**（`flex-direction:column`），交叉轴默认 stretch 让行盒取满宽；档位入口：画布属性台「两端」radio + 格式工具栏第四格（lucide `TextAlignJustify`），common `property-panel.ts` / `format-bar.ts` 同步，common 图标表由 `gen-icons.mjs` 自动派生 | 横向 flex 的匿名文本项无法拉伸，是改前回落成左对齐的真因 |
-| T-02 | `html-generator.ts:412` 的 `object-fit` 由写死 `contain` 改为 `opts.fit \|\| 'contain'` | 未设 `fit` 的模板输出逐字不变（已用断言锁死） |
-| T-03 | `ElementOptions.objectPosition` + `TableCell.objectPosition` + **`RenderCell.objectPosition`** + **`data-binder` 透传**；出纸在独立 image 与单元格图片的 `<img>` 上按需输出；画布 `ImageElement`/`CellImage`(+`TableElement` 传参)、common `imageStyle`/`table.ts` 两处同步；属性台「内容」分组为 image 加「缩放模式」「裁剪锚点」 | `data-binder` 的单元格映射是**逐字段列举**，不补 `objectPosition` 就会在动态表格静默丢字段（与 qrQuietZone 同一坑）；非法值（`;` 引号 `url()` 等）整条丢弃——`escapeInlineStyleValue` 只转义 `&` 与引号，挡不住用 `;` 追加声明 |
-| T-06 | 删除 `lHeight`、`leftSpaceRemoved`（全仓零消费已复核） | |
-| T-05a–d | `native-controls.css`（输入类/chip/dialog/滚动条三档）、`ExpressionEditor.vue`（页签/hover/错误态/四张帮助卡片）、`TableContextMenu.vue`（全量）、`PresetColorPicker.vue`（触发器+浮层）改 `var(--pd-*, 原值)`；26 个新令牌登记在 `PrintDesigner.vue` 的 `.designer-container` | **`.pd-switch::after` 开关滑块白底显式保留**；`--pd-field-bg` 等现有令牌因值不同一律不挪用 |
-| T-08 | `PresetColorPicker` 加 `defineOptions({ inheritAttrs: false })` + 触发器 `v-bind="$attrs"`；`PropertyPanel` 把 `.page-bg-picker` 挪到真实 `div` 承载 | class 能落到 fragment 子根，但**父作用域 `data-v-*` 不会**，所以 `.page-bg-picker[data-v-*]` 一直匹配不上——只修 attrs 仍不生效 |
-| T-09（部分） | 中英 CHANGELOG 的「未发布/Unreleased」补 Added/Fixed/Removed 条目；`skills/print-template-json/references/template-schema.md` 的 `textAlign` 行补 `justify`，并新增 image 的 `objectPosition`、`longText` 的 `longTextIndent`（em）与「排版口径」段；`build_template.py` 的 image 简写加 `anchor→objectPosition`；`docs/中文/指南/使用指南.md` 补对齐/缩进/锚点口径；`PARITY.md` 登记 common 属性台入口落后一行并更新 common 用例计数 142/13 spec | 未切版本，故 `help-content/changelog.ts`（canvas 与 common 两份）留到发版时登记 |
-
-### 验证
-
-- 实施前基线：`npm run build` exit 0；`npm test` 全绿；core 62 文件 / 828 用例。
-- 实施后：`npm run build` exit 0；`npm test` exit 0 —— core **63 文件 / 842 用例**（+1 文件 / +14 用例）、canvas **56 文件**（新增 `TypographyIssue4.spec.ts`）、common **13 文件 / 142 用例**（新增 `typography-issue4.spec.ts`）、render 服务 14 文件。新增用例覆盖：缩进 em 与 shrink 联动、`text` 元素不消费缩进、justify 三档存量不变、`fit` 五档、缺省输出逐字不变、单元格图片两条路径、非法锚点整条丢弃。
-- 浏览器（demo 9303，真实事件链 + 真实 core 产物）：
-  - 出纸几何实测——同一段文字，`justify` 非末行右缘偏差 **0px**，`left` 偏差 **32px**（4 行，容器 340px）；`text-indent:2em` 计算值 26.67px = 2 × 13.33px，`_fitFontSize=8` 时缩进随字号缩为 21.33px。
-  - image 出纸 `object-fit:cover;object-position:center 20%` → 计算值 `cover` / `50% 20%`。
-  - 画布真点「两端」+「垂直居中」→ 元素计算样式 `textAlign=justify, display=flex, flexDirection=column, justifyContent=center`。
-  - 深色注入 `.designer-container` → `.pd-input/.pd-select/.pd-radio/.preset-color-trigger` 全部跟随令牌，`scrollbar-color` 跟随，`.pd-switch::after` 保持白；撤除后回白。
-  - T-08：`.page-bg-picker` 现为带 `data-v-2fb86f68` 的 `div`，`flexGrow=1 / minWidth=0`；页面重载后 console 无 `Extraneous non-props attributes` 告警（仅剩既存 a11y 提示「form field 应有 id/name」，新增两控件已补 `aria-label`）。
-- 两处口径更正：
-  1. 「`PropertyPanel.vue` 有两条 `.page-bg-picker` 规则」是**错报**，实际只有一条（:609）。
-  2. 「`.pd-radio` 深色不跟随令牌」是**探针假阳性**——该规则带 `transition: background .14s`，同步读到的是过渡起点；等 320ms 后全部变深。
-
-### 仍未做（不冒充完成）
-
-- ~~`longTextIndent` 没有属性台入口~~ **已补**：画布「外观」组加「首行缩进 (字符)」（StepperInput，仅 `longText` 显示），common 同位同文案；说明与搜索关键字统一登记进 core `PROPERTY_REGISTRY`（`ap-long-text-indent` / `ap-img-fit` / `ap-img-object-position`）。
-- ~~common 侧 image 控件缺失~~ **已补**，`PARITY.md` 那一行已从「⏳ common 落后」改为 ✅。
-
-### 补做面板入口时抓出的两个真问题
-
-1. **common 的 `h()` 不摊平嵌套子节点**：我第一版把 image 的两行写成 `[gateItem, gateItem]` 塞进三元表达式里，真实浏览器拖入图片即 `Uncaught TypeError: Cannot convert undefined or null to object`（栈在 `paint → ee` 递归），画布整片空掉。改成平铺条件项后消失，并已用 `property-search.spec.ts` 的用例钉住。
-2. **注册表关键字跨组撞车**：给「裁剪锚点」加了裸关键字 `位置` 后，搜「位置」会连带点亮「外观」组，直接打破既有门控用例。已从该字段的关键字里去掉（`位置` 归「位置与尺寸」组独占）。
-### T-07a（本轮补做，已实测）
-
-- **T-07a 已修（本轮补做）**：1000px 仿真视口下真实打开「更多」→「边框」，实测父面板 186px、子面板 218px（左边距 17）→ 向右溢出 **48px**（比原先记的 30px 更严重）。`native-controls.css` 加 `.tb-more-panel { min-width: 244px }`（17+218+9 的实测和），改后父面板 246px、溢出项 0；print-common 侧「更多」面板天然 282px（子面板 218 放得下），同一条规则无副作用。规则经 `npm run build -w canvas` + `npm run styles -w common` 进入 `dist/common.css`，两端各自在浏览器里量到宽度。
-### 事故披露（同日，已修复）
-
-- 我给 CHANGELOG 与 `template-schema.md` 写「未发布段插入条目」的辅助函数有 bug：拼接时漏掉了截断点之后的尾段，一度把两份 CHANGELOG 的已发布历史（中文 281 行 / 英文 386 行）与 schema 的 67 行截掉。已用「当前文件 + `git show HEAD:` 的对应尾段」回补，逐文件核对：无重复 `## ` 标题、行数回到 HEAD 基线 + 我的新增（342/453/176），`git diff --numstat` 对这三份文件只剩纯新增（14/15/9 行），并行会话未提交的「收纳」条目 4 处仍在。
-
-### 补做后的验证（第二轮）
-
-- `npm run build` exit 0；`npm test` exit 0，但根脚本只串了四个 workspace：**core 63/842、canvas 56/454、common 13/145、print-client 14/110**。
-- **口径更正**：我先前把「14/110」记成 render 服务的结果，实际那是 `clients/print-client`——根 `npm test` 只串 core/canvas/common/print-client，**不含 `services/print-render`**。已按 AGENTS.md 补跑，并新增 `src/typography.integration.test.ts`（3 条：真实 Chromium 的测量分页后最终 HTML 仍带 `text-align:justify`/`flex-direction:column`/`text-indent:2em`/`object-fit:cover`/`object-position:center 20%`、缺省图片逐字保持 `object-fit:contain` 且无锚点、非法锚点整条丢弃；并把该模板经 `renderPdf` 出成 `%PDF` 非空产物）→ render 工作区 **8 文件 / 27 用例全绿（exit 0）**。
-- **单元格锚点入口已补**：`TableCellGroup.vue`（canvas）与 `table-props.ts`（common）在图片单元格出「裁剪锚点」，canvas 侧 +2 用例（写入去空格、清空回未设置、文本单元格不显示该行）。
-- 最终门禁：`npm run build` exit 0；`npm test` exit 0（core 63/842、canvas 56/456、common 13/145、print-client 14/110，均逐工作区单独复核过汇总行）；`npm run test -w @worm-vue3-print/render` exit 0（8/27，含新增 `typography.integration.test.ts` 3 条端到端）。
-- 仍缺的浏览器证据：demo 9303 的示例表格是 `dataSource` 动态绑定，画布渲染的是数据行而非我编辑的行模板，所以「单元格图片真的按锚点裁切」这一条只在 core 单测 + render 集成用例里验过，没能在示例模板上肉眼量到；面板写入本身已实测（切「图片」→「裁剪锚点」行出现 → 回显 `center 20%`）。
-- 浏览器 canvas 宿主（9303）：真实拖入「长文」→ 属性台出现「首行缩进 (字符)」且 `.pd-help` 带注册表说明 → 输入 4 → 画布 `.print-longtext` 计算值 `text-indent: 64px = 4 × 16px`、首行左缘偏移 64px；删掉临时元素后回到 8 个。
-- 浏览器 common 宿主（9331，Web Component + Shadow DOM）：拖入长文后步进钮两次 → 面板回显 `2`，`.print-longtext` 计算 `32px = 2 × 16px`；拖入图片 → 「缩放模式」（5 选项）与「裁剪锚点」两行都在，说明文案长度均 >10 字符，写 `cover` + `center 20%` 后活树里该 `<img>` 行内样式为 `object-fit: cover; object-position: center 20%`，计算值 `cover` / `50% 20%`。两个宿主演示模板都没有 localStorage 持久化，测毕重载页面即回到初始 6 个元素。
-- 第三处探针更正：读 `img` 样式时我用了 repaint 前抓的 `imgWrap` 引用，common 每次重绘重建子树 → 拿到的是脱离文档树的旧节点，误判「写入没生效」；改为重新查询活树后证据正常。**面板类断言一律重新查询节点，不复用上一轮的引用。**
-
----
-
-## 八、Gitee issue 台账（2026-10-20 核查）
-
-数据源：Gitee 公开 API 匿名读 `repos/liulong_oschina/worm-vue3-print/issues`；对照本地 `git tag --contains`、
-`npm view` registry 实况与 `git rev-list --left-right --count`。状态分布 **open 3 + progressing 2 = 5 个未关闭**。
-`master` 与 `origin`/`github` 均 `0 0`（已双推）。
-
-**2026-10-22 更新**：1.3.8 已升版并双推（提交 `9f198c0`，npm 由维护者手工发）；IKOYG0、IKP3MU、IKOUJI、IKN95F 四条回帖已发并经匿名 API 复核；GitHub #4 已回帖并关闭。Gitee 五条仍保持 open/progressing，等待报告人验证或后续修复。
-
-**2026-10-22 二次更新（V1.3.8 重打）**：#IKPAGV 的字段名修复（`e6cc7dc`）并入 **V1.3.8**——四处更新记录（中英 CHANGELOG + canvas/common 两份 `help-content/changelog.ts`）同步后，`v1.3.8` 标签重打到登记提交 `fcf58fe` 并双推，原落点 `9f198c0` 作废；GitHub 发行版正文与 Gitee 发行版（`releases/1228054`，PATCH 200）同步更新，匿名复核两处 target 均为 `fcf58fe`。单测口径由 1729 例改 **1735 例**（canvas 58 文件 / 514 例、common 15 文件 / 176 例），全量构建、渲染服务 30 例与架构守卫均 exit 0。**安装包待手工**：GitHub 发行版 assets=0，正文里的六个安装包链接在上传前为 404。
-
-**2026-10-22 三次更新（更正 + 切 V1.3.9）**：二次更新里「npm 仍未发（registry 实况 `latest=1.3.7`）」是**照 npmmirror 读的错报**，公开更正——官方 registry 实况 `@worm-vue3-print/canvas` 与 `core` 的 `latest` **已是 1.3.8**（发布于 12:20:47 / 12:25:57 +0800）。取已发布产物开箱核对：`canvas@1.3.8` 的 `dist/canvas.css` 含 `.node-meta[data-v-*]{…flex-wrap:wrap…}` 与新 `.node-key` 规则、`dist/index.js` 含 `.node-meta` 结构 → **功能修复确实已随 1.3.8 出去**，缺的只是内置「更新记录」那条文案（发布发生在 `help-content` 改动之前，产物差 278 字节）。据此按用户选定的 **B 方案**另切 **V1.3.9** 纯补丁版：补该条文案 + 升版文件集（9 份 package.json、3 处 core 依赖范围、6 份 lock、README 直链表、Overview、print-client README 的 upload 示例、notes.md 换成本版正文）+ jquery 宿主 `sync-assets.mjs` 重跑；`common` 自身版本仍 `1.3.7-beta.0` 不随主线。**判据固化**：查 npm 发布面一律加 `--registry=https://registry.npmjs.org`，镜像会滞后一个版本。
-
-**2026-10-22 四次更新（V1.3.9 发布实况）**：升版提交 `7fe5b84`（27 文件）已双推；`v1.3.9` annotated 标签落点即该提交（自 `v1.3.8` 起 2 笔，与正文口径一致）并双推。GitHub Release id `420347466`（`V1.3.9(2026-10-22)`，正文取 `.github/release/notes.md` 双语全文，建版时 assets=0，五次更新后为 7 件）；Gitee 发行版 id `1228403`（同标题，正文取中文 CHANGELOG V1.3.9 段 392 字，自动挂 `v1.3.9.zip/.tar.gz`，匿名复核 target=`7fe5b84`）。**Gitee 建发行版的坑**：`POST /repos/{owner}/{repo}/releases` 必须带 `target_commitish`，漏了回 `400 {"messages":["target_commitish is missing"]}`，而 `PATCH .../releases/{id}` 改正文时不必带。
-
-**2026-10-22 五次更新（V1.3.9 安装包已出并上传）**：客户端自 `v1.3.7` 起**必须重打**——`clients/print-client` 只依赖 core（不消费 canvas），而 `git diff v1.3.7..HEAD -- packages/print-core` 显示 `render/pagination-engine.ts`、`render/html-generator.ts`、新增 `render/crop-style.ts`、`render/data-binder.ts`、`render/text-fit.ts`、`functions/format.ts` 全变了，这三类正好是客户端出纸链路的消费点。产物：mac x64/arm64 dmg+zip 与 win nsis exe 走宿主 `npm run pack:client`（`ELECTRON_MIRROR`/`ELECTRON_BUILDER_BINARIES_MIRROR` 指 npmmirror，否则拉 Electron 发行物超时），Linux 三包走 `npm run pack:client:linux`（Docker `node:22-bookworm` 容器内装 rpmbuild；Docker Desktop 得先起来，`alpine` 拉不动就复用已有的 `node:22-bookworm` 跑探查容器）。
-**2026-10-24 六次更新（V1.3.10 发布实况）**：版本号未升（npm 上 1.3.10 尚未发布），版本信息先按当日折叠——`未发布` 31 条并入 `V1.3.10(2026-10-24)` 段（中英 CHANGELOG、两份内置更新记录、notes.md 全同步，登记提交 `832248e` 即 tag 落点并双推，`v1.3.10` annotated 标签已双推）。GitHub Release id `422625966`（`V1.3.10(2026-10-24)`，正文取 notes.md 双语全文，七件附件全部上传且 digest 与本地 `SHA256SUMS.txt` 逐条一致）；Gitee 发行版 id `1236568`（同标题，正文取中文 CHANGELOG V1.3.10 段 21,560 字，target=`832248e`）。六件安装包（deb 97.2MB / AppImage 122.2MB / rpm 87.0MB / mac-arm64 128.8MB / mac-x64 132.9MB / win exe 108.1MB）全部为本版重打，八份 app.asar 字节数逐份比对一致（5,695,656，含 `1.3.10`×22、`flowColumns`×16、`DEFAULT_PRINT_FONT_FAMILY`×0），其中 asar 里 4 处 `SimHei` 已定位为 core 测试文件断言字符串随包目录整体带入，非运行时代码。待办：npm 由维护者手工发 `1.3.10`（`publish:npm`）；Linux 三包仍未真机安装与出纸验证；`cross-end` 比对因缺客户端 PDF 未执行。
-
-- **构建卷污染是真坑，用改名规避**：卷 `worm-print-client-linux-work` 内残留 1.3.5/1.3.6/1.3.7 的 Linux 包，脚本末段 `cp -f dist/*.AppImage dist/*.deb dist/*.rpm /out/` 会把旧包一起带回宿主，而 `pack-client-release.mjs` 收的是 dist 里**全部**安装包 → 构建前先 `mv /work/clients/print-client/dist /work/clients/print-client/dist.pre-1.3.9-backup`（不删，可回退）；宿主的 1.3.7 七件整批移到仓库外 `~/print-client-dist/1.3.7/`。
-- **载荷一致性判据**：mac x64、mac arm64、win、deb、rpm 五处 `app.asar` **同为 5,435,317 字节**，含 22 处 `1.3.9` 与 HTML 直打标记 `worm-print-client-html`；mac 用 `hdiutil attach -nobrowse -readonly`（挂载点带空格要整体引号），deb 解 `data.tar.xz`，rpm 直接 `bsdtar -xf`；**AppImage 内嵌 squashfs 本机无工具可解，只到校验和级证据**。
-- **上传判据（比 size+200 更硬）**：`gh api repos/{owner}/{repo}/releases/<id>/assets --jq '.[]|.name+" "+(.digest//"")'` 取 GitHub 侧 SHA-256，与本地 `SHA256SUMS.txt` 逐条对齐（本次 6 包全等）；再 `curl -sIL` 七条直链全 `200`、`gh release view --json assets` 数到 7 件。打包基线 `5e141be` 与 `v1.3.9` 标签树只差 `TODO.md` 两行 ⇒ 安装包代码内容等同标签。正文里「上传前为 404」已随上传改成实况，notes.md 与 GitHub 正文同步更新（Gitee 正文不含安装包直链，无需改）。
-- 剩余手工项只剩 **npm 发 1.3.9**（`npm run publish:npm`）与 **#IKPAGV 向报告人回帖**。
-
-### T-13 #IKN95F 二维码尺寸无法增大 —— 代码已修，**2026-10-22 已回帖通知升级验证**
-
-- 报告人 hzybtm，10-18，50×70 标签上的独立二维码。**已把本项目用于生产**。
-- 实况：修复 `db39f37 二维码改为等比铺满容器 + 静区配置` **已在 tag `v1.3.7` 内**（tag 落点 `e85de1f`，10-19 17:03）；
-  core/canvas `1.3.7` 于 **10-19 17:04（北京时间）** 发到 npm `latest`，早于承诺的 21:00。
-- 缺口：issue 最后一条评论停在 10-19 14:15 的「20 号您更新包进行效果验证」，**10-20 没有任何升级通知回帖**，
-  报告人无从得知该升级。状态已由关闭回到 `progressing`（updated 10-20 16:49，推测为重开以便评论）。
-- 待办：发「1.3.7 已发布，请 `npm i @worm-vue3-print/core@1.3.7 @worm-vue3-print/canvas@1.3.7` 验证 50×50」的回帖，
-  确认无误后关闭。
-- **2026-10-22 已完成回帖**：告知 1.3.7 已修复（码面铺满 + 静区可配）、1.3.8 已合入 master；请用 1.3.7/1.3.8 验证 50×50，确认后再关闭。令牌已补 `notes` scope，API 评论 201，匿名复核 comments 6 → 7。
-
-### T-14 #IKOYG0 大写金额万/亿丢失 —— 已修并登记 1.3.8，2026-10-22 已回帖；重复评论待手工删一条
-
-- 实况：修复 `85f29f9`（10-20 16:29）**不在 `v1.3.7` 内**，属「已合 master、随下个版本发布」，与回帖口径一致。
-- 待办两项：① 切 `1.3.8` 时登记三处同步点并在该 issue 通知验证；② **16:38 与 16:39 是两条几乎相同的评论**（重复发送），
-  删其中一条只能手工操作（删除菜单不进无障碍快照）。
-- **2026-10-22 已完成 ①**：1.3.8 三处更新记录已登记（提交 `9f198c0`），并回帖告知修复已合入、待 npm 发布后验证；匿名复核 comments 4 → 5。② 仍需手工删重复评论。
-
-### T-11 #IKOUJI 横线/竖线与表格排版预览异常 —— 已复现并**量化到三条根因**（10-20 二轮取证更正）
-
-- 报告人 jjyu037，10-19，**官方 demo 也能复现**；正文模板 JSON 已完整还原到 `/tmp/ikouji/template.json`
-  （`DOT_HALF` 241×139.7，内容高 99.7；元素：vline x[11.3..14.8] y[7.4..63.3]、vline x[216.3..218.1] y[36.8..72.1]、
-  hline x[65.5..136.1] y[86.9..88.7]、table x[25.8..175.8] y[15.7..48.0]，**全模板无一处 `zIndex`**）。
-- **更正 10-19 20:49 回帖的根因**：主因不是「未实现层叠布局」，叠压只是次要项（本次未取到叠压翻转证据）。
-  真实机制是**分页预算按一维纵向流累加**，与画布的二维绝对布局不一致。
-- 取证方式：core 真实两趟管线（`createDomHostRuntime` + Playwright 测量，系统 Chrome），
-  出纸后逐元素 `getBoundingClientRect` 换算 mm（探针 `/tmp/ikouji/probe{,2,3}.mts`，用后即弃）。
-- **根因① 一维纵向预算 → 虚假换页 + 坐标丢失**（主因，实测）：
-  `paginateNonTable` 依 `top` 排序逐个把元素**全高**累加扣减，横向互不相交也不豁免。
-  该模板设计最大底边 88.67 < 97.7（99.7−`SAFETY_MARGIN`2），**设计上是单页**；实际预算被两条竖线吃掉 64.67mm
-  （隐式纵向簇按 Y 相交合并，不看 X），表格跟随区 40.69mm 放不下 → **横线被整段挪到第 2 页 y=38.9**（设计 86.87）。
-  隔离实验：删掉两条与表格横向不相交的竖线 → **1 页、横线回到 y=86.8 正确**；只把左竖线改短到 10mm → 横线留页1、
-  右侧竖线反而被挪到**第 2 页 y=0**（设计 36.75，落点完全丢失）。换页后 `pageBroken` 一律改用流式光标
-  `pageCursorTop()`，设计坐标被丢弃，这就是「跳页 + 位移」的成因。
-- **根因② 表格跟随区无条件几何吸收 + 相对容器重定位**（实测）：
-  `buildFollowMap` 只看 `元素 top ≥ 表格设计底部`，用户没编组也归属；成员在 `.flow-group` 内按
-  `top = 设计top − 表格设计底部` 相对定位，容器实际落点取决于**当页切片的真实高度**。
-  加 3 条数据行后实测 y=79.4（设计 86.87，差 −7.4mm）；把成员放到表格设计底部之下 4mm 处，实测 y=76.26（设计 60，**+16.26mm**）。
-- **根因③ 跟随区内 `vline` 高度丢失**（实测，一行代码）：
-  `html-generator.ts:842` 的 `needsHeight` 只含 `rect|oval|image`，**漏 `vline`**；被吸收的竖线输出无 `height`，
-  实测 h=**0**（设计 30mm）→ 竖线在预览里整条消失，命中测试落到 `.flow-follow`。`hline` 走 `height:0` 是有意为之，不受影响。
-- **C3 已实现（2026-10-20 21:40，用户拍板「只直接实现 C3」）**：`pagination-engine.ts` +146/−74。
-  - 分页预算由「全页高度累加」改为**按横向占用列记账**：新增 `xRange`/`xIntersects`/`xUnion`，
-    页内记账由标量 `remaining` 换成 `occupied: {x0,x1,height}[]` + `depthIn()/remainingIn()/occupy()`；
-    `sectionTop`/`pageCursorTop` 取本列光标（未换页仍用设计 top）。
-  - 隐式堆叠簇判据由「纵向相交」改为「**横向与纵向同时相交**」；`PaginationUnit` 携带 `band`（成员横向并集）。
-  - 表格切片/小计/汇总/跟随区（`applyFollowGroup`）同改为表格列的剩余判定；`sliceUsed` 在 `pushSlice` 后归零避免重复扣高。
-  - **口径边界（有意不动）**：同列内仍按内容高度合计扣减，设计坐标间隙不计入，
-    底边越过纸面时留本页 + `overflow` 标记由上层阻断——这条既有契约不改，改了会把「溢出政策」混进本次修复。
-  - 出纸前后对照（报告人模板，真实两趟管线 + 系统 Chrome 量 rect）：
-    V0 原样 2 页/横线跳页 2 y=38.9 → **1 页/横线 y=86.8（= 设计 86.87）**；
-    V4 左竖线改短 10mm：右竖线原被甩到页 2 y=0（设计 36.75）→ **留页 1 y=36.8**；
-    V1/V2/V3/V5 页数均由 2 → 1，未吸收元素全部回到设计坐标。
-  - 门禁：core **68 文件 / 915 用例全绿**（新增 `pagination-engine.2d.test.ts` 6 条，其中 4 条先 RED 后 GREEN）；
-    render 服务集成 **9 文件 / 30 用例全绿**；分页三文件 52 条用例**零改动既有期望**即通过。
-    canvas 1 红、common 13 红与本次无关（裁剪锚点属并行会话在改；store.spec 3 条为 happy-dom 无 `window.alert` 既存红灯）。
-- 剩余未修（本轮范围外，报告人模板仍可见）：
-  - **②（C2）**：跟随区无条件几何吸收导致的数据驱动漂移——加 3 条数据行后实测横线 y=103.1（设计 86.87，+16.2mm），
-    且已越过内容区底边 99.7；成员放到表格设计底部下 4mm 处实测 y=76.26（设计 60，+16.26mm）。
-  - **③（C1）**：跟随区内 `vline` 仍丢高度（实测 h=0，设计 30mm），一行可修。
-- **2026-10-22 已回帖**：告知 C3 已随 1.3.8 合入（`9f198c0`）、C1/C2 仍未修，issue 保持 open；匿名复核 comments 4 → 5。
-
-### T-12 #IKP3MU + #IKIPD9 「点一下就错乱/跳位」症状族 —— 一个零响应、一个卡 23 天
-
-- **#IKP3MU**（phealxt，10-20 15:01，**零回复**）：最新版 Chrome 下点「修改字体」页面错乱，正文只有一张截图、
-  无复现步骤与版本号。按 AGENTS.md「模型 text-only」约定不做图像判读，需本地复现。
-- **#IKIPD9**（JavaLiuTongXue，9-27，**零回音**）：点击一下元素就动一下；维护者 9-27 20:17 索要录屏后无人回复，挂了 23 天。
-- 判断：两条同属「点击即位置/布局跳变」症状族，建议合并排查，**不必再等 9-27 那位补视频**。
-- 排查落点：`property/AppearanceGroup.vue`、`FormatToolbar.vue` + `composables/useFormatToolbar.ts`、
-  common `shell/format-bar.ts`、core `print/fonts.ts`。
-  高危嫌疑是 10-18 `1f5e906`（工具栏自适应收纳）与 10-19 `61d1631` 引入的弹层/宽度侧效应——收纳机制曾用 `<Teleport>`，
-  T-07 的「修后补记」已记录过一次因 Teleport 根节点丢 `data-v-*` 导致样式全落空的返工，同类形态若落在字体下拉上即表现为「一点就乱」。
-- 待办：demo 9303 真实点击字体下拉逐档复现 → 定性是收纳回归还是既存缺陷 → 决定是否出 `1.3.8` 补丁版。
-- **10-20 20:47 复核**：#IKP3MU 在 Gitee 仍是 `open` 且 **comments 0**（updated 15:01，即提报后无人回帖），
-  而本仓 `48d1ed6` 已修（浮层化 + 上下翻档）→ **代码已修、对外零通知**，与 T-13 同形态；随 `1.3.8` 发版需一并回帖。
-- **2026-10-22 已回帖 #IKP3MU**：字体下拉浮层化修复已随 1.3.8 合入（`9f198c0`），待升级验证；#IKIPD9 未动（无证据表明同一缺陷）。匿名复核 comments 0 → 1。
-
-### T-15 #common 的 dist-tag 实况与「预览版不进 latest」口径不符（非 issue，发布偏差）
-
-- 实况：registry `@worm-vue3-print/common` 已有 `1.3.7-beta.0`（10-19 09:40 UTC 发布，此前「仍 404 待手工发」的记录作废），
-  但 dist-tags 为 **`latest` 与 `next` 同时指向 `1.3.7-beta.0`**（首次发布 npm 自动打 latest）。
-- 后果：`npm i @worm-vue3-print/common`（不带 `@next`）会装到预览版，与 `CONTRIBUTING.md`「方式三」的预览版定位冲突。
-- 待办：确认是把 `latest` 收回（需要 registry 上存在别的稳定版才可指向，当前无），还是在 README/包 README 显式要求宿主必须带 `@next`。
-  在此之前，文档里那句「实验性、不建议用于生产」是唯一防线，不能删。
-
-### T-16 demo-common 四宿主没接 `fonts`，字体整条链路在 Common 宿主上是暗的（10-21 浏览器实测发现）
-
-- 发现方式：拉取 `dac9492` 后补跑四宿主浏览器验收（verify-demo **36/36 ×4 全绿**），再用内部浏览器在 9331 上
-  加载唯一声明字体的示例「综合示例模板」并展开属性台字体下拉。
-- **现象**：字体候选只有两行——`默认` 与 `Ma Shan Zheng（未知）`，模板声明的 3 个字体（马善政毛笔楷书 / 站酷快乐体 / 站酷庆科黄油体）
-  一条都没进目录；输入框回显的是族名而非 label。
-- **硬证据**：`document.styleSheets` 里 `@font-face` **0 条**、shadow `adoptedStyleSheets` **0 条**、`document.fonts.size = 0`，
-  而该元素 computed `font-family` 已是 `"Ma Shan Zheng"` → 族名写进去了但字体从未声明，浏览器**静默回落系统字体**。
-  这正是 PARITY 里那条「DOM 断言全绿但字形是假的」老坑的反向形态。
-- **根因定位**：外壳契约没问题——`packages/print-common/src/shell/controls.ts:51` 收 `fonts?: readonly (string | PrintFontDeclaration)[]`，
-  `property-panel.ts:87` 透传 `ctx.host.fonts` 给 `buildFontCatalog`。缺的是**宿主侧一行都没接**：
-  `grep -c fonts` 在 `apps/vue3/src/App.vue`、`apps/vue2/src/App.vue`、`apps/react/src/App.jsx`、`apps/jquery/src/app.js` **均为 0**；
-  主 demo（canvas 宿主）则有 `App.vue:78 :fonts="activeFonts"` + `:243 computed activeFonts`（从模板 JSON 的 `fonts` 推导并把
-  `/fonts/` 补成站点绝对地址）。
-- **影响**：verify-demo 的 36 项断言不含字体链路，所以四宿主全绿也照不出这条——**别让「144 项全绿」冒充「字体可用」**。
-  按仓库既有口径（子 demo 必须与主 demo 逐项同版式同能力、示例工程要能整份照抄），这是缺口不是取舍。
-- **待办**：① 四个宿主各补一份与主 demo 同算法的 `activeFonts`（直挂宿主就地实现）；② `verify-demo.mjs` 加两条断言——
-  应用「综合示例模板」后 `document.fonts` 里应出现 3 条 face、字体下拉行数应 = 1（默认）+ 3；
-  ③ 顺手核对 PARITY §宿主契约那段是否已把 `fonts` 标成「demo 未演示」。
-- 附带记三条**探针坑**（内部浏览器 + Web Component 实测）：
-  ① 按 uid 的 `click` 判遮挡用的是 light-DOM `elementFromPoint`，**看不穿 Shadow DOM**，对 shadow 内控件会假报
-  「Element is covered by another element」——同一坐标用 `ShadowRoot.elementsFromPoint` 自测，最上层就是目标本身；
-  ② 页面未获得系统焦点时 `element.focus()` 只改 activeElement、**不派发 focus 事件**，所以「focus 打不开下拉」是探针假象，
-  该控件的 `click` 通路实测正常；
-  ③ 外壳是整体重绘模型，选中元素后面板节点会被替换，**跨调用复用引用必拿到旧节点**，每次操作前重新查询。
-
-### T-17 设计态未求值的表达式被当成真实图：示例兜底被绕过、可挪量显示陈旧（10-21 canvas 实测）—— **10-21 已修（方案 A + 一并补 error 清尺寸）**
-
-- 判据来自 core 的设计意图：`packages/print-core/src/designer/utils/crop-anchor.ts:213 resolveCropPreview()` 在 src 为空时
-  兜 `CROP_SAMPLE_IMAGE`（:203）并给那句 `CROP_SAMPLE_NOTE`（:207「图片还没设置，上面按内置示例图演示取位…」）。
-- 实测（demo 9303，综合示例的绑定型图片单元格，内容 = `{image}`）：
-  - `.pd-crop-thumb` 的 `src` 拿到的是**未求值的表达式串 `{image}`**，`naturalWidth/Height = 0`、`complete = true`
-    → 加载失败的破图，**而不是示例图**；`String('{image}')` 非空所以兜底分支根本没进。
-  - 两条后果：`CROP_SAMPLE_NOTE` 不出现（`sampleNoteShown=false`）；`.pd-crop-win` 为 `null`（无真图尺寸可算，第一次进该格时）。
-  - 更坏的一条是**显示陈旧**：先给同一格换成 400×100 的真图（档位收敛成 3 档、note 出「水平可挪 78mm」），
-    再把内容改回 `{image}`，图片已经破了，**档位仍是 3 档、note 仍是「水平可挪 78mm」、取景窗仍按 25% 宽画着**
-    —— 因为 `CropAnchorField` 的原图尺寸靠 `@load` 更新（图加载失败不触发 load），旧值就地留下。
-    用户看到的是「按一张不存在的图给出的可挪量」。
-- 影响面：只命中**设计态 + 表达式绑定**的图片单元格（静态 URL 或运行态数据不受影响）；属视觉/引导层缺陷，
-  出纸值本身正确（见第十节 V-1 的三档实测）。
-- 待办（择一实现，别只做文案）：A `cellImageSrc` 传给控件前先判「是否为未求值表达式」（含 `{}` 或未解析即视为无图）
-  → 走 `CROP_SAMPLE_IMAGE` + 示例 note；B 保留真源但 `@error` 时把 travel/档位/取景窗一并置空并说明。
-  建议 A，与 core 既有兜底同向、三端共用同一判据（canvas/common 各一处）。
-- **修法（A + B 都做了，因为 B 那条「显示陈旧」是独立的错）**：判据落在单点 `resolveCropPreview()`——空值**或含 `{`/`}`** 都算「没有图」，两端控件不必各判一次；canvas `CropAnchorField` 给 `<img>` 加 `:key="preview.src"` + `@error` 清 `size`（不给 key 的话换 src 复用同一 DOM 节点，Vue 会重跑 load 监听并把上一张的尺寸留下），common 的 `sizeCache` 在 `onError` 里删掉该 src 的条目并整台重绘。
-- 修后实测（demo 9303，同一 `{image}` 绑定单元格）：`.pd-crop-thumb` 的 src 已是示例图、`natural=120x120`、两条 note 都在（示例说明 + 余量报数），不再出现「按一张不存在的图给出可挪量」。
-- **同轮连带修掉一条取景框几何错**（用户批注「示例图片未能完整显示」的真因）：`.pd-crop-preview` 是块级、撑满面板宽 **215px**，而示例图只有 **96×96** → 取景窗按容器百分比落位，红框被拉成 **215×98 的长方形**、还把方形示例图罩住裁暗。改 `.pd-crop-preview { width: fit-content; max-width: 100% }` 让容器贴住图本身（common `designer.css` 由 canvas 派生，重建 canvas 后 `npm run styles -w common` 自动跟上）。修后实测：容器 98×98、图 96×96、红框与图同框（100% 时正好盖住整张）；单元格台点一次「放大比例 +」（105%）→ 红框收成 **93.4×93.4（95.2381%）居中**、note 报「水平可挪 1.3mm、垂直可挪 1.3mm」→ 取景窗从此按图本身取景，不再有多余的长方形空白。
-
-### T-18 #IKPAGV 素材台字段名过长把中文名挤没 —— 10-22 已修（自适应换行），并入 V1.3.8 重发，**10-22 已回帖并关闭**
-
-- 报告人 mrwangwei，10-21 提，附截图；维护者 10-22 11:33 已回帖「10 月 23 日版本修复」。issue 现 `closed`。
-- 根因是实测不是看图猜：字段行是 `.node-label{flex:1}` 与 `.node-key{flex-shrink:0}` 同行，224px 侧栏里行内容只有 146px，
-  长变量名把中文名压到 **0px**，变量名自身 251px 冲出面板被裁。common `panels.ts` 同结构，样式由 canvas 派生。
-- 视觉伴侣给了三档并逐档量盒模型：A 单行限宽省略（中文名 75px，仍省略）、B 自适应换行（推荐）、C 行内水平滚动 → 用户选 **B**。
-- 实现：`.node-meta` 包裹中文名与变量名并 `flex-wrap:wrap`，放得下同行、放不下变量名落第二行；两侧仍超长各自省略，
-  整行 `title` 给出「中文名 (变量名)」全文，分组名补 `title`。修复提交 `e6cc7dc`。
-- 不选水平滚动的理由：字段行本身是拖拽源，行内横向滚动与拖拽起手打架，224px 侧栏每行一条滚动条也难扫读；
-  Figma 变量面板、Ant Design / Element Plus 树、PatternFly 截断规范一律走「省略 + 悬停全量」。
-- 实测（canvas demo 与 common 宿主示例各自注入同一组长字段）：中文名 **148px 完整无省略**，变量名落到第二行；
-  原始 14 条字段仍全部单行 **33px**，密度未变；两侧数值逐条一致（含 `flex-wrap: wrap` 计算值）。
-- 契约测试两处先红后绿（`.node-meta` 结构、整行 title、分组 title）：canvas `FieldTreePanel.spec.ts` 3 例、common `field-tree.spec.ts` 3 例。
-- 对外已结（10-22）：#IKPAGV 回帖告知验证方式（评论 id `51742665`）后**关闭 issue**，匿名复核 `state=closed`、comments 由 1 增到 2。仓库配置「已完成状态不允许评论」，报告人若要补充需先重开。
-- 关前取证：npm `@worm-vue3-print/canvas` `latest=1.3.9`；`1.3.8` 与 `1.3.9` 的 `dist/canvas.css` 都含 `.node-meta{…flex-wrap:wrap…}` 与 `.node-key{min-width:0;max-width:100%;…ellipsis}`——**功能修复确在 1.3.8 包内生效**；内置「更新记录」那条文案只在 `1.3.9` 的 `dist/index.js` 命中（`1.3.8` 为 0 次）。`@worm-vue3-print/common` 在 npm 仍只有 `1.3.7-beta.0`（早于本修复），故回帖未涉及该包。
-
-### T-19 【已按方案 A 落地，2026-10-24】demo-common 四宿主没有「预览缩放档位」（10-24 对账 v1.3.9→HEAD 查出）
-
-- 背景：V1.3.10 给打印预览加了缩放档位（`ee26da6`），实现在 canvas 的 `PrintHtmlPreview.vue:19-30`（档位条 DOM）
-  与 `composables/usePreviewZoom.ts:78`（`zoomPresets`）、`:98`（`defaultZoomKey`：模板填了 `printerDpi` 即默认落「点阵」档），
-  缩放规则注入在 `PrintHtmlPreview.vue:100-110`（`html{zoom:N}@media print{html{zoom:1 !important}}`）。
-  PARITY §六 声明 `PrintHtmlPreview` 属「不移植」，但四个宿主各自复刻了 `.print-html-preview*` 预览层，
-  于是复刻件只到 loading/error/iframe 三件：`apps/vue3/src/App.vue:75`、`apps/vue2/src/App.vue:558`、
-  `apps/react/src/App.jsx:332`、`apps/jquery/index.html:85`——**缩放条与点阵档一处都没有**，
-  而四份 `browser-render.js` 的注释（如 `apps/vue3/src/browser-render.js:20`）仍自称「DOM 结构与类名一致」。
-- 硬证据：`node demo-common/scripts/class-audit.mjs` 未命中类名里新增的 `print-html-preview-zoom{,-btn,-note}` 三件，
-  与 §六「不移植」的 4 件一起共 7 件；`npm run styles:demo-common` 重跑即产生 diff，已入库产物此前**完全没有**这三条规则。
-- 复用障碍：`usePreviewZoom` 未从包入口导出（`packages/print-canvas/src/index.ts` 只导出 `PrintHtmlPreview`），
-  四个宿主又不依赖 canvas（react/vue2/jquery 更不可能引 SFC），所以纯逻辑要么下沉 core，要么宿主各写一份。
-- 可选方案（**待用户拍板**）：
-  - **A（推荐）**：把 `MM_TO_PX/ZOOM_MIN/ZOOM_MAX/resolvePrinterDpi/paperWidthPx/fitZoom/zoomPresets/defaultZoomKey`
-    下沉 `packages/print-core/src/designer/utils/preview-zoom.ts`，canvas 的 `usePreviewZoom.ts` 改为从 core 转导（现有
-    `PreviewZoom.spec.ts` 与公共导出零破坏）；`src/browser-bundle.ts` 的 UMD 命名空间补挂这几个函数（直挂宿主拿不到裸包名）；
-    四宿主各补一条与 canvas 同类的档位条 + `zoom` 守卫注入。代价：core 新增一组公共导出（minor），改动面 core+canvas+4 宿主。
-  - **B**：只在四宿主各写一份结算——正被 1.3.10「预览不再维护第二份纸型表」那次修法否定，不推荐。
-  - **C**：缩放档位记为待办、宿主预览维持现状，同时把四份 `browser-render.js` 那句「DOM 结构与类名一致」改成实话。零 API 变化。
-- **落地（用户选 A，2026-10-24）**：判据新增 `packages/print-core/src/designer/utils/preview-zoom.ts`（`MM_TO_PX/ZOOM_MIN/ZOOM_MAX/
-  resolvePrinterDpi/paperWidthPx/fitZoom/zoomPresets/defaultZoomKey` 原样上收，另把 canvas 组件里的守卫写入与档位回退
-  抽成 `applyPreviewViewZoom`/`resolveZoomKey`/`zoomValueOf`/`PREVIEW_ZOOM_GUARD_ID`），由 `/designer` 导出；
-  canvas 的 `PrintHtmlPreview.vue` 改为直接引 core，**`composables/usePreviewZoom.ts` 整份删除**（未进公共导出、
-  文档与 demo 全无引用，`PreviewZoom.spec.ts` 的 import 同步改到 core，9 项仍全绿）；
-  `packages/print-common/src/browser-bundle.ts` 的 UMD 命名空间补挂这七个函数（直挂宿主拿不到裸包名）；
-  四宿主 `browser-render.js` 各出 `createPreviewZoom({getTemplate, measureContainer})`（同步/写文档/切档三件事，档位表仍来自 core），
-  预览层补 `.print-html-preview-zoom` 档位条（类名同 canvas）。**vue2 宿主有一个必须记的坑**：档位条若用 `v-if`，
-  它出现的那一帧会与同级「渲染中」格互相错配，Vue2 无 key 的 diff 直接**重建整棵子树**，刚 `doc.write` 进去的 iframe
-  被换成空白节点（实测预览产物 12716 → 0 字符，加 `key` 也救不回）；改用 `v-show`（节点常驻、只切 display）后正常，
-  已在源码注释里写破。实测五张页面（9303/9331/9332/9335/9334）用同一份 203dpi 电池标签示例：五档齐、
-  默认 active=「点阵 203dpi」、iframe `zoom=2.11458`、切 100% 回到 1、`@media print` 复位规则在位、预览产物 12716 字符逐页一致；
-  `verify-demo` 仍 36/36 ×4（该脚本暂不含缩放档位断言，档位由这轮的五页实测覆盖）。
-
-### T-19b 宿主顶栏「自适应收纳」与 demo 的四处不同步（10-24 浏览器实测查出并修复；**分叉起于 `61d1631`（V1.3.7 期），不在 v1.3.9→HEAD 区间内**）
-
-- 查出方式：先因 T-19 重跑 `npm run styles:demo-common` 产生 diff，再用 Playwright 在 1440/900/880/700/560 五档实测五张页面。
-- 四条真实缺口（前一条是产物过期，后三条是宿主自己写的顶栏件没跟上 demo）：
-  1. **派生产物过期**：已入库的 `apps/*/src/styles/demo-ui.css` 对 `.demo-ou`/`.demo-spacer`/`.demo-topbar.is-tight`
-     **零规则**（`git show HEAD:...demo-ui.css | grep -c 'demo-ou\|demo-spacer\|is-tight'` = 0），而宿主代码在渲染这些类
-     ⇒ 收纳单元按默认 `flex-shrink:1` 被压缩，「自然宽」量不准，判定失真（canvas 侧同一规则是 `flex-shrink:0;white-space:nowrap`）。
-     根因还有一层：`sync-demo-styles.mjs` 的抽取清单（`:13-20`）**漏了 `demo/src/components/DemoTopbarMore.vue`**，
-     所以 `.demo-more-*` 一组规则从来没进过宿主 CSS（重跑后 `grep -c demo-more` 由 0 → 12，产物 886 → 977 行，四份仍同 MD5）。
-  2. **弹性占位缺失**：demo 顶栏有 `<span class="demo-spacer" data-overflow-spacer />`（`demo/src/App.vue:30`），
-     四宿主一个都没有；而派生 CSS 那条 `:first-of-type{margin-left:auto}` 已被 demo 删掉（改由 spacer 承担分隔）
-     ⇒ 1440 视口实测：demo 右组距右沿 **16px**，宿主 **71px**（差 55px）。四宿主各补一行 spacer 后实测回到 **16px**。
-  3. **状态类三条没落**：demo 的触发钮带 `on`、折角带 `up`、组带 `is-open`（`DemoTopbarMore.vue:5-17`），
-     CSS 也确实按这三条出效果（`.demo-more-trigger.on{background:rgba(22,93,255,.07)}`、`.demo-more-caret.up`）；
-     宿主只切 `hidden` 与 `aria-expanded` ⇒ 点开「更多」后触发钮不高亮、折角不翻。现由 `setOpen()` 一并挂这三条。
-  4. **溢出兜底类名写错**：宿主脚本切的是 `is-toolbar-overflow`（四份 `topbar-overflow.js:90`），
-     而这个类名**全仓没有任何 CSS 引用**（只在各宿主 dist 产物里出现）；demo 与 CSS 用的是 `is-tight`
-     ⇒ 极窄视口下品牌区永远拿不到省略号兜底。另补一条同源修正：宿主 `pinnedWidth()` 不认识
-     `data-overflow-spacer`，会把被拉伸的占位当自然宽计入；canvas 的 `useToolbarOverflow.ts:83` 明确跳过它，
-     现按同一判据补跳过。触发钮此前多挂了 `demo-print-btn`（宿主 7 个 vs demo 6 个），撤掉后两侧同为 6。
-- 实测收口（五档视口 × 五个页面，探针取 computed style 而非看图）：`.demo-ou` 的 `flex-shrink=0`、`white-space=nowrap`，
-  1440 右组距右沿 16px，560 展开「更多」后 `triggerBg=rgba(22, 93, 255, 0.07)`、`is-open`/`caretUp`/`panelVisible` 三条状态
-  四个宿主与 `canvas-9303` 逐项相同；`is-toolbar-overflow` 在源码里已归零。
-- **原「仍未归一的一条」已随 T-19 方案 A 一并收口（10-24）**：四份 `topbar-overflow.js` 不再自带 `decide()` 循环，
-  改为**直接调 core 的 `resolveToolbarOverflow`**（vue2/vue3/react 引 `@worm-vue3-print/core/designer`，
-  jQuery 从 `window.WormPrintCommon` 取），输入口径也照 canvas `useToolbarOverflow.measureToolbar` 抄齐：
-  `available = clientWidth - padL - padR`、`moreTriggerWidth = 74`、`gap = 2`、`pinned = naturalTotal - Σ(单元宽 + 2)`、
-  自然宽只在「全展开」那一帧取（回到全展开后再重量一次）。实测 1440/900/700/560 四档，四个宿主的收起数
-  逐档完全一致（2/7/8/9）且 560 档 `is-tight` 与 demo 同步为真；demo 与宿主的收起数差异只剩**内容本身**
-  （demo 顶栏 7 个收纳单元、宿主 9 个），不再是算法分叉。
-- **仍未做的一条（如实记）**：`verify-demo.mjs` 的 36 项不含顶栏收纳与预览缩放档位断言，以上结论来自本轮
-  一次性 Playwright 探针（五页 × 四档量 computed style / DOM 状态类），脚本本身未入库；要长期防回归需把它做成第 37-38 项。
-
-
-### T-20 【已裁决：三条都改 Vue3 侧，2026-10-24 落地】三处「按 vue3 为准会改坏 common」的对账结论（10-24）
-
-| # | 点位 | Vue3（canvas）侧 | Common 侧 | 备注 |
-|---|---|---|---|---|
-| 1 | 属性台页面背景色的「恢复默认值」点亮判据 | `PropertyPanel.vue:125` 把 `pageBackgroundModel` 当 `target` 传入，而该 computed 是 `props.templateData?.pageBackground \|\| '#ffffff'`（`:356-359`），`base` 却是 `{ pageBackground: undefined }` ⇒ **未设置时也点亮**，点一下走 `onPageBackgroundReset()`（`:443-445`）写 `undefined`，属「亮着但空操作」 | `shell/property-panel.ts:401-404` 直接拿原始 `t` 作 `target` ⇒ 未设置即灰态，并由 `property-panel-reset.spec.ts` 固定该态 | 灰态是更合理的形态；照搬 canvas 等于把显示陷阱搬过来。建议改 canvas 侧（`target` 传原始值），代价是 canvas 一处显示行为变更 |
-| 2 | 图层面板 `flowList` 图标 | `LayerPanel.vue:66-80` 的 `elementIconMap` **没有 `flowList` 条目** ⇒ 走 `layerIcon` 兜底显示 `'?'` | `shell/panels.ts:25-27` 的 `LAYER_ICON` 有 `flowList: '⊟'` | 同上，canvas 反而缺。建议给 canvas 补 `'⊟'`（与工具箱 `Grid3x3` 同形），不动 common |
-| 3 | 流式列表四行的帮助气泡 | `property/FlowListGroup.vue` 全文无 `.pd-help`、不调 `propertyTip` ⇒ core 注册表里 `fl-*` 五条 `tip` 在 canvas 端是**没人消费的死文案** | `shell/property-panel.ts:272/276/280/288` 四行都挂 `fieldHelp(propertyTip('fl-*'))` | 撤 common 会丢说明，补 canvas 才符合「文案单点在 `PROPERTY_REGISTRY`」的既有口径。PARITY §五 已把这条标成未收口 |
-
-**裁决与落地（用户 10-24 判「三处修改 vue3」）**：三条全部改 canvas，本包不动，改完两侧逐行同形同值——
-① `PropertyPanel.vue:125` 的 `:target` 改传原始 `templateData?.pageBackground`（不再拿带 `|| '#ffffff'` 兜底的取色器模型），
-新增 `PropertyResetPageBackground.spec.ts` 2 条并把旧表达式改回去验真会红；
-② `LayerPanel.elementIconMap` 补 `flowList: '⊟'`，新增 `LayerPanelIcon.spec.ts` 用与 common 同一张字面量表比对（断言不含 `'?'`）；
-③ `FlowListGroup.vue` 四行补 `button.pd-help`（`propertyTip('fl-*')`，开关行两侧都不挂），`FlowListGroup.spec.ts` 补 3 条正向 + 反面对照。
-细节与判据见 `docs/superpowers/plans/2026-10-23-property-reset-default.md` 第 22 轮。
-
-### T-21 【已按「以 vue3 为准」逐条落地，2026-10-24】其余备案五条的处置
-
-- **条码/二维码静区行敲入缺省值是否落键 —— 已按 canvas 收口**。原状：canvas 输入框留空靠占位（`CodeGroup.vue:40` 绑原始值），
-  common 回填缺省值（条码显 10、二维码显 0），于是「把 10 原样再敲一次」在 common 被 `shell/controls.ts` 的
-  `next !== current` 短路掉、不写键，canvas 却显式写键——出纸一致，但**导出 JSON 的键存在性两侧不同**。
-  处置：common 三处回填撤掉（`property-panel.ts` 条码静区、`table-props.ts` 条码静区与二维码静区），
-  改成与 canvas 同形态「未设置即留空 + placeholder 兜提示」，提交判据随之自然一致。
-  断言：`code.spec.ts` 新增 2 条（未设置显空串且 `placeholder=默认 10`、敲 10 落键；已设 6 显 6、改 0 不被归并）
-  + 改写 1 条原锁「显 0」的旧断言。
-- **字体候选对裸字符串的容差 —— 已收紧成 canvas 判据**。原状：common `core/font-catalog.ts` 的 `buildFontCatalog` 吃
-  `fonts: ['SimSun']`，canvas/core 只认 `{family,label}` 对象（字符串静默丢弃）。处置：删掉 common 那份等价实现，
-  `shell/font-select.ts` 直接调 core `normalizeFontCatalog`，`controls.ts` 的 `host.fonts` 类型同步成
-  `readonly PrintFontDeclaration[]`（与 canvas 的 `fonts` prop 同类型）；顺带去掉那次多余的二次去重。
-  断言：core `fonts.test.ts` +1 条（裸串不进候选 + 同条目写成声明即入目录的正对照），common `font-select.spec.ts` +1 条 UI 级。
-- **模糊匹配函数曾是两份 —— 已单点化到 core**。canvas `useFontCatalog.ts` 与 common `core/font-catalog.ts` 各抄了一份
-  「相等>前缀>子串>子序列 + label/family 取更优档」。处置：四个纯函数（`findFontOption`/`fontOptionLabel`/
-  `normalizeFontQuery`/`filterFontOptions`）上收 core `print/fonts.ts`，canvas 侧改为转导（`FontOption` 类型别名保留，
-  `index.ts` 的 `export type { FontOption }` 不破坏），common 侧删掉本地实现。两处过时注释（「core 未导出这套工具」）一并清掉。
-- **技能脚本未跟上 `flowList` —— 已补**。`scripts/build_template.py` 的 `TYPE_TITLES`/`TYPE_ALIAS`/编译期默认三处补齐
-  （`cols/rowHeight/gapX/autoSpan/maxSpan/source` 简写 → `flow*`），并把「跨列上限钳到列数」这条全案唯一改用户值的规则
-  实现进脚本（`maxSpan: 9` + `cols: 4` 编译成 4），缺 `text` 时报 `BuildError`。实测脚本产物在 common 宿主
-  `loadTemplate` 后画布出 4 列网格、属性台四行显 4/8/4 且 `autoSpan` 点亮；未预置字体（不产出 `fontFamily`）。
-- **common 测试文件的类型检查既有红 —— 已清零**。`npm run typecheck -w @worm-vue3-print/common` 由 HEAD 的 8 条降到 **0**
-  （`cell-border` 未用导入、`code` 的 `type:'static'`→`'data'`、`element-border` 的 `ElementType`/`HTMLButtonElement`/`HTMLSelectElement`×4、
-  `reset-button` 与 `table-cell-reset` 的 `render` 入参类型）。canvas 侧的既有红另记 **T-22**。
-
-### T-22 canvas 测试文件仍有 49 条既有类型错误（10-24 实测，非本轮引入）
-
-- 判据：`cd packages/print-canvas && npx vue-tsc --noEmit` → `error TS` **49 条**，全部落在 `src/__tests__/*.spec.ts`
-  （`TableElement` 16、`PageTabs` 11、`BorderBgGroup` 6、`TableCellGroup` 3、其余散在 12 个 spec），
-  `src/components/**` 与 `src/composables/**` **零错**。主要形态：`element.options.tableColWidths` 可能 undefined、
-  `findAll(...)` 回调参数隐式 any、`VueNode<Element>` 上取 `.value` 未转 `HTMLInputElement`、字段夹具缺 `PrintBusinessField` 必填项。
-- **本轮不修的原因（如实写）**：49 条与 common↔canvas 功能对齐无关，且散在十几个 spec；批量改测试文件容易把断言语义一起改掉，
-  应单独一轮按文件推进。修完后建议把 `vue-tsc`/`typecheck` 串进 `npm test` 或 CI 门禁，否则这类红会长期看不见
-  （现状：canvas 的 `test` 脚本只跑 vitest，`build` 走 `tsconfig.build.json` 排除测试）。
-- **对我自己前一轮报告的更正**：我在 10-24 早先的报告里写过「canvas `vue-tsc` 零错」，那是**错的**——
-  当时命令写成 `vue-tsc -p packages/print-canvas/tsconfig.json` 却从根目录执行，路径解析失败被管道吞掉退出码，
-  我把「没输出」当成了「没错误」。本轮改为在包目录内跑 `npx vue-tsc --noEmit` 才拿到真实数字。
-
-
-### 执行顺序建议
-
-| 序 | 项 | 性质 | 代价 |
-|---|---|---|---|
-| 1 | ~~T-12 复现定性~~ 已修（`48d1ed6`），剩对外回帖并入 T-14 | — | — |
-| 2 | **T-11 剩余两条根因**（C1 一行 / C2 中等） | 影响面最大的真实缺陷 | C1 一行；C2 需定跟随区口径 |
-| 3 | **T-13 补通知** | 纯对外动作，零代码 | 依赖 `notes` scope 或登录态浏览器 |
-| 4 | **T-14 发版 + 删重复评论** | 随下个版本 | 删评论只能手工 |
-| 5 | **T-15 dist-tag 口径** | 发布面 | 改文档或改发布脚本，二选一 |
-| 6 | **T-16 四宿主接 `fonts`** | 示例与验收缺口 | 四份宿主各一处 + verify-demo 加 2 条断言 |
-| 7 | **T-17 表达式绕过示例兜底** | 引导层缺陷（显示陈旧） | core 判据一处 + 两端各一处 |
-| 8 | ~~T-19 四宿主预览缩放档位~~ **已按方案 A 落地（10-24）** | 宿主示例能力缺口 | core 下沉一组纯函数 + 4 宿主各一条档位条；vue2 必须用 `v-show`（`v-if` 会让 diff 重建 iframe） |
-| 9 | ~~T-20 三处「以 vue3 为准会改坏 common」~~ **已裁决改 canvas 并落地（10-24）** | 需裁定改哪一侧 | 三条都在 canvas，各 1–3 行 + 新增 3 个 spec |
-| 10 | **T-22 canvas 测试文件 49 条既有类型错误** | 存量类型洞（`test`/`build` 都不查测试类型） | 按 spec 分文件改，建议随后把 `vue-tsc` 串进 CI |
-
-### 九、对外动作的通路（T-13 / T-14 执行前先看）
-
-- 私人令牌在 `~/.zshenv`，`Bearer` 头对 GET/POST 均生效；**issue 写操作走 owner 级端点**
-  （`POST /api/v5/repos/{owner}/issues`、`PATCH .../issues/{number}`，body 的 `repo` 只填仓库名），
+- 私人令牌在 `~/.zshenv`（`GITEE_TOKEN`），`Bearer` 头对 GET/POST 均生效；回帖所需的 `notes` scope 已于 2026-10-22 补通。
+- **issue 写操作走 owner 级端点**：`POST /api/v5/repos/{owner}/issues`、`PATCH .../issues/{number}`，body 的 `repo` 只填仓库名；
   GitHub 式 `/repos/{owner}/{repo}/issues` 在写操作上不存在，误用报的 404 措辞不指向格式错误。
-- **回帖需要单独的 `notes` scope，当前令牌缺** → T-13 那条通知只能走已登录 Chrome 的 `user-browser-use`，
-  或补勾 scope 后用 `POST /repos/{owner}/{repo}/issues/{number}/comments`。
-- **本仓库配置为「已完成 / 已拒绝的 issue 不允许评论」**：想给已关闭的 issue 补通知必须先重开（T-13 已处于 `progressing`，可直接评论）。
-- 写操作后一律用**匿名 GET 复核**落库与 `comments` 计数，防止「报错但其实写进去了」或「以为发了其实没发」。
-- 浏览器通路两个坑：`fill` 不激活提交按钮（需真点击，且点两次会重复发帖——T-14 的重条评论即此形态）；
+  发行版：`POST /repos/{owner}/{repo}/releases` **必须带 `target_commitish`**（漏了回 400），`PATCH .../releases/{id}` 改正文不必带。
+- 仓库配置「已完成 / 已拒绝的 issue 不允许评论」→ 给已关闭的 issue 补通知必须先重开（T-23 即此形态）。
+- 写操作后一律用**匿名 GET 复核**落库与 `comments` 计数，防「报错但其实写进去了」或「以为发了其实没发」。
+- 浏览器通路两个坑：`fill` 不激活提交按钮（需真点击，点两次会重复发帖——T-14 的重条评论即此形态）；
   自己评论的删除菜单不进无障碍快照，程序化点不到。
+- 查 npm 发布面一律加 `--registry=https://registry.npmjs.org`，npmmirror 会滞后一个版本。
+- GitHub 侧用 `gh api`，URL 含 `?` 必须整体加引号，否则 zsh 报 `no matches found` 并中断整条命令。
 
 ---
 
-## 十、Vue3 线浏览器验证实测（2026-10-21，内部浏览器 + demo 9303）
+## 四、已完成归档（一行一条；正文与取证明细见 git 历史与 CHANGELOG）
 
-拉进 `48d1ed6 / f6963f1 / d93baab / a219b9c / dac9492` 后补的一轮。取证工具：Qoder 内部浏览器（`browser-use`）
-在 `http://localhost:9303/`（视口 789×781）上做真实事件与几何测量；mm↔px 一律按 `3.7795` 折算。
-**本轮未改任何代码**，注入的样式与模型改动均已随重载丢弃。
-
-### 拉取后的静态基线（先跑，全绿）
-
-| 命令 | 结果 |
-|---|---|
-| `npm run build` | exit 0（错误行计数 0、6 条 `✓ built`） |
-| `npm test` | exit 0 —— core **68 文件/915 用例**、canvas **57/497**、common **14/165**、print-client **14/110** |
-| `npm run test -w @worm-vue3-print/render` | exit 0 —— **9 文件/30 用例**（含真实 Chromium 的 `cell-crop.integration.test.ts`） |
-| `verify-demo.mjs` ×4 宿主 | **36/36 ×4，FAIL 0**（9331/9332/9335/9334） |
-
-`d93baab` 当时披露的「canvas 1 红、common 13 红」已随 `dac9492` 归零（canvas 56/456→57/497、common 13/145→14/165）。
-
-### V-1 字体浮层（`48d1ed6`）✅ 页面不再被撑变形
-- 候选 **4 行且带 label**：`默认` / `马善政毛笔楷书（Ma Shan Zheng）`（`aria-selected=true`、`is-active`）/ `站酷快乐体（ZCOOL KuaiLe）` / `站酷庆科黄油体（ZCOOL QingKe HuangYou）`；`aria-expanded`、`aria-activedescendant` 随高亮行更新。
-- 展开同帧对照：`.designer-container`、`.designer-toolbar`、`.property-panel`、`.canvas-area` **零变化**，`document.scrollHeight` 781→781；属性台前 8 个字段 `top` 位移 **0px**。唯一位移是属性台因聚焦**自滚 27px**（`.property-content` 自身 scrollTop，非浮层撑开布局）。
-- 列表 `position:absolute`、`z-index:200`、`max-height:200px`、221×106，贴触发框下 4px → 确实脱流。
-
-### V-2 `is-up` 上下翻档 ✅ 分支可用（真实布局在本机触发不到）
-- 实测 CSS：`.font-select-list.is-up { top: auto; bottom: calc(100% + 4px) }`。
-- 注入受限祖先造边界逐档扫（列表高 106、触发框下沿 495）：下方 300/150 → `down`；100 → `down`（底 605 越界 597 共 8px）；**60/30 → `up`**（列表顶 359、底 465 = 触发框上沿 469 − 4）。
-- **100 档不翻不是缺陷**：`resolveOverlayPlacement`（`packages/print-core/src/designer/utils/overlay-placement.ts:23`）在两边都放不下时取宽侧（`below 98 > above 38` → `down`），3/3 复现、第 8 帧不自我纠正。我先前「首趟测到 0 高度列表」的猜测**作废**。
-- 真实布局下本机永远触发不到该分支（视口 781、候选仅 4 条 → `below` 可用 282 ≥ 106）；造该形态需更多候选或更矮视口，而**内部浏览器没有 `resize_page`**（chrome-devtools MCP 才有）——这条能力边界记在此处。
-
-### V-3 #IKOUJI 画布态 vs 出纸态 ✅ C3 在 canvas 宿主的真实管线成立
-报告人模板从 Gitee #IKOUJI 评论匿名取回（12627 字节，`/tmp` 那份已被上一轮会话销毁），经 demo `导入模板` 的 file input 注入（临时放 `demo/public/`，验毕已删）。
-
-| | 画布态（设计态） | 出纸态（预览 iframe） |
+| 项 | 一句话结论 | 本轮验证方式 |
 |---|---|---|
-| 页数 | **1 页**（画布从不跑分页） | **1 页**（纸面 241×139.7） |
-| vline#1 | x 11.28 y 7.38 3.5×55.93 | x 21.27 y 27.38 |
-| vline#2 | x 216.33 y 36.75 1.8×35.3 | x 226.32 y 56.75 |
-| hline | x 65.53 **y 86.87** 70.6×1.8 | x 75.53 **y 106.84** |
-| table | x 25.83 y 15.69 150×32.28 | x 35.83 y 35.69 150.26×32.26（4 行，`flow-group/flow-slice/flow-follow` 齐） |
+| D-1 / D-2 / D-3 / D-4 | 拍板 `em` / CSS 值原样透传 / 删除字段 / 工具栏自适应收纳 | 随各条 |
+| T-01 | 长文本首行缩进出纸生效：新增 `indentStyle()` 仅 `case 'longText'` 出 `text-indent:Nem`，画布与 common 两处 `pt`→`em` | 代码坐标 + core/canvas/common 单测 + render 集成 30 例全绿 |
+| T-02 | 独立 image 的 `object-fit` 不再写死 `contain`，改 `opts.fit \|\| 'contain'`；未设 `fit` 的存量模板逐字不变 | 同上（缺省路径已用断言锁死） |
+| T-03 | `objectPosition` 裁剪锚点贯通 core + `data-binder` 逐字段透传 + 画布两端 + common，非法值整条丢弃 | 同上 + 单元格链路用例 |
+| T-04 | `TextAlign` 加 `justify`，三端同策（flex 主轴转纵向 + `text-align-last:justify`），单元格第 4 档「两端」同源 | 同上 |
+| T-05a–d | 硬编码浅色改 `var(--pd-*, 原值)`，新令牌登记在 `.designer-container`；`.pd-switch::after` 白底显式豁免 | 代码坐标 + `npm run build`/`npm test` 绿；深色注入的浏览器证据系 2026-10-19 所取，本轮未重做 |
+| T-06 | 僵尸字段 `lHeight`、`leftSpaceRemoved` 已删净（全仓仅 CHANGELOG 提及） | 精确 grep 源码零命中 |
+| T-07 / T-07a | 工具栏自适应收纳（core 共用判定）+ `.tb-more-panel` 最小宽修掉嵌套浮层横向溢出 | 代码坐标（`native-controls.css:386`）+ 收纳两条断言实测在位 |
+| T-08 | `PresetColorPicker` 多根告警收口：`defineOptions({ inheritAttrs: false })` + 触发器 `v-bind="$attrs"`，class 落到真实 `div` | `PropertyPanel.vue:124-129` + canvas 单测绿 |
+| T-09 | 文档/技能同步：中英 CHANGELOG、`使用指南.md`、`模板设计器.md`、技能 `template-schema.md`，两份内置更新记录均含 V1.3.10 | grep 命中核对 |
+| T-10 | demo-common 四宿主顶栏接入收纳 | `verify-demo` 36/36 ×4 新鲜实测 |
+| T-12 | #IKP3MU 已回帖（现 `closed`）；#IKIPD9 现 `rejected`（本轮补登记，见 §二.6） | 匿名 API 复核 |
+| T-13 | #IKN95F 已回帖通知升级验证，issue `closed`（comments 7） | 匿名 API 复核 |
+| T-14 ① | 1.3.8 三处更新记录已登记并回帖（② 仍待办） | 匿名 API 复核 |
+| T-17 | 未求值表达式不再当真实图：判据单点收在 `resolveCropPreview()`（空或含 `{`/`}` 即视为无图）+ `@error` 清尺寸 + 取景框 `fit-content` | `crop-anchor.ts:222` 坐标 + 用例绿 |
+| T-18 | 素材台长字段名自适应换行（`.node-meta` `flex-wrap`），并入 V1.3.8 重发、已回帖关闭 | 匿名 API 复核 `closed` |
+| T-19 | 预览缩放档位判据下沉 core `preview-zoom.ts`，`usePreviewZoom.ts` 删除，四宿主补档位条 | **浏览器动态实测**：9331/9334 五档齐、默认点阵 203dpi、`computed zoom=2.11458`、print 复位守卫在位 |
+| T-19b | 宿主顶栏收纳四条缺口（派生产物过期、弹性占位、状态类、兜底类名）已修，判定改调 core | `verify-demo` 收纳两条 + 五档实测收起数 |
+| T-20 | 三处分叉全改 canvas：`:target` 传原始值、`LayerPanel` 补 `flowList: '⊟'`、`FlowListGroup` 补 `.pd-help` | `PropertyPanel.vue:124`、`LayerPanel.vue:70`、`FlowListGroup.vue` 9 处命中 + canvas 72 文件全绿 |
+| T-21 | 五条备案落地：静区留空靠占位、字体候选收紧成 canvas 判据、模糊匹配单点到 core、技能脚本补 `flowList`、common 类型红清零 | `print-common/src/core/font-catalog.ts` 已不存在 + common 26 文件/315 例全绿 |
+| 发布 | V1.3.9 / V1.3.10 已双推；GitHub Release + Gitee 发行版 + 七件安装包附件已传；npm 主线 `1.3.10` 已发 | registry 与台账实况（Linux 真机见 T-25） |
 
-出纸坐标 = 设计坐标 + 页边距 10 + 页眉 10（x 只加 10、y 加 20，逐条对上，最大偏差 0.03mm）。
-对照改前记录（2 页、横线被挪到第 2 页 y=38.9、右侧竖线掉到页 2 y=0）→ **虚假换页与坐标丢失都没了**。
-**要写进回帖的口径**：画布不做分页计算（`grep pagination-engine packages/print-canvas/src` 命中 0），
-所以报告人在**画布上看不到任何变化**，只有预览/打印/PDF 才回到设计坐标——不说清这条会被判「没修」。
+---
 
-### V-1b 单元格取位（`f6963f1` + `dac9492`）✅ 判余量模型与落值全对
-在同一张表格的图片单元格上，把内容换成 **400×100 宽图**、格 106×106：
-- 溢出量自洽：cover 渲染 392×98 → 溢出 X 295px = **78mm**，与面板 note「水平可挪 78mm；垂直这一轴已贴满，挪不动」逐字对上；可视宽占比 97/392 = **25%**，取景窗 `width: 25%` 一致。
-- **档位按余量收敛**：九宫格 → **3 档**（`0,50 左侧 / 50,50 居中 / 100,50 右侧`），正是「只一轴有余量给该轴三档」。
-- 水平轴三档实测（带帧读取）：写 0 → `object-position:0% 50%`、取景窗 `left:0%`、档位自动跳 `0,50`；写 50 → `50% 50%`、`left:37.5%`；写 100 → `100% 50%`、`left:75%`；回到 0 无漂移 → **可挪范围就是那 78mm 溢出，画面确实按锚点在裁**。
-- 出纸落值（上一轮）：预览 iframe 内该格 `<img>` 行内 `object-fit:cover;object-position:2% 50%`，**20 个数据行每行都带**（`data-binder` 逐字段透传没漏）；同表条形码格只有 `object-fit:cover`、无 `object-position`，存量路径没被打坏。
-- 控制台全程 0 error / 0 warn。
+## 五、建议执行顺序
 
-### V-5 字体注入正对照 ✅ T-16 定性坐实
-- canvas 宿主（demo 9303）：`@font-face` **3 条**、`document.fonts.size=3` 且三条 `status=loaded`、`check('16px "Ma Shan Zheng"')=true`、元素 computed `font-family:"Ma Shan Zheng"`。
-- **同一份模板 JSON** 在 Common 宿主：face **0 条**、`fonts.size=0`、下拉只剩 `默认` + `Ma Shan Zheng（未知）`。
-- 结论：缺口在宿主没接 `fonts`（四个 `apps/*` 入口 `grep -c fonts` 全为 0），外壳契约（`controls.ts:51`）与算法都正常。
-  **verify-demo 那 36 项不含字体链路，「144 项全绿」不等于「字体可用」。**
+| 序 | 项 | 代价 | 备注 |
+|---|---|---|---|
+| 1 | **T-11 C1** | 一行 + 1 条用例 | 最小红利；#IKPXQL 的「跟随」形态也吃这条 |
+| 2 | **T-14 ② / T-15 / §二补登记** | 纯手工与纯文档 | 零代码，可穿插做 |
+| 3 | **T-16 + T-19b** | 四宿主各一份 `activeFonts` + `verify-demo` 补 2 项 | 合并做，实现与断言同批落地才防得住回归 |
+| 4 | ~~**T-26 元素级换行**~~ **已按方案 B 实施并验完（2026-10-26）** | 见该条 | 27 份真实管线产物逐字比对、两端 UI 实测、门禁全绿；待发版折条目 |
+| 5 | **T-27 长文本关自动换行的出纸分叉** | 需先出存量影响结论 | 与 T-26 同函数但改它会动存量出纸，**单独一轮**，等裁决 |
+| 6 | **T-24 #6 定性** | 实测命中率，暂不改码 | 定完才知要不要出补丁版 |
+| 7 | **T-11 C2** | 需你先定跟随区口径 | 与 C3 的 X 轴记账语义互相影响，且要保住「用户确实要跟随」这条需求（见 T-23），**不要直接动代码** |
+| 8 | **T-22** | 按 spec 分文件推进 | 与功能对齐无关，建议独立轮；顺手把 `vue-tsc` 串进 CI |
+| 9 | **T-07b** | 文档级定性 | 二选一，见该条 |
+| 10 | **T-25** | 需目标机 | 本机不可验证 |
 
-### 本轮的探针更正（都记下来，别再犯）
-- 同帧读 Vue 重绘 = 假失败：轴输入写完立刻读 `object-position`/取景窗会全是旧值，必须**写完等两帧再读**（我第一次扫 0/50/100 就全错成 50）。
-- 单选组要读 `checked` 的那一项，读第一个 input 的 value 会把 `image` 误判成 `text`。
-- `td img` 第一条是**二维码**的 svg，不是图片单元格；按文本「图片」定位才准。
-- 内部浏览器按 uid 的 `click` 判遮挡用 light-DOM `elementFromPoint`，**看不穿 Shadow DOM**，对 Common 宿主会假报 `covered`；canvas（light DOM）不受影响，可信点击正常。
-
-### V-6 锚点门禁收回 + 剪裁放大比例 `fitScale`（2026-10-21，用户浏览器批注裁决）
-
-批注原文：「只有剪裁模式下才需要出现，并且剪裁模式需要增加剪裁效果」。第二半我摆过四档（加放大比例／面板演出剪裁结果／画布拖图取位／落纸没真裁动），用户选**加「放大比例」字段，真能裁**。
-
-- **本轮推翻了 10-20 由用户亲自选的那档**（「两框常驻 + 逐轴按 fit 算余量」配套把元素台门禁放宽到 `fit !== 'fill'`）。收回后四处门禁统一为 `fit === 'cover'`：canvas `AppearanceGroup.vue`、common `property-panel.ts`、两端单元格台（原本就是 cover）。逐轴余量机制没动，只是入口收窄；`contentMm` 里 `contain`／`none`／`scale-down` 三条分支在面板侧暂时不再被触达，仍留着（`resolveCropTravel` 是 `/designer` 公开出口，有独立用例）。
-- **`fitScale`（100~400，仅 cover）**：判据单点新增 core `render/crop-style.ts`（`sanitizeObjectPosition` 从 `html-generator` 私有函数迁入、`cropScalePct`、`cropStyleDeclarations`），`/designer` 再导出；出纸 `html-generator`、canvas `ImageElement`/`CellImage`、common `imageStyle`/`table.ts` 五处消费同一份。`transform: scale(fitScale/100)` 的 `transform-origin` **复用同一条 `objectPosition`**——锚点既是取位钉住点也是放大不动点，所以不需要再推一遍落点公式。面板侧 `CropBox.scalePct` 进 `contentMm`，可挪量与取景窗自动跟随。
-- **canvas 宿主实测（demo 9303，28.2mm 方框 + 120×120 方图）**：不放大时 `transform:none`、img 盒 = 框 = 106.6px、note「两轴都没有可挪的余量」；写 200 → `matrix(2,0,0,2,0,0)`、img 视觉盒 213.2px（比值 **2.000**）、note 改口「水平可挪 28.2mm、垂直可挪 28.2mm」；锚点 `0,0` → origin `0px 0px`、图左上与框左上重合（l/t 偏移 0，r/b 各溢出 106.6）；`100,100` → 反向重合；`50,0` → 水平左右各溢 53.3、垂直贴顶；改回 100 → `transform:none` 且 note 回到原句。**门禁同轮实测**：新拖入图片（缺省包含）面板无锚点行，切「剪裁」才长出。
-- **单元格链路**：`TableCell.fitScale` + `RenderCell.fitScale` + `data-binder` 逐字段透传（与 `objectPosition` 同一坑位）已补；示例表格是 `dataSource` 动态绑定，画布出的是数据行，所以这一条只有 core 落纸用例 + common 出图用例（`transform:scale(1.5)` / `transform-origin:50% 100%`）钉住，**没能在示例模板上肉眼量到**，与 V-1b 同一残留。
-- 门禁：`npm run build` exit 0；core 69/935、canvas 57/511、common 14/173（其中 3 条既存红：`store.spec` 的 happy-dom 无 `window.alert`）、print-client 14/110；`npm run test -w @worm-vue3-print/render` 9/30 全绿（真实 Chromium，含「非法锚点不进 PDF」那条未退化）。
-- 探针更正（本轮新踩）：
-  1. 用原生 setter 直接改 `<input>.value` 再只发 `change`，Vue 的 `StepperInput` 读不到草稿（`input` 事件才写 `draft`），commit 拿空串直接 return——**写数值必须 `input` + `change` 两跳**。
-  2. 锚点那一行是 `<select>`，对它 `querySelector('input')` 得 null，再 `set.call(null)` 抛 `Illegal invocation`；按标签定位后要先看清控件类型。
-  3. common 的测试 harness 不监听 store 变更，`patch` 之后 DOM 不重绘，回显断言前必须手动 `ctx.repaint()`（写值本身是通的）。
-  4. 改完包源码后浏览器仍跑旧模块：demo 走 `resolve.alias` 指到 `packages/*/src`，但页面是改动前加载的——**量测前先 reload**，别把「没生效」记成代码问题。
+~~T-23 验证 #IKPXQL~~ —— 2026-10-26 已跑完真实管线复现，结论回写在该条；剩下的对外动作是补一句限定回帖。
