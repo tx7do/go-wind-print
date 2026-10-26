@@ -47,6 +47,19 @@ print-core/
 
 > 注意：`/designer` 子路径的 `TemplateData` 等类型是设计器完整模型，与主入口渲染管线的简化同名类型有意分离，因此不从主入口转出。
 
+#### `/designer` 的稳定面（破坏性变更按 minor 及以上）
+
+下面这些导出**已被 canvas 与 `demo-common` 四宿主直接消费**，属于公开契约；改入参、改返回形态或改判定链序都算破坏性变更，
+需要先登记并走 minor 及以上（2026-10-26 T-07b：由「是否收回导出」改为「按公开契约对待」，收回会让四个宿主直接断链）：
+
+| 导出 | 契约要点 |
+| --- | --- |
+| `resolveToolbarOverflow(input)` | 顶栏自适应收纳的**唯一判据**：入参含可折叠单元、可用宽与「更多」钮预算，返回收起集合与 `is-tight`；canvas（Teleport 搬运）、print-common（后置遍搬运）与四个宿主直挂形态都调它，**链序属稳定面** |
+| `resolveElementTextFit(type, opts)` / `resolveCellTextFit(cell)` | 元素级与单元格级的显示形式（`clip` / `shrink` / `autoHeight`），缺省值同样是契约 |
+| `resolveElementWhiteSpace(opts)` / `resolveElementNowrap(opts)` | 「保留换行符」与「不换行」两条判据：前者只在 `keepLineBreaks === true` 且未关自动换行时返回 `'pre-wrap'`；后者只在显式 `wordWrap === false` 时返回 `'nowrap'` |
+| `resolvePrinterDpi` / `defaultZoomKey` / `resolveZoomKey` / `zoomValueOf` / `applyPreviewViewZoom` / `paperWidthPx` | 预览缩放：五档（点阵 / 适配 / 100% / 200% / 400%）、默认档推导与「打印复位」守卫，四宿主与 canvas 同源 |
+| `resolveElementBorderSpec` / `applyElementBorderPreset` / `setElementBorderEdge` / `setElementBorderEdgeVisible` / `elementBorderEdgeVisible` | 元素边框的线与预设编辑，顶部工具栏与属性台共用同一实现 |
+
 ## 使用
 
 ```ts

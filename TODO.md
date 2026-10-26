@@ -32,15 +32,6 @@
 
 ## 一、待办清单
 
-### T-07b `resolveToolbarOverflow` 的公共面定性　【口径修正】
-
-- 原待办「发版前确认是否只作内部共用（则从导出面收回）」**已不可执行**：该函数现被 canvas `useToolbarOverflow.ts` 与
-  demo-common 四宿主 `apps/*/src/topbar-overflow.js` 直接消费（vue2/vue3/react 引 `@worm-vue3-print/core/designer`，
-  jQuery 从 `window.WormPrintCommon` 取），且 V1.3.10 已带此导出发布。
-- 现状坐标：`packages/print-core/src/designer/index.ts:27` `export * from './utils/toolbar-overflow.js'`（同文件 `:34` 是 `preview-zoom.js`，同一形态）。
-- 改判后二选一：① 按**公开契约**对待——在文档里登记其入参与链序属稳定面，破坏性变更走 minor 及以上；
-  ② 坚持收回——则必须先给宿主等价入口，否则四个宿主 demo 直接断链。推荐 ①，收回省下的边际收益小于抽走已发布公共面的代价。
-
 ### T-11 #IKOUJI 剩余一条根因 C2　【成立】（C1 已修，见 §四；C2 影响面已量化，待你拍板）
 
 - ~~C1 跟随区内 `vline` 丢高度~~ —— 已修，见 §四。
@@ -239,6 +230,7 @@
 | T-22 | canvas 测试类型错 **53 → 0**：`tableColWidths` 非空断言 16、`pages` 夹具按最小对象构造并标 `TemplateData` 11、`borders`/`dots` 可空 2、`VueNode.value` 转 `HTMLInputElement`/`HTMLSelectElement` 5、隐式 any 6、`toEqual` 消息参数位置 1、单元格夹具补 `id` 9、TableCellImage 夹具 cast 1 等；并把 `vue-tsc --noEmit` 接进 canvas 的 `pretest`（变异验证：故意插一条类型错 → 门禁 exit 2 且 vitest 根本没跑） | vue-tsc 计数 53→0 + canvas 73 文件/688 例全绿 + 变异自证 |
 | T-16 | 四个 common 宿主接上字体链路：各加 `fontsOf(tpl)`（多页合并、按 family 去重）并在 `el.template` 之后赋 `el.fonts`；证据：`verify-demo` 新增 3 条断言——带字体示例声明 3 个字体 / `@font-face` 3 条进文档 / 下拉 1 默认 + 3 候选；**变异自证**：撤掉 vue3 宿主的注入后两条立即变红（matched=0/3、options=1），恢复即绿 | 四宿主 42/42 ×4 实跑 |
 | T-19b | 预览缩放档位断言补齐：五档齐（点阵 203dpi/适配/100%/200%/400%）、默认档与出纸文档缩放一致（实测 `html{zoom:2.11458}` = 203/96）、说明文案与 `@media print{html{zoom:1 !important}}` 复位守卫在位；`verify-demo` 由 36 项增至 **42 项** | 四宿主 42/42 ×4 实跑 |
+| T-07b | `resolveToolbarOverflow` 按推荐口径 ① 定性为**公开契约**：core README 新增「`/designer` 的稳定面」小节，登记收纳判据（入参 + 链序）、三档文字显示判据、`resolveElementWhiteSpace`/`resolveElementNowrap`、预览缩放六个导出、元素边框五个编辑函数，并写明破坏性变更需 minor 及以上；方案 ②（收回）因四个宿主断链不采用。登记前逐个核过真实导出名（我初稿里编的 `resolvePreviewZoomPresets` 并不存在，已按源码改正） | README 登记 + `designer/index.ts` 导出链核对 |
 | D-1 / D-2 / D-3 / D-4 | 拍板 `em` / CSS 值原样透传 / 删除字段 / 工具栏自适应收纳 | 随各条 |
 | T-01 | 长文本首行缩进出纸生效：新增 `indentStyle()` 仅 `case 'longText'` 出 `text-indent:Nem`，画布与 common 两处 `pt`→`em` | 代码坐标 + core/canvas/common 单测 + render 集成 30 例全绿 |
 | T-02 | 独立 image 的 `object-fit` 不再写死 `contain`，改 `opts.fit \|\| 'contain'`；未设 `fit` 的存量模板逐字不变 | 同上（缺省路径已用断言锁死） |
