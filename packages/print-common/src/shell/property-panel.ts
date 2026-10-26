@@ -153,6 +153,7 @@ function elementPane(ctx: ShellCtx, el: RuntimeElement) {
       }), undefined, reset('shrinkMinFontSize', 'ap-shrink-min'))) : '',
       type === 'longText' ? gateItem(ctx, 'ap-long-text-indent', fieldHelp('首行缩进 (字符)', stepper({ value: o.longTextIndent, min: 0, max: 10, placeholder: '默认 0', onCommit: v => patch({ longTextIndent: v || undefined }) }), propertyTip('ap-long-text-indent'), reset('longTextIndent', 'ap-long-text-indent'))) : '',
       gateItem(ctx, 'ap-word-wrap', switchField(ctx, '自动换行', o.wordWrap !== false, v => patch({ wordWrap: v ? undefined : false }), reset('wordWrap', 'ap-word-wrap'))),
+      gateItem(ctx, 'ap-keep-line-breaks', switchField(ctx, '保留换行符', o.keepLineBreaks === true, v => patch({ keepLineBreaks: v ? true : undefined }), reset('keepLineBreaks', 'ap-keep-line-breaks'))),
     ] : [
       // 平铺条件项：不能在这里套数组，common 的 h() 不摊平嵌套子节点（会让 paint 递归抛 TypeError）
       type === 'image' ? gateItem(ctx, 'ap-img-fit', selectField(ctx, '缩放模式', String(o.fit ?? 'contain'), IMAGE_FIT_OPTIONS,

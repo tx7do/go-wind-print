@@ -103,6 +103,12 @@
           <input :checked="element.options.wordWrap !== false" type="checkbox" class="pd-switch"
             @input="element.options.wordWrap = ($event.target as HTMLInputElement).checked ? undefined : false" />
         </div>
+        <div class="pd-field" v-show="showItem('ap-keep-line-breaks')"><span class="pd-label"><span class="pd-label-t">保留换行符</span>
+  <ResetButton :target="element.options" :base="factoryOptions" prop-key="keepLineBreaks" :tip-value="def('ap-keep-line-breaks')?.value" :tip-unit="def('ap-keep-line-breaks')?.unit" />
+</span>
+          <input :checked="element.options.keepLineBreaks === true" type="checkbox" class="pd-switch"
+            @input="element.options.keepLineBreaks = ($event.target as HTMLInputElement).checked ? true : undefined" />
+        </div>
       </template>
 
       <template v-if="isImageType">

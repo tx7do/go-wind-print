@@ -284,6 +284,12 @@ export interface ElementOptions {
   shrinkMinFontSize?: number
   /** 自动换行（text/longText）；缺省 true。false 时单行显示，截断形式下以省略号收尾 */
   wordWrap?: boolean
+  /**
+   * 保留换行符与连续空格（text/longText）；缺省关。
+   * 打开后按 `white-space: pre-wrap` 落纸：内容里的 `\n` 真换行、行首与连续空格原样保留，
+   * 同时仍按框宽自动换行。与「自动换行」互斥让位——`wordWrap === false` 时本档不出声明（单行优先）。
+   */
+  keepLineBreaks?: boolean
   fixed?: boolean
   locked?: boolean
   /** 元素可见性（图层面板切换） */

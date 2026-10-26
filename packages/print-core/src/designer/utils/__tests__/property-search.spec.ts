@@ -47,4 +47,18 @@ describe('searchProperties', () => {
     expect(searchProperties('双线').itemKeys.has('bb-border-style')).toBe(true)
     expect(searchProperties('内部').itemKeys.size).toBe(0)
   })
+  it('「保留换行符」按手打排版的说法可检索', () => {
+    for (const t of ['保留换行符', '换行符', '手动换行', '保留空格', '连续空格', '行首空格', 'keeplinebreaks']) {
+      expect(searchProperties(t).itemKeys.has('ap-keep-line-breaks'), `检索不到：${t}`).toBe(true)
+    }
+  })
+  it('与「自动换行」互不串台：各自的说法只点亮各自的行', () => {
+    expect(searchProperties('自动换行').itemKeys.has('ap-word-wrap')).toBe(true)
+    expect(searchProperties('自动换行').itemKeys.has('ap-keep-line-breaks')).toBe(false)
+    expect(searchProperties('不换行').itemKeys.has('ap-word-wrap')).toBe(true)
+    expect(searchProperties('不换行').itemKeys.has('ap-keep-line-breaks')).toBe(false)
+    // 反过来的对照：说「换行符」只点亮新行
+    expect(searchProperties('换行符').itemKeys.has('ap-keep-line-breaks')).toBe(true)
+    expect(searchProperties('换行符').itemKeys.has('ap-word-wrap')).toBe(false)
+  })
 })

@@ -49,6 +49,7 @@ export const PROPERTY_REGISTRY: PropertyGroupDef[] = [
       { key: 'ap-text-fit', keywords: ['溢出', '溢出显示', '截断', '自动缩小', '自适应行高', 'textfit', 'overflow'] },
       { key: 'ap-shrink-min', keywords: ['最小字号', '缩放下限', 'shrinkminfontsize'], default: DEFAULT_SHRINK_MIN_FONT_SIZE_PT, defaultUnit: 'pt' },
       { key: 'ap-word-wrap', keywords: ['自动换行', '不换行', 'wordwrap'] },
+      { key: 'ap-keep-line-breaks', keywords: ['保留换行符', '换行符', '手动换行', '保留空格', '连续空格', '行首空格', 'keeplinebreaks'] },
       {
         key: 'ap-long-text-indent',
         keywords: ['首行缩进', '缩进', 'indent', 'longtextindent', '两字符', '段首'],

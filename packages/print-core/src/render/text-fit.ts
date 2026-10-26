@@ -31,6 +31,20 @@ export function resolveElementTextFit(type: string, opts?: { textFit?: TextFit }
   return normalizeFit(opts?.textFit) ?? ELEMENT_DEFAULT_FIT[type] ?? 'clip'
 }
 
+/**
+ * 元素级 `white-space` 单点判据（text/longText）。
+ * 缺省（未开「保留换行符」）返回 `undefined`——**不出声明**，存量模板的出纸与画布逐字不变。
+ * 打开时返回 `'pre-wrap'`：`\n` 真换行、行首与连续空格保留，同时仍按框宽自动换行。
+ * 「自动换行」关掉时让位返回 `undefined`，单行优先级更高，避免两端各判一次出分叉。
+ */
+export function resolveElementWhiteSpace(
+  opts?: { keepLineBreaks?: boolean; wordWrap?: boolean } | undefined,
+): 'pre-wrap' | undefined {
+  if (opts?.keepLineBreaks !== true) return undefined
+  if (opts.wordWrap === false) return undefined
+  return 'pre-wrap'
+}
+
 /** 单元格级显示形式：未配置时「不换行→截断，否则自适应行高」（与既有行为一致） */
 export function resolveCellTextFit(
   cell?: { textFit?: string; wordWrap?: boolean } | undefined,

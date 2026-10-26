@@ -8,6 +8,7 @@ import {
   parseCellFitKey,
   resolveCellTextFit,
   resolveElementTextFit,
+  resolveElementWhiteSpace,
   resolveShrinkMinFontSize,
 } from './text-fit.js'
 import { generateHtml } from './html-generator.js'
@@ -216,5 +217,77 @@ describe('表格单元格三种形式的 HTML 输出', () => {
   it('回写的字号优先于单元格/元素级字号', () => {
     const html = render(tableElement({ textFit: 'shrink', fontSize: 10, fittedFontSize: 6.5 }))
     expect(html).toContain('font-size:6.5pt')
+  })
+})
+
+// ─── 保留换行符档（#IKPXQL 需求2：元素里的 \n 与连续空格上纸）───
+
+describe('resolveElementWhiteSpace', () => {
+  it('缺省不出声明（存量模板逐字不变的前提）', () => {
+    expect(resolveElementWhiteSpace({})).toBeUndefined()
+    expect(resolveElementWhiteSpace(undefined)).toBeUndefined()
+    expect(resolveElementWhiteSpace({ keepLineBreaks: false })).toBeUndefined()
+  })
+
+  it('非 true 的值不算打开（手写 JSON 塞字符串也不生效）', () => {
+    expect(resolveElementWhiteSpace({ keepLineBreaks: 'yes' as never })).toBeUndefined()
+    expect(resolveElementWhiteSpace({ keepLineBreaks: 1 as never })).toBeUndefined()
+  })
+
+  it('打开 → pre-wrap', () => {
+    expect(resolveElementWhiteSpace({ keepLineBreaks: true })).toBe('pre-wrap')
+  })
+
+  it('与「自动换行」冲突时让位：wordWrap=false 即单行优先', () => {
+    expect(resolveElementWhiteSpace({ keepLineBreaks: true, wordWrap: false })).toBeUndefined()
+    expect(resolveElementWhiteSpace({ keepLineBreaks: true, wordWrap: true })).toBe('pre-wrap')
+  })
+})
+
+describe('保留换行符的出纸落值', () => {
+  it('text：打开才出 white-space:pre-wrap，缺省不出', () => {
+    expect(render(textElement({}))).not.toContain('white-space')
+    expect(render(textElement({ keepLineBreaks: true }))).toContain('white-space:pre-wrap;')
+  })
+
+  it('longText：缺省 fit 是 autoHeight，elementFitStyle 会先 return——放错位置这条就红', () => {
+    const html = render(textElement({}) as never) // 正对照：普通 text 无该声明
+    expect(html).not.toContain('pre-wrap')
+    const long = { ...textElement({ keepLineBreaks: true }), type: 'longText' } as TemplateElement
+    const longHtml = render(long)
+    expect(longHtml).toContain('overflow:visible;')        // 自适应行高仍在
+    expect(longHtml).toContain('white-space:pre-wrap;')    // 新档没被 autoHeight 分支吞掉
+  })
+
+  it('打开「不换行」时新档让位：出 nowrap、不出 pre-wrap（源序与判据双保险）', () => {
+    const html = render(textElement({ keepLineBreaks: true, wordWrap: false }))
+    expect(html).toContain('white-space:nowrap;text-overflow:ellipsis;')
+    expect(html).not.toContain('pre-wrap')
+  })
+
+  it('与首行缩进共存：两条声明成对出现在同一个 style 里', () => {
+    const html = render({ ...textElement({ keepLineBreaks: true, longTextIndent: 2 }), type: 'longText' } as TemplateElement)
+    expect(html).toContain('text-indent:2em;')
+    expect(html).toContain('white-space:pre-wrap;')
+  })
+
+  it('表格不消费元素级新档：误挂到表格 options 上也逐字不变（负面对照）', () => {
+    const mkTable = (extra: Record<string, any>): TemplateElement => ({
+      id: 'tbK',
+      type: 'table',
+      options: {
+        left: 10, top: 10, width: 60, height: 16,
+        tableColWidths: [30, 30],
+        _renderRows: [
+          { type: 'header', height: 8, cells: [{ content: '标题', rowspan: 1, colspan: 1, merged: false }] },
+          { type: 'data', height: 8, cells: [{ content: '内容', rowspan: 1, colspan: 1, merged: false }] },
+        ] as RenderRow[],
+        ...extra,
+      },
+    })
+    const plain = render(mkTable({}))
+    // 单元格仍拿它自己那套成对声明，元素级 keepLineBreaks 不改表格分支一个字节
+    expect((plain.match(/white-space:pre-wrap/g) ?? []).length).toBeGreaterThan(0)
+    expect(render(mkTable({ keepLineBreaks: true }))).toBe(plain)
   })
 })

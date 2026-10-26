@@ -11,6 +11,7 @@ import {
   mmToPx,
   resolveElementBorder,
   resolveElementTextFit,
+  resolveElementWhiteSpace,
   resolveShrinkMinFontSize,
 } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
@@ -88,6 +89,9 @@ export function textLikeStyle(el: RuntimeElement) {
     style.whiteSpace = 'nowrap'
     style.textOverflow = 'ellipsis'
   }
+  // 「保留换行符」档与画布/出纸共用 core 判据；关掉自动换行时它返回 undefined，单行优先
+  const keepWs = resolveElementWhiteSpace(o)
+  if (keepWs) style.whiteSpace = keepWs
   if (o.verticalAlign) {
     // justify 要行盒满宽：横向 flex 的匿名文本项拉不伸，改纵向主轴（垂直交给 justify-content，交叉轴 stretch 占满宽）
     style.display = 'flex'

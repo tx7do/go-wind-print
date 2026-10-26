@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## 未发布
+
+### 新增
+
+- 文本与长文本元素新增**「保留换行符」**档（`keepLineBreaks`，缺省关）。起因是 Gitee #IKPXQL 的需求2「文本有缩进和换行，打印的时候都会在一行里面」：V1.3.10 把**表格单元格**的断行修好了（`pre-wrap` 三端同源），但**元素级这一路从来没支持过**——`text`/`longText` 的缺省档不输出任何 `white-space`，落回浏览器默认 `normal`，内容里手打的 `\n`、行首空格与连续空格一律折叠成一行；而属性台的表达式预览区是 `white-space: pre-wrap`，于是「面板里看得见分行、画布和纸面都没有」，这正是报告人观感的来源。打开该档后出纸带 `white-space:pre-wrap`：`\n` 各占一行、行首与连续空格原样保留，同时仍按框宽自动换行；与「自动换行」冲突时**单行优先**（`wordWrap === false` 时本档不出声明）。
+  判据单点在 core `resolveElementWhiteSpace`（`render/text-fit.ts`，随 `/designer` 导出），出纸 `html-generator`、画布 `TextElement`/`LongTextElement`、print-common `textLikeStyle` 三处消费同一份。刻意**不放进 `elementFitStyle`**：`longText` 的缺省显示形式是 `autoHeight`，而那个函数在 autoHeight 分支提前 `return`，声明放进去会被整条吞掉——用例已把这条坑钉住（把声明移进 `elementFitStyle` 后，`text` 仍绿、两条 `longText` 断言必红，已实测验证）。属性台在「自动换行」下方各加一行，画布与 common 同位置同文案，**开关行沿用既有口径两侧都不挂说明气泡**（避免注册表里出现没人消费的死文案）；「恢复默认值」按派生出厂值判脏，出厂未设即灰态。注册表新 key `ap-keep-line-breaks`，可按「保留换行符 / 换行符 / 手动换行 / 保留空格 / 连续空格 / 行首空格」检索，与「自动换行 / 不换行」互不串台（用例配了双向反面对照）。
+  **存量模板与三条出纸链路零变化**：该字段缺省不写键、也不进 `createDefaultOptions`，未打开时不产出任何声明。判据不是推理——用真实两趟管线（Chromium 测量 → 分页 → 最终 HTML）对 **27 份**产物（demo 示例库 11 份可出纸示例 + 15 组元素档位组合 + 1 份单元格矩阵）做改前/改后逐字比对，字节级一致；另有两份拼版示例（`asset-tag`、`roll-label`）在该离线 harness 下出不了纸，属取证局限，不计入比对集。行为变更只在用户显式打开后发生（行数增加会撑高元素并可能牵动分页），故按 **minor** 计。文档已同步 `docs/中文/指南/使用指南.md` 与技能 `print-template-json/references/template-schema.md`——后者原先那句「`wordWrap` 缺省 `true` 时 `\n` 也生效」只对单元格成立，已按实测更正。
+
 ## V1.3.10(2026-10-24)
 
 ### 新增

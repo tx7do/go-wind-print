@@ -15,7 +15,7 @@
 import { computed, ref } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { resolveTextBinding } from '@worm-vue3-print/core/designer'
-import { resolveElementTextFit, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
+import { resolveElementTextFit, resolveElementWhiteSpace, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
 import { useShrinkFit } from '../../composables/useShrinkFit'
 import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
 
@@ -32,6 +32,8 @@ const rootRef = ref<HTMLElement | null>(null)
 
 /** 溢出显示形式：截断 / 自动缩小 / 自适应行高（未配置时文本元素默认截断） */
 const fit = computed(() => resolveElementTextFit('text', props.element.options))
+/** 「保留换行符」档：判据单点在 core，画布与出纸/print-common 三方同一份 */
+const keepWs = computed(() => resolveElementWhiteSpace(props.element.options))
 const baseFontSize = computed(() => props.element.options.fontSize || 12)
 const fitMinPt = computed(() => resolveShrinkMinFontSize(props.element.options.shrinkMinFontSize))
 
@@ -57,6 +59,8 @@ const textStyle = computed(() => {
     boxSizing: 'border-box' as const,
     overflow: autoHeight ? 'visible' : 'hidden',
     ...(o.wordWrap === false ? { whiteSpace: 'nowrap' as const, textOverflow: 'ellipsis' as const } : {}),
+    // 打开「保留换行符」才出声明；关掉「自动换行」时判据返回 undefined，单行优先
+    ...(keepWs.value ? { whiteSpace: keepWs.value } : {}),
     ...(o.verticalAlign
       ? {
           display: 'flex',

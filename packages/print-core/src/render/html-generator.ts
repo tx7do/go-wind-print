@@ -20,6 +20,7 @@ import {
   cellImageBoxMm,
   resolveCellTextFit,
   resolveElementTextFit,
+  resolveElementWhiteSpace,
   resolveShrinkMinFontSize,
   roundFontSize,
   type CellFitRowKind,
@@ -377,6 +378,16 @@ function indentStyle(opts: Record<string, any>): string {
 }
 
 /**
+ * 保留换行符档（text/longText）：判据单点在 core `resolveElementWhiteSpace`，画布与 print-common 引同一份。
+ * 缺省不出任何声明——存量模板的出纸逐字不变。刻意排在 `elementFitStyle` 之前，
+ * 让「自动换行」关掉时既有的 `nowrap` 仍按源序胜出（两档冲突时单行优先，与判据里的让位一致）。
+ */
+function whiteSpaceStyle(opts: Record<string, any>): string {
+  const ws = resolveElementWhiteSpace(opts)
+  return ws ? `white-space:${ws};` : ''
+}
+
+/**
  * 剪裁取位与放大的内联声明。净化与「只有剪裁消费放大比例」的判定都在 core `crop-style` 单点做完，
  * 这里只负责把 camelCase 键转成 CSS 声明；缺省时逐字保持存量模板的居中裁剪。
  */
@@ -470,7 +481,7 @@ function renderElement(el: TemplateElement, isMeasure: boolean, containerStyle?:
     case 'oval':
       return `<div class="print-element" style="${style};border:${opts.borderWidth || 1}pt ${opts.borderStyle || 'solid'} ${opts.borderColor || '#333'};border-radius:50%;"${measureAttr}></div>`
     case 'longText':
-      return `<div class="print-element" style="${style}${textStyle(opts)}${indentStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
+      return `<div class="print-element" style="${style}${textStyle(opts)}${indentStyle(opts)}${whiteSpaceStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
     case 'flowList': {
       const columns = resolveFlowColumns(opts.flowColumns)
       const gapX = resolveFlowGapX(opts.flowGapX)
@@ -497,7 +508,8 @@ function renderElement(el: TemplateElement, isMeasure: boolean, containerStyle?:
     case 'html':
       return `<div class="print-element" style="${style}"${measureAttr}>${opts.testData ?? opts.title ?? ''}</div>`
     default:
-      return `<div class="print-element" style="${style}${textStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
+      // 普通文本（text）与未单列的类型都走这里：判据只在显式打开新档时出声明，缺省逐字不变
+      return `<div class="print-element" style="${style}${textStyle(opts)}${whiteSpaceStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
   }
 }
 
