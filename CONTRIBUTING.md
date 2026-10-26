@@ -136,6 +136,7 @@ node scripts/check-common-dist-tag.mjs --fix
 
 - **构建顺序不能调**：`scripts/gen-styles.mjs` 从 `packages/print-canvas/dist/canvas.css` 派生样式，canvas 没构建时 common 直接报错退出；
 - **`--tag next` 是脚本内的硬约束**：手敲 `npm publish` 漏掉它会把实验包挂上 `latest`，非 Vue3 宿主一句 `npm i @worm-vue3-print/common` 就吃到预览版；
+- **本机默认 registry 是 `registry.npmmirror.com`**（2026-10-26 实测：不带 `--registry` 的 `npm publish --dry-run` 显示 `Publishing to https://registry.npmmirror.com`）——手敲发布必须显式带 `--registry=https://registry.npmjs.org`，`publish:npm` 与 `publish:common:beta` 里已经写死；
 - **`publishConfig.tag` 不是兜底**（实测 npm 11.19：不带 `--tag` 的 dry-run 仍报 `with tag latest`，而 `publishConfig.access/registry` 确实生效）——别指望它防住手敲发布，防线只有两条：脚本里的 `--tag next`，以及发布后 `--fix` 摘掉自动挂上的 `latest`；
 - **但 `--tag next` 只约束本次发布写入的 tag，挡不住 npm 给新包首发自动打的 `latest`**：首次发布后 `latest` 与 `next` 同指那个预览版，裸装不会报错而是静默装上实验包。`publish:common:beta` 已在发布后自动跑 `scripts/check-common-dist-tag.mjs --fix` 摘除 `latest`，单独复查用 `npm run publish:common:check`（exit 0 健康 / 1 红灯 / 2 读不到）；
 - 主线发版（方式一/二）不动 `common` 的 `version`，避免它被 `1.3.7` 这类正式号带上 `latest`；
