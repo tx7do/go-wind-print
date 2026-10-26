@@ -396,6 +396,61 @@ check('@font-face 进入文档（模板 3 个字体全在）', fonts.matched ===
 check('字体下拉 = 1 默认 + 3 候选', fonts.options === 4 && fonts.disabled === false, `options=${fonts.options} disabled=${fonts.disabled}`)
 await page.keyboard.press('Escape')
 
+// ── 8. 换行与行距（V1.3.11）：示例应用后画布与纸面同口径 ──
+await clickByText(page, '加载示例')
+await waitVisible(page, '.gallery-mask')
+await page.locator('.gallery-mask .sample-card', { hasText: '文本换行与跟随示例' }).first().click()
+await page.waitForTimeout(200)
+await clickByText(page, '使用该模板')
+await waitHidden(page, '.gallery-mask')
+await page.waitForTimeout(400)
+const wrapCanvas = await page.evaluate(() => {
+  const root = document.querySelector('print-designer').shadowRoot ?? document
+  // print-common 的内联样式落在文本叶子节点（.print-longtext），外层 .print-element 只是定位包装
+  const pick = txt => [...root.querySelectorAll('.print-element *')].find(e => e.children.length === 0 && (e.textContent || '').startsWith(txt))
+  const keep = pick('温馨提示')
+  const nowrap = pick('关掉自动换行')
+  const cs = e => (e ? getComputedStyle(e) : null)
+  return {
+    keepWs: cs(keep)?.whiteSpace,
+    nowrapWs: cs(nowrap)?.whiteSpace,
+    keepLh: cs(keep)?.lineHeight,
+    nowrapOverflow: nowrap ? nowrap.scrollWidth > nowrap.clientWidth + 1 : false,
+  }
+})
+check('画布：保留换行符出 pre-wrap', wrapCanvas.keepWs === 'pre-wrap', `white-space=${wrapCanvas.keepWs}`)
+check('画布：关自动换行出 nowrap 且确实溢框', wrapCanvas.nowrapWs === 'nowrap' && wrapCanvas.nowrapOverflow,
+  `white-space=${wrapCanvas.nowrapWs} overflow=${wrapCanvas.nowrapOverflow}`)
+check('画布：longText 缺省行高 = 1.5×（10pt → 20px）', Math.abs(parseFloat(wrapCanvas.keepLh) - 20) <= 1.5,
+  `line-height=${wrapCanvas.keepLh}`)
+
+await openDesignerPreview()
+await waitVisible(page, '.preview-mask', 8000)
+await page.waitForFunction(() => !!document.querySelector('.preview-mask iframe')?.contentWindow?.document, { timeout: 20000 })
+await waitPreviewSettled()
+const wrapPaper = await page.evaluate(() => {
+  const doc = document.querySelector('.preview-mask iframe').contentDocument
+  const lineCount = el => {
+    const r = doc.createRange()
+    r.selectNodeContents(el)
+    const tops = [...r.getClientRects()].filter(x => x.width > 1).map(x => Math.round(x.top)).sort((a, b) => a - b)
+    return tops.reduce((n, t, i) => (i === 0 || t - tops[i - 1] > 2 ? n + 1 : n), 0)
+  }
+  const pick = txt => [...doc.querySelectorAll('.print-element')].find(e => (e.textContent || '').startsWith(txt))
+  const keep = pick('温馨提示')
+  const nowrap = pick('关掉自动换行')
+  return {
+    keepLines: keep ? lineCount(keep) : 0,
+    nowrapLines: nowrap ? lineCount(nowrap) : 0,
+    keepLh: keep ? getComputedStyle(keep).lineHeight : '',
+  }
+})
+check('纸面：保留换行符真的分成多行', wrapPaper.keepLines >= 2, `行数=${wrapPaper.keepLines}`)
+check('纸面：关自动换行是单行', wrapPaper.nowrapLines === 1, `行数=${wrapPaper.nowrapLines}`)
+check('纸面行高与画布同值（20px）', Math.abs(parseFloat(wrapPaper.keepLh) - 20) <= 1.5, `line-height=${wrapPaper.keepLh}`)
+await page.keyboard.press('Escape')
+await waitHidden(page, '.preview-mask')
+
 await page.screenshot({ path: join(OUT, `demo-${new URL(URL_).port}.png`), fullPage: false })
 const realErrors = errors.filter(e => !/Failed to load resource|WebSocket|favicon/.test(e))
 check('全程无页面异常', realErrors.length === 0, realErrors.slice(0, 2).join(' | '))

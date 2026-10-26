@@ -3327,7 +3327,104 @@ export const SAMPLES = [
       },
     ],
   },
-  // ───────────────────────── 示例7：称签打印（标签纸 60×40mm · 单枚） ─────────────────────────
+  // ───────────────────────── 示例7：文本换行与跟随示例（A4 纵向 · 190mm 版心） ─────────────────────────
+  {
+    id: 'text-wrap-follow',
+    name: '文本换行与跟随示例',
+    group: '单据',
+    desc: '一份模板看懂 V1.3.11 的四条出纸口径：保留换行符、关自动换行的单行溢出、长文本行高、跟随区只带走与表格对齐的元素',
+    paper: 'A4 纵向 · 190mm 版心',
+    fields: [],
+    data: {},
+    template: {
+      paperSize: 'A4',
+      orientation: 'portrait',
+      margins: { top: 10, right: 10, bottom: 10, left: 10 },
+      header: { height: 0, elements: [] },
+      footer: { height: 0, elements: [] },
+      elements: [
+        {
+          id: 'twf-5',
+          type: 'table',
+          options: {
+            left: 10,
+            top: 10,
+            width: 120,
+            height: 40,
+            tableColWidths: [60, 60],
+            tableDefaultFontSize: 10,
+            tableRows: [
+              {
+                id: 'row-twf-1',
+                type: 'header',
+                height: 10,
+                cells: [{ id: 'cell-twf-1-1', formatter: '项目' }, { id: 'cell-twf-1-2', formatter: '金额' }],
+              },
+              {
+                id: 'row-twf-2',
+                type: 'data',
+                height: 10,
+                cells: [{ id: 'cell-twf-2-1', formatter: '打印纸（A4）' }, { id: 'cell-twf-2-2', formatter: '¥ 32.00' }],
+              },
+              {
+                id: 'row-twf-3',
+                type: 'data',
+                height: 10,
+                cells: [{ id: 'cell-twf-3-1', formatter: '碳粉盒' }, { id: 'cell-twf-3-2', formatter: '¥ 158.00' }],
+              },
+              {
+                id: 'row-twf-4',
+                type: 'data',
+                height: 10,
+                cells: [{ id: 'cell-twf-4-1', formatter: '合计' }, { id: 'cell-twf-4-2', formatter: '¥ 190.00' }],
+              },
+            ],
+          },
+          printElementType: { type: 'table', title: '表格' },
+        },
+        {
+          id: 'twf-6',
+          type: 'longText',
+          options: {
+            left: 10,
+            top: 55,
+            width: 80,
+            height: 26,
+            fontSize: 10,
+            formatter: '温馨提示：本单据为一式三联，第一联存根、第二联客户、第三联财务；\n货物出门后七天内可凭单退换，逾期不候。',
+            keepLineBreaks: true,
+          },
+          printElementType: { type: 'longText', title: '长文' },
+        },
+        {
+          id: 'twf-7',
+          type: 'longText',
+          options: { left: 10, top: 85, width: 80, height: 8, fontSize: 10, formatter: '关掉自动换行后这一行不再折行，超出框宽的部分直接溢出', wordWrap: false },
+          printElementType: { type: 'longText', title: '长文' },
+        },
+        {
+          id: 'twf-8',
+          type: 'vline',
+          options: { left: 95, top: 55, width: 1.8, height: 26 },
+          printElementType: { type: 'vline', title: '竖线' },
+        },
+        {
+          id: 'twf-9',
+          type: 'rect',
+          options: { left: 140, top: 55, width: 50, height: 26, borderWidth: 0.75, borderColor: '#333333', borderStyle: 'solid' },
+          printElementType: { type: 'rect', title: '矩形' },
+        },
+        {
+          id: 'twf-10',
+          type: 'text',
+          options: { left: 143, top: 58, width: 44, height: 20, fontSize: 9, formatter: '这一栏在表格右侧，\n不跟随表格移动' },
+          printElementType: { type: 'text', title: '文本' },
+        },
+      ],
+    },
+    batchData: [{}, {}, {}],
+  },
+  // ───────────────────────── 示例8：称签打印（标签纸 60×40mm · 单枚） ─────────────────────────
   {
     id: 'weight-label',
     name: '称签打印',
@@ -3569,7 +3666,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例8：价签打印（标签 40×30mm · 拼版 A4（4×8）） ─────────────────────────
+  // ───────────────────────── 示例9：价签打印（标签 40×30mm · 拼版 A4（4×8）） ─────────────────────────
   {
     id: 'price-label',
     name: '价签打印',
@@ -3744,7 +3841,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例9：资产/设备标签（标签 60×40mm · 拼版 A4（3×6）） ─────────────────────────
+  // ───────────────────────── 示例10：资产/设备标签（标签 60×40mm · 拼版 A4（3×6）） ─────────────────────────
   {
     id: 'asset-tag',
     name: '资产/设备标签',
@@ -3897,7 +3994,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例10：双列卷纸标签（标签 60×45mm · 拼版 122×45mm 卷纸（每页 2 枚，自动分页）） ─────────────────────────
+  // ───────────────────────── 示例11：双列卷纸标签（标签 60×45mm · 拼版 122×45mm 卷纸（每页 2 枚，自动分页）） ─────────────────────────
   {
     id: 'roll-label',
     name: '双列卷纸标签',
@@ -4178,7 +4275,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例11：电池模块标签（含 SN 条码）（95×75mm 自定义纸（单枚一页）） ─────────────────────────
+  // ───────────────────────── 示例12：电池模块标签（含 SN 条码）（95×75mm 自定义纸（单枚一页）） ─────────────────────────
   {
     id: 'battery-module-label',
     name: '电池模块标签（含 SN 条码）',
@@ -4560,7 +4657,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例12：电池模块标签（无 SN 标签格）（95×75mm 自定义纸（单枚一页）） ─────────────────────────
+  // ───────────────────────── 示例13：电池模块标签（无 SN 标签格）（95×75mm 自定义纸（单枚一页）） ─────────────────────────
   {
     id: 'battery-module-label-no-sn',
     name: '电池模块标签（无 SN 标签格）',
@@ -4943,7 +5040,7 @@ export const SAMPLES = [
       ],
     },
   },
-  // ───────────────────────── 示例13：零售小票（热敏纸 80mm · 连续纸） ─────────────────────────
+  // ───────────────────────── 示例14：零售小票（热敏纸 80mm · 连续纸） ─────────────────────────
   {
     id: 'thermal-receipt',
     name: '零售小票',

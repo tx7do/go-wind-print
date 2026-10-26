@@ -20,6 +20,7 @@ import { THERMAL_RECEIPT_SAMPLE } from './thermal-receipt'
 import { TCM_PRESCRIPTION_SAMPLE } from './tcm-prescription'
 import { COMPREHENSIVE_SHOWCASE_SAMPLE } from './comprehensive-showcase'
 import { PAGINATION_EDGE_SAMPLE } from './pagination-edge'
+import { TEXT_WRAP_FOLLOW_SAMPLE } from './text-wrap-follow'
 
 export type { SampleTemplate, SampleGroup }
 
@@ -31,6 +32,7 @@ export const SAMPLE_TEMPLATES: SampleTemplate[] = [
   EXPRESS_WAYBILL_SAMPLE,
   COMPREHENSIVE_SHOWCASE_SAMPLE,
   PAGINATION_EDGE_SAMPLE,
+  TEXT_WRAP_FOLLOW_SAMPLE,
   WEIGHT_LABEL_SAMPLE,
   PRICE_LABEL_SAMPLE,
   ASSET_TAG_SAMPLE,
