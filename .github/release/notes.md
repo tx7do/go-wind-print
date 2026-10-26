@@ -1,9 +1,10 @@
 # Worm Print V1.3.11 (2026-10-26)
 
-V1.3.11 是一个 minor 版本：补上元素级「保留换行符」能力，并修掉两条出纸不一致（表格跟随区的竖线、长文本关「自动换行」）。自 v1.3.10 以来 3 次提交（本次登记提交后 +1）。
+V1.3.11 是一个 minor 版本：补上元素级「保留换行符」能力，并修掉两条出纸不一致（表格跟随区的竖线、长文本关「自动换行」）。自 v1.3.10 以来 28 次提交。
 
 ## 新增
 - **文本 / 长文本「保留换行符」档**（`keepLineBreaks`，缺省关）。打开后内容里手打的 `\n` 各占一行、行首空格与连续空格原样保留，同时仍按框宽自动换行；与「自动换行」同时关掉时单行优先。属性台在「自动换行」下方新增一行，画布与零框架宿主（print-common）同位置同文案。起因是 Gitee #IKPXQL 的需求2。
+- **示例库新增「文本换行与跟随示例」**（示例数 13 → 14）：一份 A4 模板同时演示本版四条出纸口径。落地时实测撞出两处资产缺陷并当场修掉（缺 `unit: 'mm'` 导致跟随区判定失效、静态表格未设 `tableMode: 'static'` 导致纸面只剩表头），`verify-demo` 相应加 9 条断言、由 42 项增至 51 项。
 
 ## 修复
 - **表格跟随区里的竖线出纸高度为 0（整条消失）**。跟随区此前只给矩形/椭圆/图片回传设计高度，而竖线的长度完全依赖 `height`，于是「表格下方放一条竖线并跟着表格走」在纸上不存在。横线未受影响（它的长度走宽度，`height:0` 是有意行为）。
@@ -15,7 +16,7 @@ V1.3.11 是一个 minor 版本：补上元素级「保留换行符」能力，�
 
 ## 工程与验收
 - 新增 `scripts/check-release-carriers.mjs`（`npm run check:release-carriers`）：发版前后各跑一次，核对版本号同号、版本段折叠、两份内置更新记录、Release 正文底稿、README 安装包直链表、客户端 dist 是否混旧包、改动是否命中 core 渲染管线（命中则七件安装包需重打）。
-- 测试：core 77 文件 1139 例 / canvas 73 文件 688 例 / common 27 文件 323 例 / print-client 14 文件 / 渲染服务 10 文件 34 例（真实 Chromium）全绿；`demo-common` 四宿主 `verify-demo` 36/36 ×4。
+- 测试：core 77 文件 1147 例 / canvas 73 文件 688 例 / common 27 文件 323 例 / print-client 14 文件 110 例 / 渲染服务 10 文件 34 例（真实 Chromium）全绿；`demo-common` 四宿主 `verify-demo` 51/51 ×4。
 
 ---
 
@@ -25,6 +26,7 @@ V1.3.11 is a minor release: it adds element-level "keep line breaks" and fixes t
 
 ## Added
 - **"保留换行符" (keep line breaks) for text / long-text** (`keepLineBreaks`, off by default): explicit `\n` each start a line, leading and repeated spaces are preserved, and wrapping by box width still applies; when auto wrap is off, the single line wins. A new row appears under "自动换行" in the property panel, identical on the Vue 3 canvas and the zero-framework host.
+- **New demo sample "文本换行与跟随示例"** (samples 13 → 14): one A4 template that demonstrates all four paper rules of this release at once. Two asset defects were caught live while landing it and fixed on the spot (missing `unit: 'mm'` disabled the follow-region check; a data-less static table without `tableMode: 'static'` printed only its header row); `verify-demo` gained 9 assertions, 42 → 51 items.
 
 ## Fixed
 - **Vertical lines below a table printed with zero height (they vanished).** The follow region only passed the design height to `rect`/`oval`/`image`, while a vline takes its whole length from `height`. Horizontal lines are unaffected (their `height:0` is intentional).
@@ -35,6 +37,6 @@ V1.3.11 is a minor release: it adds element-level "keep line breaks" and fixes t
 
 ## Engineering
 - New `scripts/check-release-carriers.mjs` (`npm run check:release-carriers`) to verify release carriers before and after a release.
-- Tests green: core 77 files / 1139 cases, canvas 73 / 688, common 27 / 323, print-client 14 files, render service 10 files / 34 cases (real Chromium), `verify-demo` 36/36 across four hosts.
+- Tests green: core 77 files / 1147 cases, canvas 73 / 688, common 27 / 323, print-client 14 files / 110 cases, render service 10 files / 34 cases (real Chromium), `verify-demo` 51/51 across four hosts.
 
 > 明细见 `docs/中文/CHANGELOG.md` 的 V1.3.11 段。安装包由本次发版重打后上传，上传前本页与 README 的 v1.3.11 直链会 404。
