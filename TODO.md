@@ -6,7 +6,8 @@
 > **只剩两步需要你的 npm 登录态**：① `node scripts/check-common-dist-tag.mjs --fix` 摘掉被预览版占用的 `latest`；
 > ② `npm run publish:npm` 发 core/canvas `1.3.11`，随后重打七件安装包并挂 Release（GitHub 附件 + Gitee 发行版正文用 `.github/release/notes.md` 与中文版本段）。
 > 发完可跑 `npm run check:release-carriers -- --post` 与线上 `npm pack` 载荷复验（本轮已用同法证过 1.3.10 缺这三条、1.3.11 全带）。
-> 另：#IKPXQL 的公开错话已按载荷级实测更正（评论 id 51816315，复核 `state=closed / comments=2`）。待裁决新登记：**T-28**（longText 缺省行高 1.5 vs 出纸 normal）、**T-29**（`wordWrap:false` 三份手写实现待收编），以及原有 T-11 C2、T-24 定性、T-16/T-19b、T-22、T-25。
+> 另：#IKPXQL 的公开错话已按载荷级实测更正（评论 id 51816315，复核 `state=closed / comments=2`）。
+> **2026-10-26 续作**：T-28（longText 缺省行高）已按方案 A 修完并折进尚未发布的 V1.3.11 段，四载体同步、sync-assets 已重跑；T-29（`wordWrap:false` 三份手写实现收编）与 T-22（canvas 53 条测试类型错）排队中。待裁决新登记：**T-28**（longText 缺省行高 1.5 vs 出纸 normal）、**T-29**（`wordWrap:false` 三份手写实现待收编），以及原有 T-11 C2、T-24 定性、T-16/T-19b、T-22、T-25。
 
 > **本文件只挂未完成项。** 已完成条目压成文末「已完成归档」一行一条；原实施正文、批次记录、浏览器验证实测与探针坑明细
 > 已从本文件移出，可在 `git show HEAD:TODO.md`（截至 `cd6e7c1` 的 775 行版）与中英 CHANGELOG 里取回。
@@ -187,23 +188,6 @@
 
 ---
 
-### T-28 【新增·做 T-27 的 UI 级并排取证时撞出】longText 缺省行高三端不一致　【成立】
-
-- 现象（同一 Chromium、同一段 78 字长文本、同一 60mm 框、`fontSize:12`、**都没设 `lineHeight`**）：
-  画布每行 **24px**（4 行 96px），出纸每行 **22px**（4 行 88px）→ 四行长文本纸面比设计器矮约 **2.1mm**。
-  两端行数一致（4 对 4、1 对 1）、`white-space`/溢出量逐值一致（`scrollWidth` 都是 816px），差的只有行高。
-- 根因是**三端缺省值不同**，不是谁写错：core `html-generator.ts:357` 是 `if (opts.lineHeight) parts.push('line-height:Npt')`
-  ⇒ 未设就不写，落回 UA `normal`；画布 `LongTextElement.vue:52` 未设时给 `'1.5'`；print-common `elements.ts:75`
-  未设时 `isLong ? '1.5' : 'normal'`。也就是说**画布与 common 已经是 1.5，只有出纸不是**。
-- 为什么这条不能顺手改：把出纸补成 1.5 会**改变所有未设 `lineHeight` 的存量长文本出纸高度**（≈ +9%），
-  撑高会牵动叠压观感与跟随区排布；表格单元格是另一条路径（`html-generator.ts` 的单元格分支自己算 padding），需一并核。
-  按 27 份产物那套逐字比对照跑，并单独一轮按 minor 走、CHANGELOG 写明触发条件。
-- **等裁决**：A 出纸补 1.5 对齐两端（推荐，"设计所见＝纸面所得"）；B 反向撤掉画布/common 的 1.5（会缩小存量设计观感，不推荐）；
-  C 只在文档里写明该差异、不改代码。取证通路：挂载 `PrintDesigner` 的 esbuild bundle + 同页 iframe 装出纸 HTML 并排量行盒
-  （`Range.getClientRects()` 按 `top` 聚类；元素必须带 `printElementType.type`，否则画布渲染空节点、探针假阴性）。
-
----
-
 ## 二、本轮对台账的更正（2026-10-26 复验）
 1. **T-22 的 49 条 → 实测 53 条**（涨幅来自近期改动过的 spec）。
 2. **T-19b「verify-demo 不含顶栏收纳断言」不属实**——收纳两条在 T-10 轮已入库；真实缺口只剩缩放档位与字体链路。
@@ -266,6 +250,7 @@
 | 项 | 一句话结论 | 本轮验证方式 |
 |---|---|---|
 | T-23b | #IKPXQL 那条「请更新最新版本，当前最新版本已经解决」已按载荷级实测更正：重开 → 贴更正（评论 id 51816315，逐条区分 1.3.10 已生效 / V1.3.11 才有的元素级换行）→ 再关闭；匿名复核 `state=closed`、`comments=2` | 三步写操作 + 匿名 GET 复核 |
+| T-28 | longText 缺省行高三端不一致已修：出纸在未设 `lineHeight` 时补 `line-height:1.5`（无单位，不覆盖显式 pt）；**存量影响**：29 份产物 25 份一致，差异只有 4 组「longText + 未设行高」各多一条声明，示例库 13 份 + 技能 8 份全未变（资产里 longText 未设行高者 0 个，未设行高的 85 个全是 `text` 且三端本就 normal）；真实 Chromium 每行 22px→24px 与画布同值 | RED/GREEN + 逐份 cmp + Chromium 行盒 + 四载体回写（中英 CHANGELOG / 两份 help-content / 指南 / 技能） |
 | D-1 / D-2 / D-3 / D-4 | 拍板 `em` / CSS 值原样透传 / 删除字段 / 工具栏自适应收纳 | 随各条 |
 | T-01 | 长文本首行缩进出纸生效：新增 `indentStyle()` 仅 `case 'longText'` 出 `text-indent:Nem`，画布与 common 两处 `pt`→`em` | 代码坐标 + core/canvas/common 单测 + render 集成 30 例全绿 |
 | T-02 | 独立 image 的 `object-fit` 不再写死 `contain`，改 `opts.fit \|\| 'contain'`；未设 `fit` 的存量模板逐字不变 | 同上（缺省路径已用断言锁死） |

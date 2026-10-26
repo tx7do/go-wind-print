@@ -76,7 +76,7 @@
 
 | `verticalAlign` | `top` / `middle` / `bottom` |
 | `textDecoration` | `underline` / `line-through` |
-| `wordWrap` / `textFit` | 换行开关（`false`＝单行）；溢出形式 `clip` / `shrink` / `autoHeight`。**省略号只在裁剪档（`clip`/`shrink`）才画得出**：`longText` 的缺省形式是 `autoHeight`（保留 `overflow:visible`），该档下关自动换行的落纸形态是**单行溢出**（文字越出元素右缘，可能与邻元素叠压），要省略号必须显式写 `"textFit": "clip"`。**版本边界**：V1.3.10 及更早，`longText` 关自动换行在出纸端**完全不生效**（纸面仍按多行折行、只有画布是单行），V1.3.11 起三端同源（`1.3.10` 及更早不含）——给存量模板补该档要按目标版本说话。判据：`npm test -w @worm-vue3-print/core`（`text-fit.test.ts`「longText 关自动换行的出纸落值」五组正/负对照）。**注意**：元素级的 `\n` 在缺省下**不生效**（画布与出纸都不出 `white-space`，按 CSS 默认折叠成一行），要多行请开 `keepLineBreaks`（见下行），或把文字放进表格单元格 |
+| `wordWrap` / `textFit` | 换行开关（`false`＝单行）；溢出形式 `clip` / `shrink` / `autoHeight`。**省略号只在裁剪档（`clip`/`shrink`）才画得出**：`longText` 的缺省形式是 `autoHeight`（保留 `overflow:visible`），该档下关自动换行的落纸形态是**单行溢出**（文字越出元素右缘，可能与邻元素叠压），要省略号必须显式写 `"textFit": "clip"`。**版本边界**：V1.3.10 及更早，`longText` 关自动换行在出纸端**完全不生效**（纸面仍按多行折行、只有画布是单行），V1.3.11 起三端同源（`1.3.10` 及更早不含）——给存量模板补该档要按目标版本说话。判据：`npm test -w @worm-vue3-print/core`（`text-fit.test.ts`「longText 关自动换行的出纸落值」五组正/负对照）。**缺省行高**：不填 `lineHeight` 时 `text` 走 `normal`、`longText` 走 **1.5 倍**（三端同值，V1.3.11 起出纸与设计器一致；算行数按 1.5×字号估）。**注意**：元素级的 `\n` 在缺省下**不生效**（画布与出纸都不出 `white-space`，按 CSS 默认折叠成一行），要多行请开 `keepLineBreaks`（见下行），或把文字放进表格单元格 |
 | `keepLineBreaks` | **缺省不写＝关**。打开后 `text` / `longText` 出纸带 `white-space:pre-wrap`：`\n` 各占一行、行首与连续空格原样保留，同时仍按框宽自动换行。与 `wordWrap: false` 冲突时**单行优先**（新档不出声明）。判据单点在 core `resolveElementWhiteSpace`，画布 / print-common / 三条出纸链路同一份；仅这两类元素消费，挂到表格上不改一个字节 |
 | `borderWidth` `borderStyle` `borderColor` | 边框（宽度 pt） |
 | `zIndex` `locked` `visible` | 层级 / 锁定 / 可见 |

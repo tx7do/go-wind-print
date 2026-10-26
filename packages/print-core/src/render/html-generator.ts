@@ -343,8 +343,11 @@ function renderSection(section: PageSection, template: TemplateData, ctx: Render
 const V_ALIGN_FLEX: Record<string, string> = { top: 'flex-start', middle: 'center', bottom: 'flex-end' }
 const H_ALIGN_FLEX: Record<string, string> = { left: 'flex-start', center: 'center', right: 'flex-end' }
 
-/** 文本类元素字体/颜色/对齐内联样式（字段与前端 ElementOptions 对齐，fontSize/lineHeight 单位 pt） */
-function textStyle(opts: Record<string, any>): string {
+/** 文本类元素字体/颜色/对齐内联样式（字段与前端 ElementOptions 对齐，fontSize/lineHeight 单位 pt）
+ *  defaultLineHeight 给「未显式设 lineHeight」时用的无单位倍率——仅 longText 传 1.5，
+ *  与画布 LongTextElement / print-common textLikeStyle 的缺省一致（此前只有出纸落回 UA normal）。
+ */
+function textStyle(opts: Record<string, any>, defaultLineHeight?: string): string {
   const parts: string[] = []
   // 自动缩小求得字号优先：测量趟算出后回写 _fitFontSize，最终趟据此渲染。
   // 仅缩放结果取整（与写入 DOM 的字符串逐字一致），未配置缩放时字号原样输出。
@@ -355,6 +358,7 @@ function textStyle(opts: Record<string, any>): string {
   if (opts.color) parts.push(`color:${opts.color}`)
   if (opts.backgroundColor) parts.push(`background-color:${opts.backgroundColor}`)
   if (opts.lineHeight) parts.push(`line-height:${opts.lineHeight}pt`)
+  else if (defaultLineHeight) parts.push(`line-height:${defaultLineHeight}`)
   if (opts.letterSpacing) parts.push(`letter-spacing:${opts.letterSpacing}pt`)
   if (opts.verticalAlign) {
     // justify 要行盒取满宽才生效：横向 flex 里的匿名文本项无法拉伸，故改纵向主轴——
@@ -482,7 +486,7 @@ function renderElement(el: TemplateElement, isMeasure: boolean, containerStyle?:
     case 'oval':
       return `<div class="print-element" style="${style};border:${opts.borderWidth || 1}pt ${opts.borderStyle || 'solid'} ${opts.borderColor || '#333'};border-radius:50%;"${measureAttr}></div>`
     case 'longText':
-      return `<div class="print-element" style="${style}${textStyle(opts)}${indentStyle(opts)}${whiteSpaceStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
+      return `<div class="print-element" style="${style}${textStyle(opts, '1.5')}${indentStyle(opts)}${whiteSpaceStyle(opts)}${elementFitStyle(fit, opts)}"${measureAttr}${fitAttr}>${esc(opts.formatter ?? opts.testData ?? '')}</div>`
     case 'flowList': {
       const columns = resolveFlowColumns(opts.flowColumns)
       const gapX = resolveFlowGapX(opts.flowGapX)

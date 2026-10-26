@@ -292,6 +292,33 @@ describe('保留换行符的出纸落值', () => {
   })
 })
 
+// ─── T-28：longText 缺省行高与画布/Common 对齐（此前只有出纸落回 UA normal）───
+
+describe('longText 缺省行高', () => {
+  const longEl = (options: Record<string, any> = {}): TemplateElement =>
+    ({ ...textElement(options), type: 'longText' }) as TemplateElement
+
+  it('未设 lineHeight 时出无单位 1.5（与画布 LongTextElement、common textLikeStyle 同值）', () => {
+    expect(render(longEl({}))).toContain('line-height:1.5;')
+  })
+
+  it('显式 lineHeight 仍按 pt 输出，且不重复声明', () => {
+    const html = render(longEl({ lineHeight: 8 }))
+    expect(html).toContain('line-height:8pt;')
+    expect(html).not.toContain('line-height:1.5')
+  })
+
+  it('负对照：text 未设 lineHeight 不出声明（三端本来就都是 normal）', () => {
+    expect(render(textElement({}))).not.toContain('line-height')
+  })
+
+  it('与「不换行」并存：1.5 与 nowrap 同时在场，互不顶掉', () => {
+    const html = render(longEl({ wordWrap: false }))
+    expect(html).toContain('line-height:1.5;')
+    expect(html).toContain('white-space:nowrap;text-overflow:ellipsis;')
+  })
+})
+
 // ─── T-27：长文本关「自动换行」的出纸分叉（画布/Common 都出 nowrap，出纸没出）───
 
 describe('longText 关自动换行的出纸落值', () => {
