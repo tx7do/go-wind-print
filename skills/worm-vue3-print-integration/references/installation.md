@@ -29,7 +29,7 @@ npm install @worm-vue3-print/core@^1.3.0 @worm-vue3-print/canvas@^1.3.0
 npm install @worm-vue3-print/common@next @worm-vue3-print/core
 ```
 
-- `common` 只发**预览版**：dist-tag `next`，版本号形如 `1.3.7-beta.N`，npm 上还没有 `latest`，省略 `@next` 会报 `No matching version found`；判据 `npm view @worm-vue3-print/common dist-tags --json` 应出现 `next`。
+- `common` 只发**预览版**：dist-tag `next`，版本号形如 `1.3.7-beta.N`，安装必须写 `@next`。判据 `npm view @worm-vue3-print/common dist-tags --json`：`next` 必然存在；`latest` 本不该存在，但 **npm 给新包首次发布自动打 `latest`**，`--tag next` 挡不住这一步，所以实测里 `latest` 与 `next` 同指预览版——此时裸写 `npm i @worm-vue3-print/common`（不带 `@next`）不会报错，而是**静默装到实验包**。仓库自检 `npm run publish:common:check`（exit 1 即该红灯），维护者用 `node scripts/check-common-dist-tag.mjs --fix` 摘除 `latest` 后裸装才会显式失败。
 - 零框架运行时（原生 Custom Elements + Shadow DOM，无 `vue` peer 依赖）：`<print-designer>` 用 property / attribute 注入 `fields`、`template`，宿主能力与事件走 property 赋值和 `CustomEvent`。
 - 样式默认由组件内联注入，**Shadow DOM 形态不引样式文件**；只有渲染进 light DOM 才 `import '@worm-vue3-print/common/style.css'`（→ `dist/common.css`）。
 - 无打包器宿主走子路径 `@worm-vue3-print/common/browser`（UMD `dist/common.js`，core 与码制库已内联，挂 `window.WormPrintCommon`）。

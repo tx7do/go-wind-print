@@ -107,6 +107,18 @@ npm publish -w @worm-vue3-print/canvas
 #    - package-lock.json 里 "packages/print-common" 条目的 "version"
 #    例：主线 1.3.7 的第 2 轮预览 → 1.3.7-beta.1
 
+## 发版载体自检（发版前后各跑一次）
+
+```bash
+npm run check:release-carriers            # 自动判态：未发布段非空＝发版前预检
+npm run check:release-carriers -- --post   # 发版后核对：未发布段应已清空、两份内置更新记录应含本版
+npm run check:release-carriers -- --base=v1.3.10   # 指定基线，判断改动是否命中 core 渲染管线（命中→七件安装包必须重打）
+```
+
+查七项：主线四包版本号是否同号（`common` 走预览号不计入）、「未发布」段是否已折叠、两份 `help-content/changelog.ts` 是否含本版、`.github/release/notes.md` 指向、README 安装包直链表版本、`clients/print-client/dist` 是否混入旧包、变更是否命中 `render/*` 或 `functions/format.ts`。
+退出码：0 通过（允许 WARN）/ 1 有 FAIL / 2 读不到载体文件。**已知局限**：「未发布段条数」按 bullet 粗算，只用于判断该段是否已清空；README 直链匹配依赖 `WormPrintClient-<版本>-` 命名，改名要同步 `scripts/check-release-carriers.mjs`。
+历史事故对应：1.3.8 功能在包里但内置更新记录缺那条（被迫补发 1.3.9）、README 直链表忘改会指向上一版资产、`dist` 混入旧包会被 `pack-client-release.mjs` 一起收进 SHA256SUMS。
+
 # 2. 登录并演练（脚本按 core → canvas → common 构建，跑三套测试，再打印 tarball 与实际使用的 tag）
 npm login --registry=https://registry.npmjs.org
 npm run publish:common:dry-run
@@ -114,14 +126,18 @@ npm run publish:common:dry-run
 # 3. 正式发布（同一条链，去掉 --dry-run）
 npm run publish:common:beta
 
-# 4. 发完自查：预览版只应挂在 next 上
-npm view @worm-vue3-print/common dist-tags --json
+# 4. 发完自查：预览版只应挂在 next 上（红灯 exit 1 = latest 仍指向预览版）
+npm run publish:common:check
+# 红灯时摘除 latest（脚本内已给出等价命令）
+node scripts/check-common-dist-tag.mjs --fix
 ```
 
 要点：
 
 - **构建顺序不能调**：`scripts/gen-styles.mjs` 从 `packages/print-canvas/dist/canvas.css` 派生样式，canvas 没构建时 common 直接报错退出；
 - **`--tag next` 是脚本内的硬约束**：手敲 `npm publish` 漏掉它会把实验包挂上 `latest`，非 Vue3 宿主一句 `npm i @worm-vue3-print/common` 就吃到预览版；
+- **`publishConfig.tag` 不是兜底**（实测 npm 11.19：不带 `--tag` 的 dry-run 仍报 `with tag latest`，而 `publishConfig.access/registry` 确实生效）——别指望它防住手敲发布，防线只有两条：脚本里的 `--tag next`，以及发布后 `--fix` 摘掉自动挂上的 `latest`；
+- **但 `--tag next` 只约束本次发布写入的 tag，挡不住 npm 给新包首发自动打的 `latest`**：首次发布后 `latest` 与 `next` 同指那个预览版，裸装不会报错而是静默装上实验包。`publish:common:beta` 已在发布后自动跑 `scripts/check-common-dist-tag.mjs --fix` 摘除 `latest`，单独复查用 `npm run publish:common:check`（exit 0 健康 / 1 红灯 / 2 读不到）；
 - 主线发版（方式一/二）不动 `common` 的 `version`，避免它被 `1.3.7` 这类正式号带上 `latest`；
 - npm 账号若开启 2FA，最后一步会交互式索取验证码（新包首次发布同样需要），照着 Authenticator 填即可；
 - 转正条件满足后：`version` 去掉 `-beta.N`，改用 `npm publish -w @worm-vue3-print/common --access public`（不带 `--tag`，落 `latest`），并把该包补进 `publish:npm`、`release.yml` 的标签校验与 README / AGENTS.md 的发布口径。

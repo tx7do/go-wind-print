@@ -49,6 +49,7 @@ COMMON_ALIAS = {
     'letterSpacing': 'letterSpacing',
     'textFit': 'textFit',
     'wordWrap': 'wordWrap',
+    'keepLineBreaks': 'keepLineBreaks',  # 仅 text/longText 消费（V1.3.11 起三端同源）：打开后 \n 与连续空格上纸
     'fit': 'fit',
     'zIndex': 'zIndex',
 }

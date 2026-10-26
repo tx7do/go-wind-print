@@ -76,7 +76,7 @@
 
 | `verticalAlign` | `top` / `middle` / `bottom` |
 | `textDecoration` | `underline` / `line-through` |
-| `wordWrap` / `textFit` | 换行开关（`false`＝单行 + 省略号）；溢出形式 `clip` / `shrink` / `autoHeight`。**注意**：元素级的 `\n` 在缺省下**不生效**（画布与出纸都不出 `white-space`，按 CSS 默认折叠成一行），要多行请开 `keepLineBreaks`（见下行），或把文字放进表格单元格 |
+| `wordWrap` / `textFit` | 换行开关（`false`＝单行）；溢出形式 `clip` / `shrink` / `autoHeight`。**省略号只在裁剪档（`clip`/`shrink`）才画得出**：`longText` 的缺省形式是 `autoHeight`（保留 `overflow:visible`），该档下关自动换行的落纸形态是**单行溢出**（文字越出元素右缘，可能与邻元素叠压），要省略号必须显式写 `"textFit": "clip"`。**版本边界**：V1.3.10 及更早，`longText` 关自动换行在出纸端**完全不生效**（纸面仍按多行折行、只有画布是单行），V1.3.11 起三端同源（`1.3.10` 及更早不含）——给存量模板补该档要按目标版本说话。判据：`npm test -w @worm-vue3-print/core`（`text-fit.test.ts`「longText 关自动换行的出纸落值」五组正/负对照）。**注意**：元素级的 `\n` 在缺省下**不生效**（画布与出纸都不出 `white-space`，按 CSS 默认折叠成一行），要多行请开 `keepLineBreaks`（见下行），或把文字放进表格单元格 |
 | `keepLineBreaks` | **缺省不写＝关**。打开后 `text` / `longText` 出纸带 `white-space:pre-wrap`：`\n` 各占一行、行首与连续空格原样保留，同时仍按框宽自动换行。与 `wordWrap: false` 冲突时**单行优先**（新档不出声明）。判据单点在 core `resolveElementWhiteSpace`，画布 / print-common / 三条出纸链路同一份；仅这两类元素消费，挂到表格上不改一个字节 |
 | `borderWidth` `borderStyle` `borderColor` | 边框（宽度 pt） |
 | `zIndex` `locked` `visible` | 层级 / 锁定 / 可见 |
@@ -125,7 +125,7 @@ Chromium 会合成粗体，度量漂移会静默改分页。
 | `hline`/`vline` | `borderWidth` + `borderColor`（元素高度常取 0.2） |
 
 **排版口径**：`textAlign` 支持 `justify`（两端对齐 = 撑满行宽，含末行；渲染端会同时输出 `text-align-last:justify`，因为 CSS 的 `justify` 不拉伸段落末行，单行文本否则毫无变化）。与 `verticalAlign` 同时给出时，渲染端把 flex 主轴改成纵向让行盒取满宽，右缘才真正齐平——三端（画布/浏览器打印/PDF/客户端）同策。
-**元素级多行**：文本/长文本元素里的 `\n` 与手工空格**默认折叠**（`text` 缺省档不输出任何 `white-space`，落回 UA 默认 `normal`），这是历史形态，存量模板照此不变。要按手打的换行上纸就显式给 `keepLineBreaks: true`（属性台「保留换行符」同一档），效果与单元格一致；只想要首行缩进则用 `longTextIndent`（em），两者可并存。**算行数/撑高前先看这一档**：打开后行数 = `\n` 段数 + 各段按宽折算的行数，元素会被内容撑高并牵动分页预算。
+**元素级多行**：文本/长文本元素里的 `\n` 与手工空格**默认折叠**（`text` 缺省档不输出任何 `white-space`，落回 UA 默认 `normal`），这是历史形态，存量模板照此不变。要按手打的换行上纸就显式给 `keepLineBreaks: true`（属性台「保留换行符」同一档），效果与单元格一致；只想要首行缩进则用 `longTextIndent`（em），两者可并存。**算行数/撑高前先看这一档**：打开后行数 = `\n` 段数 + 各段按宽折算的行数，元素会被内容撑高——但**独立元素按 `top` 归页，撑高本身不会让模板换页**（真实两趟管线实测：内容底边越出内容区 3mm 时开关两档都留在同一页）；只有表格那侧才走分页预算，见上文。
 证件照这类「竖版自拍按居中裁剪会切头顶」的场景，给 `fit: 'cover'` 再配 `objectPosition: '50% 0%'` 取画面顶端（`'center 20%'` 等价于 `'50% 20%'`，两种写法都吃）；
 `objectPosition` 含 `;`、引号、`url()` 等字符时整条丢弃（防往 style 里追加声明），只在确实发生裁切时可见。
 
