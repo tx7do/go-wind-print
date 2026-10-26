@@ -15,7 +15,7 @@
 import { computed, ref } from 'vue'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
 import { resolveTextBinding } from '@worm-vue3-print/core/designer'
-import { resolveElementTextFit, resolveElementWhiteSpace, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
+import { resolveElementNowrap, resolveElementTextFit, resolveElementWhiteSpace, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
 import { useShrinkFit } from '../../composables/useShrinkFit'
 import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
 
@@ -34,6 +34,7 @@ const rootRef = ref<HTMLElement | null>(null)
 const fit = computed(() => resolveElementTextFit('longText', props.element.options))
 /** 「保留换行符」档：判据单点在 core，画布与出纸/print-common 三方同一份 */
 const keepWs = computed(() => resolveElementWhiteSpace(props.element.options))
+const nowrapEl = computed(() => resolveElementNowrap(props.element.options))
 const baseFontSize = computed(() => props.element.options.fontSize || 12)
 const fitMinPt = computed(() => resolveShrinkMinFontSize(props.element.options.shrinkMinFontSize))
 
@@ -58,7 +59,7 @@ const textStyle = computed(() => {
     overflow: autoHeight ? 'visible' : 'hidden',
     wordBreak: 'break-all' as const,
     boxSizing: 'border-box' as const,
-    ...(o.wordWrap === false ? { whiteSpace: 'nowrap' as const, textOverflow: 'ellipsis' as const } : {}),
+    ...(nowrapEl.value ? { whiteSpace: 'nowrap' as const, textOverflow: 'ellipsis' as const } : {}),
     // 打开「保留换行符」才出声明；关掉「自动换行」时判据返回 undefined，单行优先
     ...(keepWs.value ? { whiteSpace: keepWs.value } : {}),
     ...(o.verticalAlign

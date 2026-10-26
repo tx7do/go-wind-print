@@ -12,6 +12,7 @@ import {
   resolveElementBorder,
   resolveElementTextFit,
   resolveElementWhiteSpace,
+  resolveElementNowrap,
   resolveShrinkMinFontSize,
 } from '@worm-vue3-print/core/designer'
 import type { RuntimeElement } from '@worm-vue3-print/core/designer'
@@ -85,7 +86,7 @@ export function textLikeStyle(el: RuntimeElement) {
           padding: `${o.contentPaddingTop || 0}pt ${o.contentPaddingRight || 0}pt ${o.contentPaddingBottom || 0}pt ${o.contentPaddingLeft || 0}pt`,
         }),
   }
-  if (o.wordWrap === false) {
+  if (resolveElementNowrap(o)) {
     style.whiteSpace = 'nowrap'
     style.textOverflow = 'ellipsis'
   }

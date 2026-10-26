@@ -21,6 +21,7 @@ import {
   resolveCellTextFit,
   resolveElementTextFit,
   resolveElementWhiteSpace,
+  resolveElementNowrap,
   resolveShrinkMinFontSize,
   roundFontSize,
   type CellFitRowKind,
@@ -408,7 +409,7 @@ function cropStyle(fit: string | undefined, fitScale: number | undefined, object
  * - 自适应行高：放开裁剪，内容撑开盒子（测量趟同时省略高度，使实测高度等于内容高度）
  */
 function elementFitStyle(fit: string, opts: Record<string, any>): string {
-  const nowrap = opts.wordWrap === false ? 'white-space:nowrap;text-overflow:ellipsis;' : ''
+  const nowrap = resolveElementNowrap(opts) ? 'white-space:nowrap;text-overflow:ellipsis;' : ''
   // 自适应行高只决定裁剪，与「不换行」并不互斥（画布/Common 同为两值并存），故必须与 nowrap 拼接而非提前 return
   if (fit === 'autoHeight') return `overflow:visible;${nowrap}`
   return nowrap

@@ -45,6 +45,15 @@ export function resolveElementWhiteSpace(
   return 'pre-wrap'
 }
 
+/**
+ * 元素级「不换行」判据：单点在此。出纸 html-generator、画布 Text/LongTextElement、print-common textLikeStyle
+ * 三端此前各写一份 `opts.wordWrap === false`，T-27 那条分叉就是因为三份里只有出纸端漏了才存在。
+ * 只有显式 false 才算关（手写 JSON 塞字符串不生效），与「自动换行」缺省 true 一致。
+ */
+export function resolveElementNowrap(opts?: { wordWrap?: unknown } | undefined): 'nowrap' | undefined {
+  return opts?.wordWrap === false ? 'nowrap' : undefined
+}
+
 /** 单元格级显示形式：未配置时「不换行→截断，否则自适应行高」（与既有行为一致） */
 export function resolveCellTextFit(
   cell?: { textFit?: string; wordWrap?: boolean } | undefined,

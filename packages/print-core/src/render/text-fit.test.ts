@@ -8,7 +8,7 @@ import {
   parseCellFitKey,
   resolveCellTextFit,
   resolveElementTextFit,
-  resolveElementWhiteSpace,
+  resolveElementNowrap, resolveElementWhiteSpace,
   resolveShrinkMinFontSize,
 } from './text-fit.js'
 import { generateHtml } from './html-generator.js'
@@ -221,6 +221,21 @@ describe('表格单元格三种形式的 HTML 输出', () => {
 })
 
 // ─── 保留换行符档（#IKPXQL 需求2：元素里的 \n 与连续空格上纸）───
+
+describe('resolveElementNowrap（三端共用的不换行判据）', () => {
+  it('只有显式 false 才算关；缺省 / true / 字符串都不算', () => {
+    expect(resolveElementNowrap({ wordWrap: false })).toBe('nowrap')
+    expect(resolveElementNowrap({})).toBeUndefined()
+    expect(resolveElementNowrap(undefined)).toBeUndefined()
+    expect(resolveElementNowrap({ wordWrap: true })).toBeUndefined()
+    expect(resolveElementNowrap({ wordWrap: 'false' as never })).toBeUndefined()
+  })
+
+  it('与「保留换行符」并存时判据不打架：单行优先由白空格判据让位实现，nowrap 照常出', () => {
+    expect(resolveElementNowrap({ wordWrap: false, keepLineBreaks: true })).toBe('nowrap')
+    expect(resolveElementWhiteSpace({ wordWrap: false, keepLineBreaks: true })).toBeUndefined()
+  })
+})
 
 describe('resolveElementWhiteSpace', () => {
   it('缺省不出声明（存量模板逐字不变的前提）', () => {
