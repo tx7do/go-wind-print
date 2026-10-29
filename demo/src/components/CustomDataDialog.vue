@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import type { Ref } from 'vue'
-import type { PrintBusinessField } from '@worm-vue3-print/canvas'
+import type { PrintBusinessField } from '@go-wind/print-canvas'
 
 const props = defineProps<{
   open: boolean

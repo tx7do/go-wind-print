@@ -1,5 +1,5 @@
 import type { Page } from 'playwright'
-import { EXECUTOR_TARGETS, toPlaywrightPdfOptions } from '@worm-vue3-print/core'
+import { EXECUTOR_TARGETS, toPlaywrightPdfOptions } from '@go-wind/print-core'
 import type {
   DriverFactory,
   ExecutorBundle,
@@ -7,7 +7,7 @@ import type {
   PageDriver,
   PdfTargetSpec,
   ViewportPx,
-} from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
 import { BrowserPool } from './browser-pool.js'
 
 class PlaywrightDriver implements PageDriver {

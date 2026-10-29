@@ -2,8 +2,8 @@
 // 零框架外壳的流式列表验收：对照 canvas 的 FlowListElement.vue + FlowListGroup.vue，
 // 并核对与出纸同源的三条口径（列数与行高同源、只提示不写值、跨列上限钳到列数）。
 import { describe, it, expect } from 'vitest'
-import { resolveFlowGapX, suggestFlowColumns } from '@worm-vue3-print/core/designer'
-import type { ElementType } from '@worm-vue3-print/core/designer'
+import { resolveFlowGapX, suggestFlowColumns } from '@go-wind/print-core/designer'
+import type { ElementType } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

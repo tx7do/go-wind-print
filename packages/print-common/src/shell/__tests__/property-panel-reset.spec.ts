@@ -7,7 +7,7 @@ import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
 import { renderPropertyPanel } from '../property-panel'
-import type { ElementType } from '@worm-vue3-print/core/designer'
+import type { ElementType } from '@go-wind/print-core/designer'
 
 function paint(type: ElementType, options: Record<string, any> = {}) {
   const store = new DesignerStore()

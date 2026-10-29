@@ -141,9 +141,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA, type TextFit } from '@worm-vue3-print/core/designer'
-import { createDefaultOptions, propertyDefault } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
+import { resolveElementTextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA, type TextFit } from '@go-wind/print-core/designer'
+import { createDefaultOptions, propertyDefault } from '@go-wind/print-core/designer'
 import PresetColorPicker from '../PresetColorPicker.vue'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'

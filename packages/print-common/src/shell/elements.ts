@@ -14,9 +14,9 @@ import {
   resolveElementWhiteSpace,
   resolveElementNowrap,
   resolveShrinkMinFontSize,
-} from '@worm-vue3-print/core/designer'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
+} from '@go-wind/print-core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
+import { resolveCanvasFontFamily } from '@go-wind/print-core'
 import { h } from '../core/h'
 import type { DesignerStore } from '../core/store'
 import { renderBarcode, renderQrcode } from './code'

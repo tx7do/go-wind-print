@@ -3,12 +3,12 @@
 import type {
   AlignLine, AlignMode, ElementZone, MultiPageTemplateData, PrintBusinessField, PrintElementData,
   RuntimeElement, TableSelection, TemplateData,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import {
   clampToZone, createFieldElement, createRuntimeElement, finalizeElementZone, generateGroupId,
   generateId, getPaperDimensions, getZoneRects, MIN_SCALE_PERCENT, normalizeTemplateUnits,
   syncTableElementSize, useAlign, useGroup, ZONE_ALLOWED_TYPES, zoneFromPaperPoint,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import { createDefaultTemplate } from './default-template'
 
 /** 拼版模板只允许单页：增页入口被拦截时的提示文案（与 canvas 同口径） */

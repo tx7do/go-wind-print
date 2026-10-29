@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import FormatToolbar from '../components/FormatToolbar.vue'
 import { useFormatToolbar } from '../composables/useFormatToolbar'
-import type { RuntimeElement, TableSelection, TableCell } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TableSelection, TableCell } from '@go-wind/print-core/designer'
 
 function el(id: string, type: string, options: Record<string, unknown> = {}): RuntimeElement {
   return {

@@ -1,5 +1,5 @@
 {
-  "name": "@worm-vue3-print/render",
+  "name": "@go-wind/print-render",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@worm-vue3-print/core": "^1.3.11",
+    "@go-wind/print-core": "^1.3.11",
     "express": "^4.21.0",
     "playwright": "^1.60.0"
   },

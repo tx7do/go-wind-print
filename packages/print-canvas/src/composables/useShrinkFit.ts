@@ -2,7 +2,7 @@
 // 与打印管线共用 core 的 fitTextNode（同一套二分算法），
 // 使「设计态看到的字号」就是「出纸的字号」，不出现预览/出纸两副面孔。
 import { nextTick, onMounted, watchEffect, type Ref } from 'vue'
-import { fitTextNode } from '@worm-vue3-print/core/browser'
+import { fitTextNode } from '@go-wind/print-core/browser'
 
 /** 容器自身（元素级缩小）与后代（单元格级缩小）中所有缩放下限节点 */
 function fitTargets(root: HTMLElement): HTMLElement[] {

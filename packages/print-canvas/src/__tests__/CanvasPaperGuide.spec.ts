@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CanvasPaper from '../components/CanvasPaper.vue'
-import type { TemplateData, AlignLine } from '@worm-vue3-print/core/designer'
+import type { TemplateData, AlignLine } from '@go-wind/print-core/designer'
 
 function makeTemplate(): TemplateData {
   return {

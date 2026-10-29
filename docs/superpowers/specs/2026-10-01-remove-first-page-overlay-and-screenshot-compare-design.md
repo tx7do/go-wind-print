@@ -36,7 +36,7 @@
 ### 2.2 叠层对比（截图叠层）
 
 - canvas：`PrintDesigner.vue:14`、`29`、`84-86`、`154`、`192-193`、`300-332`（`overlayVisible/screenshotUrl/overlayOpacity` + `toggleOverlay()` + `requestScreenshot` prop）；`DesignerToolbar.vue:79`、`151`、`181`；`CanvasArea.vue:37-40`、`138-140`、`653-664`。
-- canvas 入口：`index.ts` 是 `export type * from '@worm-vue3-print/core/designer'` 通配再导出（`14-15`），**没有具名导出行可删**，只需去掉第 14 行注释里点名的 `ScreenshotRequest/RequestScreenshotFn` 与第 2 行「保存/字段/**截图**/上传/业务字典由宿主注入」中的截图字样。
+- canvas 入口：`index.ts` 是 `export type * from '@go-wind/print-core/designer'` 通配再导出（`14-15`），**没有具名导出行可删**，只需去掉第 14 行注释里点名的 `ScreenshotRequest/RequestScreenshotFn` 与第 2 行「保存/字段/**截图**/上传/业务字典由宿主注入」中的截图字样。
 - common：`print-designer.ts:10`、`108`、`132-133`、`306-308`（公开方法 `setOverlay()`）、`312-336`、`491-493`、`648`；`shell/canvas.ts:17-19`、`207-211`；`shell/toolbar.ts:54`；派生样式 `designer.css:340`。
 - core 共享类型：`designer/types.ts:425-432`（`ScreenshotRequest` / `RequestScreenshotFn`）。
 - 帮助文案与文档：两侧 `help-content/faq.ts`、`print-canvas/README.md:92`、PARITY.md 相关行。
@@ -76,7 +76,7 @@
 
 ## 六、验收
 
-- `npm run build`、`npm test` 全绿；`npm run test -w @worm-vue3-print/render` 通过。
+- `npm run build`、`npm test` 全绿；`npm run test -w @go-wind/print-render` 通过。
 - 定向回归：`css-builder.test.ts`、`pagination-engine*.test.ts`、`html-generator.test.ts`、`data-binder.test.ts`、`migrate.spec.ts`、`multi-template.spec.ts`、`apply-text-fit.spec.ts`、`exports.spec.ts`、`DesignerToolbar.spec.ts`。
 - grep 零残留：`firstPageOverlay`、`overlayVisible`、`toggle-overlay`、`requestScreenshot`、`renderScreenshot`、`ScreenshotTargetSpec`（排除 `dist`、`node_modules`、`.workbuddy`、历史 spec/plan 存档）。
 - UI 级确认：设计器工具栏与视图下拉无这两项；demo 与 demo-common 四宿主构建产物可加载、模板导入导出不报错。

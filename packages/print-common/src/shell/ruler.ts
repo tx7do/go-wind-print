@@ -6,8 +6,8 @@ import {
   buildRulerTicks,
   chooseMajorStepMM,
   mmToPx,
-} from '@worm-vue3-print/core/designer'
-import type { RulerTick } from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
+import type { RulerTick } from '@go-wind/print-core/designer'
 
 /** 设计区视口几何（与 CanvasArea.vue 的 rulerGeom 同构） */
 export interface RulerGeom {

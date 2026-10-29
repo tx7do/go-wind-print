@@ -2,7 +2,7 @@
 // common 侧拼版八行「恢复默认值」验收：目标纸/方向/四边留白/横纵间距都取 TILE_DEFAULTS，
 // enabled 与 columns 按口径不接（左值恒 true、右值按纸面收敛，没有可信落点）。
 import { describe, it, expect } from 'vitest'
-import { TILE_DEFAULTS } from '@worm-vue3-print/core'
+import { TILE_DEFAULTS } from '@go-wind/print-core'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

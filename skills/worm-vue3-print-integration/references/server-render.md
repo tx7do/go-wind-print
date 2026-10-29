@@ -1,6 +1,6 @@
 # 服务端渲染微服务对接（print-render）
 
-`services/print-render` 是 monorepo 内的 private 服务包（`@worm-vue3-print/render`，**不发布 npm**，Docker 部署）。它通过 npm workspace 本地软链依赖同仓库 `@worm-vue3-print/core`，在纯 Node 侧用 Playwright Headless Chromium 完成 PDF 渲染。宿主后端通过 HTTP 调用它。
+`services/print-render` 是 monorepo 内的 private 服务包（`@go-wind/print-render`，**不发布 npm**，Docker 部署）。它通过 npm workspace 本地软链依赖同仓库 `@go-wind/print-core`，在纯 Node 侧用 Playwright Headless Chromium 完成 PDF 渲染。宿主后端通过 HTTP 调用它。
 
 ## 1. 服务接口契约
 
@@ -80,7 +80,7 @@ docker run -p 3001:3001 \
 ```bash
 npm install
 npx playwright install chromium            # 仅首次
-npm run dev -w @worm-vue3-print/render     # http://localhost:3001
+npm run dev -w @go-wind/print-render     # http://localhost:3001
 ```
 
 ## 4. 宿主后端对接

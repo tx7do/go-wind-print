@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import PropertyPanel from '../components/PropertyPanel.vue'
 import { TABLE_EDIT_KEY } from '../composables/useTableSelection'
-import type { RuntimeElement, TableSelection, TemplateData } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TableSelection, TemplateData } from '@go-wind/print-core/designer'
 
 function tpl(): TemplateData {
   return {

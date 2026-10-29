@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
-import type { DesignBackground } from '@worm-vue3-print/core/designer'
+import type { DesignBackground } from '@go-wind/print-core/designer'
 import { UPLOAD_DESIGN_BACKGROUND_KEY } from '../../composables/useHostAdapter'
 
 const props = defineProps<{ modelValue?: DesignBackground }>()

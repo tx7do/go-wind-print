@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import LayerPanel from '../components/LayerPanel.vue'
-import type { ElementType, RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { ElementType, RuntimeElement } from '@go-wind/print-core/designer'
 
 /** 与 common 侧 LAYER_ICON 同源的字面量表 */
 const EXPECTED: Record<string, string> = {

@@ -1,6 +1,6 @@
 # 属性台「恢复默认值」重置位 — 设计说明
 
-日期：2026-10-23　影响版本：`@worm-vue3-print/{core,canvas}` 1.3.10 → 1.3.11（新增能力，非破坏）、`@worm-vue3-print/common` 预览版随主线单独升号（不进 `latest`）
+日期：2026-10-23　影响版本：`@worm-vue3-print/{core,canvas}` 1.3.10 → 1.3.11（新增能力，非破坏）、`@go-wind/print-common` 预览版随主线单独升号（不进 `latest`）
 
 ## 一、需求与裁决
 
@@ -35,7 +35,7 @@
 - **未设置的表示法**：全仓统一写 `undefined`（`$event ?? undefined`），`JSON.stringify` 时自然消失，不需要真 `delete`。
 - **属性行无统一容器**：`.pd-field`（纵向 flex：标签在上、控件在下）由 `property/*.vue` 各分组手写，`PropertyGroup.vue` 只统一"分组"这一层。
 - **`textContent` 约束**：`.pd-help` 刻意用 `::before` 出字形、不写字，属性搜索与宿主 144 项验收按 `.pd-label` 的文本匹配。
-- **common 样式派生**：`gen-styles.mjs` 从 canvas 构建产物 `dist/canvas.css`（剥 `[data-v-*]`）+ `native-controls.css` + `scope-patches.css` 生成 `src/styles/designer.css`；`npm run styles -w @worm-vue3-print/common` 是 `build`/`typecheck`/`test` 的前置步骤。类名覆盖率审计：`node demo-common/scripts/class-audit.mjs`。
+- **common 样式派生**：`gen-styles.mjs` 从 canvas 构建产物 `dist/canvas.css`（剥 `[data-v-*]`）+ `native-controls.css` + `scope-patches.css` 生成 `src/styles/designer.css`；`npm run styles -w @go-wind/print-common` 是 `build`/`typecheck`/`test` 的前置步骤。类名覆盖率审计：`node demo-common/scripts/class-audit.mjs`。
 - **common 的 `orUndef` / `optNum` 会吃掉 `0` 档**，`table-props.ts` 已有两处特意绕开 `numField` 的先例。
 
 ## 三、契约：一条派生规则
@@ -125,7 +125,7 @@ export interface PropertyItem {
 
 - `shell/controls.ts` 的 `field()` / `fieldHelp()` 增加可选 `reset` 参数，产出与 canvas 逐字对齐的 `.pd-label-t` + `.pd-reset-btn` 结构；`iconSvg('RotateCcw', 13, 'pd-reset-icon')` 消费派生图标。
 - `shell/property-panel.ts`、`shell/table-props.ts` 逐行接入（`shell/format-bar.ts` 本期不动，见第十一节）。
-- **不手改 `core/icons.ts`**，改跑 `npm run styles -w @worm-vue3-print/common`。
+- **不手改 `core/icons.ts`**，改跑 `npm run styles -w @go-wind/print-common`。
 - `orUndef` / `optNum` 的 `0` 档陷阱按既有绕行先例处理。
 - 类名与 canvas 逐字对齐（PARITY 约定），完成后跑 `class-audit.mjs` 确认派生 CSS 有 `.pd-reset-btn` 规则、无掉样式。
 
@@ -168,7 +168,7 @@ export interface PropertyItem {
 3. **canvas**：新增 `ResetButton.spec` 四断言——出厂态灰且点击不产生变更、偏离态亮且点击写回 `F`、`0` 与 `undefined` 判为不同状态、**`.pd-label` 的 `textContent` 不含"默认"**。
 4. **canvas**：`CodeGroup.spec` / `AppearanceGroup.spec` / `TableCellGroup.spec` / `TableSettingsGroup.spec` 补重置用例，单元格那条必须断言整选区作用域。
 5. **common**：`shell/__tests__/property-search.spec.ts` 的 DOM 签名与命中字段清单断言会因每行多一个按钮而红，按新结构更新；跑 `class-audit.mjs`。
-6. **出纸回归（派生规则的硬判据）**：对每个纳入属性构造"偏离出厂值"的模板 → 执行恢复 → 断言**恢复后的渲染结果 === 该类型新建出厂模板的渲染结果**（逐字节）。注意判据不是"恢复前后一致"——恢复前后本就该不同（那正是重置的效果），一致的是"恢复后"与"出厂态"。例：条宽 `2.5` 恢复到未设后按 `?? 2` 落纸，须与出厂模板的落纸完全相同。涉及渲染管线，按验收清单跑 `npm run test -w @worm-vue3-print/render`。
+6. **出纸回归（派生规则的硬判据）**：对每个纳入属性构造"偏离出厂值"的模板 → 执行恢复 → 断言**恢复后的渲染结果 === 该类型新建出厂模板的渲染结果**（逐字节）。注意判据不是"恢复前后一致"——恢复前后本就该不同（那正是重置的效果），一致的是"恢复后"与"出厂态"。例：条宽 `2.5` 恢复到未设后按 `?? 2` 落纸，须与出厂模板的落纸完全相同。涉及渲染管线，按验收清单跑 `npm run test -w @go-wind/print-render`。
 7. **demo 实看**：canvas demo 与 demo-common 四宿主（jquery / react / vue2 / vue3）各开一遍，按 280px 面板宽度确认长标签（如「文本字号（相对条高，条高为 30）」）在加图标后不把 `?` 挤到第二行；确认 `RotateCcw` 在 common 侧不是空白（`iconSvg` 未命中会静默返回空串，这是最容易漏的红灯）。
 8. **全量**：`npm run build` + `npm test`。测试计数按三段式报告（总数 / 实跑 / 跳过）。
 

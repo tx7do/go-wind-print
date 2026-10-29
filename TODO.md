@@ -9,7 +9,7 @@
 > **2026-10-26 再续**：T-16（四宿主字体链路）与 T-19b（预览缩放档位断言）已完成并双推，`verify-demo` 42 项 ×4 全绿。
 > **2026-10-26 发版进展**：`v1.3.11` annotated tag 已建并双推，落点 `f728137`（最后把改动登记进 V1.3.11 段的提交）；GitHub Release 已创建（`V1.3.11(2026-10-26)`，非草稿、0 附件、正文来自 `.github/release/notes.md`）。
 > **Gitee 发行版已建**（2026-10-26）：id `1242392`，tag `v1.3.11`，`target_commitish=f728137`，正文＝中文 CHANGELOG 的 V1.3.11 段（4889 字），匿名复核 15 条发行版里已有 v1.3.11、assets 2（自动源码包）。**首次用 owner 级路径 POST 回 405**——releases 必须走仓库级 `/repos/{owner}/{repo}/releases`。
-> **安装包已完成（2026-10-26）**：按用户口径先查「客户端是否变更」——客户端**源码**只改了 package.json 版本号，但客户端 `"@worm-vue3-print/core": "*"` 且内置 core，而 core 的 `render/*`（html-generator / pagination-engine / text-fit）有实质改动 ⇒ 装进客户端的出纸行为变了，按判据必须本版重打；mac/win（mac-x64/mac-arm64 dmg + win exe）与 Linux 三包（deb/rpm/AppImage）已全部重打并上传 v1.3.11，**GitHub 侧 digest 与本地 SHA256SUMS 逐条对账 7/7 一致**（97.2–139.4 MB）。两个坑已修/已记：① 并发跑两个 `build -w core` 会让 electron-builder 撞到半写状态的 `dist/browser/index.d.cts`（改为只单跑 electron-builder）；② 容器内 `apt install rpm` 拉不到 deb.debian.org，给 `pack-client-linux.mjs` 加了 `APT_MIRROR` 支持（本次用 https://mirrors.aliyun.com 出包）；③ 命名卷照旧把上一版 Linux 三包带回 dist，已移出到 `~/print-client-dist/1.3.10-linux/`。
+> **安装包已完成（2026-10-26）**：按用户口径先查「客户端是否变更」——客户端**源码**只改了 package.json 版本号，但客户端 `"@go-wind/print-core": "*"` 且内置 core，而 core 的 `render/*`（html-generator / pagination-engine / text-fit）有实质改动 ⇒ 装进客户端的出纸行为变了，按判据必须本版重打；mac/win（mac-x64/mac-arm64 dmg + win exe）与 Linux 三包（deb/rpm/AppImage）已全部重打并上传 v1.3.11，**GitHub 侧 digest 与本地 SHA256SUMS 逐条对账 7/7 一致**（97.2–139.4 MB）。两个坑已修/已记：① 并发跑两个 `build -w core` 会让 electron-builder 撞到半写状态的 `dist/browser/index.d.cts`（改为只单跑 electron-builder）；② 容器内 `apt install rpm` 拉不到 deb.debian.org，给 `pack-client-linux.mjs` 加了 `APT_MIRROR` 支持（本次用 https://mirrors.aliyun.com 出包）；③ 命名卷照旧把上一版 Linux 三包带回 dist，已移出到 `~/print-client-dist/1.3.10-linux/`。
 > **README 直链已实测可达**：7 条 v1.3.11 直链逐一 curl（HEAD 跟随 + AppImage 用范围 GET 复核）——6 条 200、AppImage 经 1 次 302 跳转到签名地址后 200/206，全部可用。
 > **仍待维护者**：npm 发布 core/canvas 1.3.11（本机 `whoami` 401，多轮复测未变）、common 预览版重发与 `latest` 摘除。
 > **2026-10-26 发布前复核**：`npm pack` 三包产物里四条修复全在（`needsHeight` 含 `vline`、`overflow:visible;${nowrap}`、`keepLineBreaks`、`resolveElementNowrap`、`line-height:1.5`），canvas 内置更新记录含 V1.3.11；`npm publish --dry-run`：core 1.3.11 / 30 文件 / 346.0 kB / tag latest，canvas 1.3.11 / 86 文件 / 241.7 kB / tag latest，common 1.3.7-beta.0 / 44 文件 / 423.8 kB / tag next（需带脚本那组 flag）。**本机默认 registry 是 npmmirror**，手敲 publish 会发错源，已在 CONTRIBUTING 记红线。
@@ -20,7 +20,7 @@
 >
 > **2026-10-26 全量复验**（新鲜跑，非引用旧记录）：`npm run build` exit 0；`npm test` exit 0
 > （core 77 文件/1118 例、canvas 72/679、common 26/315、print-client 14/110，合计 189 文件/2222 例零失败）；
-> `npm run test -w @worm-vue3-print/render` exit 0（9/30，真实 Chromium）；`verify-demo.mjs` 四宿主 36/36 ×4；
+> `npm run test -w @go-wind/print-render` exit 0（9/30，真实 Chromium）；`verify-demo.mjs` 四宿主 36/36 ×4；
 > canvas `npx vue-tsc --noEmit` **exit 2 / 53 条**（T-22）。
 
 ## 标记口径
@@ -38,8 +38,8 @@
 
 ### T-15 common 预览版发布面 —— **只剩维护者 npm 两步**（dist-tag 摘除 + 预览版重发）
 
-- **dist-tag 实况未变**：官方 registry `@worm-vue3-print/common` 的 `latest` 与 `next` **同指 `1.3.7-beta.0`**（首次发布 npm 自动打了 latest）。
-  后果仍在：`npm i @worm-vue3-print/common`（不带 `@next`）装到的是预览版，与 `CONTRIBUTING.md`「方式三」的预览版定位冲突。
+- **dist-tag 实况未变**：官方 registry `@go-wind/print-common` 的 `latest` 与 `next` **同指 `1.3.7-beta.0`**（首次发布 npm 自动打了 latest）。
+  后果仍在：`npm i @go-wind/print-common`（不带 `@next`）装到的是预览版，与 `CONTRIBUTING.md`「方式三」的预览版定位冲突。
   `latest` 要收回需 registry 上先存在别的稳定版可指向（当前没有）→ 要么改文档强制宿主带 `@next`，要么改发布脚本。
   在此之前，「实验性、不建议用于生产」那句是最后防线，不能删。
 - **【新增】预览版已落后主线 40 个提交**：仓库内该包版本仍是 `1.3.7-beta.0`，而自 10-19 那次发布起 `packages/print-common`
@@ -47,7 +47,7 @@
   缩放档位挂 `WormPrintCommon`、`flowList` 等），而主线 core/canvas 已发到 `1.3.10`。
   ⇒ **四个 common 宿主 demo 的观感 ≠ npm 上能装到的 common 的观感**。
 - **【口径修正】原「`latest` 尚不存在，省略 `@next` 会报错」是假的**：README / 包内 README / 集成技能三处都这么写，
-  2026-10-26 实测官方 registry 回 `{"latest":"1.3.7-beta.0","next":"1.3.7-beta.0"}` —— 裸写 `npm i @worm-vue3-print/common`
+  2026-10-26 实测官方 registry 回 `{"latest":"1.3.7-beta.0","next":"1.3.7-beta.0"}` —— 裸写 `npm i @go-wind/print-common`
   **不报错、静默装到实验包**（npm 给新包首发自动打 `latest`，`--tag next` 挡不住）。三处文档已按实测更正。
 - **仓库侧已固化判据**：新增 `scripts/check-common-dist-tag.mjs`（exit 0 健康 / 1 红灯并给出修复命令 / 2 读不到），
   已串进 `publish:common:beta`（发布后自动 `--fix` 摘 `latest`）与 `publish:common:dry-run`（`--dry-run` 只报不改），单独复查 `npm run publish:common:check`。

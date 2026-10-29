@@ -31,7 +31,7 @@ if (!docker.info.startsWith('linux/')) {
 console.log(`使用 Docker（${docker.info}）与镜像 ${image} 构建 Linux 安装包`)
 
 if (!existsSync(join(root, 'clients/print-client/out'))) {
-  console.error('未找到 clients/print-client/out，请先执行 npm run build -w @worm-vue3-print/print-client（或直接用 npm run pack:client:linux）')
+  console.error('未找到 clients/print-client/out，请先执行 npm run build -w @go-wind/print-client（或直接用 npm run pack:client:linux）')
   process.exit(1)
 }
 

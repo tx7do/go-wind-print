@@ -13,11 +13,11 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { resolveTextBinding } from '@worm-vue3-print/core/designer'
-import { resolveElementNowrap, resolveElementTextFit, resolveElementWhiteSpace, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
+import { resolveTextBinding } from '@go-wind/print-core/designer'
+import { resolveElementNowrap, resolveElementTextFit, resolveElementWhiteSpace, resolveShrinkMinFontSize } from '@go-wind/print-core/designer'
 import { useShrinkFit } from '../../composables/useShrinkFit'
-import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
+import { resolveCanvasFontFamily } from '@go-wind/print-core'
 
 const props = defineProps<{
   element: RuntimeElement

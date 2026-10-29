@@ -1,8 +1,8 @@
 # demo-common · 四个宿主的打印设计器集成示例
 
-> ⚠️ 演示对象 `@worm-vue3-print/common` 为**实验性质**，不建议应用到生产环境；Vue 3 项目请使用 `@worm-vue3-print/canvas`（配合仓库根部的 `demo/`）。
+> ⚠️ 演示对象 `@go-wind/print-common` 为**实验性质**，不建议应用到生产环境；Vue 3 项目请使用 `@go-wind/print-canvas`（配合仓库根部的 `demo/`）。
 
-`@worm-vue3-print/common`（`<print-designer>`）在 **Vue 3 / Vue 2.7 / React 18 / jQuery** 四种宿主里的接入示例。
+`@go-wind/print-common`（`<print-designer>`）在 **Vue 3 / Vue 2.7 / React 18 / jQuery** 四种宿主里的接入示例。
 每个 `apps/<宿主>` 都是一个独立 npm 工程，把自己宿主的集成代码全部写在自家文件里，
 **没有任何共用壳层**——想接哪个宿主，就把那个工程整份抄进你的项目改数据源。
 
@@ -85,8 +85,8 @@ node scripts/sync-demo-styles.mjs   # 从 demo/ 与 canvas 的 PrintHtmlPreview 
 node scripts/sync-demo-samples.mjs   # 求值 demo/src/samples → 四份 templates.js + public 下的示例图片/字体
 ```
 
-宿主工程只依赖 `@worm-vue3-print/common` 与 `/core`，拿不到 demo 的 TS 源码，所以本脚本在生成期一次消解三处差异：
-`@worm-vue3-print/canvas` 的运行时导出别名到真源 `core/designer`、`import.meta.env.BASE_URL` 固定为站点根、
+宿主工程只依赖 `@go-wind/print-common` 与 `/core`，拿不到 demo 的 TS 源码，所以本脚本在生成期一次消解三处差异：
+`@go-wind/print-canvas` 的运行时导出别名到真源 `core/designer`、`import.meta.env.BASE_URL` 固定为站点根、
 标签类示例缺省的 `batchData` 按 demo 的 `deriveBatchData` 展开成字面量。产物是**无 import 的纯数据单文件**，
 可以整份抄进业务项目当数据源；示例引用的 `demo/public/{images,fonts}` 资源（4 张占位图 + 3 个示例字体）一并拷进各宿主 `public/`，
 其中 `public/fonts/` 单个 1.5~8MB、不入库（`.gitignore` 已排除，新克隆后重跑脚本补齐）。

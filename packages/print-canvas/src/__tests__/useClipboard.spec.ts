@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { useClipboard } from '../composables/useClipboard'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function makeEl(id: string, groupId?: string): RuntimeElement {
   return {

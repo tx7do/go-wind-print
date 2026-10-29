@@ -7,8 +7,8 @@ import { reactive } from 'vue'
 import TextElement from '../components/elements/TextElement.vue'
 import LongTextElement from '../components/elements/LongTextElement.vue'
 import AppearanceGroup from '../components/property/AppearanceGroup.vue'
-import { createDefaultOptions } from '@worm-vue3-print/core/designer'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { createDefaultOptions } from '@go-wind/print-core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function makeEl(type: 'text' | 'longText', options: Record<string, any> = {}): RuntimeElement {
   return {

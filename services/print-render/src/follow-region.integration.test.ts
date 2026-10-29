@@ -12,9 +12,9 @@ import {
   paginate,
   prepareDocument,
   normalizeMeasurements,
-} from '@worm-vue3-print/core'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
+} from '@go-wind/print-core'
+import type { PrintTemplateData } from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'
 

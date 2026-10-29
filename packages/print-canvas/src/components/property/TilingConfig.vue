@@ -147,16 +147,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
-import { PAPER_PRESETS, isContinuousPaperSize } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
+import { PAPER_PRESETS, isContinuousPaperSize } from '@go-wind/print-core/designer'
 import {
   TILE_DEFAULTS,
   computeMaxColumns,
   computeTileLayout,
   resolveSheetMm,
   validateTiling,
-} from '@worm-vue3-print/core'
-import type { TilingOptions } from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
+import type { TilingOptions } from '@go-wind/print-core'
 import StepperInput from './StepperInput.vue'
 import ResetButton from './ResetButton.vue'
 

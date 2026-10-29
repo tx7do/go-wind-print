@@ -4,8 +4,8 @@
 // 落盘口径照抄 canvas 的 onChange：表达式写 binding、静态文本写 content，两种模式 core 都支持；
 // 文本输入用 change（失焦/回车提交）而非 input —— 无框架版每次 store 变更都会整体重绘属性台，
 // 边打边提交会把光标顶回输入框开头。
-import { WATERMARK_DEFAULTS, WATERMARK_DENSITY_PRESETS } from '@worm-vue3-print/core'
-import type { WatermarkOptions } from '@worm-vue3-print/core/designer'
+import { WATERMARK_DEFAULTS, WATERMARK_DENSITY_PRESETS } from '@go-wind/print-core'
+import type { WatermarkOptions } from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import { colorTrigger, divider, field, resetButton } from './controls'

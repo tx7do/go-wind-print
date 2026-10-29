@@ -207,7 +207,7 @@ import {
   ArrowUpToLine, ChevronsUpDown, ArrowDownToLine, Grid3x3,
   PaintBucket, Paintbrush,
 } from 'lucide-vue-next'
-import type { BorderPreset, TableCellBorder } from '@worm-vue3-print/core/designer'
+import type { BorderPreset, TableCellBorder } from '@go-wind/print-core/designer'
 import type { FormatToolbar } from '../composables/useFormatToolbar'
 import { MIXED } from '../composables/useFormatToolbar'
 import type { FormatPainter } from '../composables/useFormatPainter'

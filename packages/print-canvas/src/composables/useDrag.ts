@@ -1,6 +1,6 @@
 // web/src/components/print/composables/useDrag.ts
 import { ref } from 'vue'
-import type { AdsorbResult } from '@worm-vue3-print/core/designer'
+import type { AdsorbResult } from '@go-wind/print-core/designer'
 
 export interface DragOptions {
   axis?: 'x' | 'y'

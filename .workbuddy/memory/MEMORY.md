@@ -13,8 +13,8 @@
 - 本机跑 `npm run build` 时，vite/tsup 清理 dist 会触发沙箱的批量删除守卫（`safe-delete` 报错 `SAFE_DELETE_BULK_CONFIRM_REQUIRED`），构建会中止。这不是代码错误，CI 环境没有这个限制。
 - 绕过方式：先把各包 `dist/`（必要时还有 `clients/print-client/out`、`demo/dist`）`mv` 到 /tmp 备份，再执行 `CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run build`。删除构建垃圾（如 tsup/vitest 的 `*.bundled_*.mjs`、`vitest.config.ts.timestamp-*.mjs`）同理。
 - canvas 依赖 core 的 **dist**：改了 core 源码后必须先构建 core，否则 canvas 的测试与运行看到的还是旧的 core。
-- Electron 客户端（clients/print-client）同样依赖 core 的 dist，且走的是 `@worm-vue3-print/core/client` 子路径（不是主入口）。2026-09-21 就踩过：`src/client` 已写好、`package.json` 的 exports 也已声明，但 dist 停留在旧构建 → 启动报 `ERR_MODULE_NOT_FOUND: .../core/dist/client/index.js`。新增或改动任何 core 子入口后务必重建。
-- 修复该错的标准动作：`mv dist /tmp/...` 备份，然后 `CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run build -w @worm-vue3-print/core`。验收货用 `node -e "import('@worm-vue3-print/core/client')"` 在 `clients/print-client` 目录下解析三个子路径。
+- Electron 客户端（clients/print-client）同样依赖 core 的 dist，且走的是 `@go-wind/print-core/client` 子路径（不是主入口）。2026-09-21 就踩过：`src/client` 已写好、`package.json` 的 exports 也已声明，但 dist 停留在旧构建 → 启动报 `ERR_MODULE_NOT_FOUND: .../core/dist/client/index.js`。新增或改动任何 core 子入口后务必重建。
+- 修复该错的标准动作：`mv dist /tmp/...` 备份，然后 `CODEBUDDY_SAFE_DELETE_ENABLED=0 npm run build -w @go-wind/print-core`。验收货用 `node -e "import('@go-wind/print-core/client')"` 在 `clients/print-client` 目录下解析三个子路径。
 
 ## 表格「多级表头」重复语义（2026-09-20 定下的约定）
 
@@ -27,7 +27,7 @@
 ## 包结构现状（2026-09-21 起）
 
 - 发布到 npm 的包只有两个：`core`、`canvas`。
-- 静默打印浏览器端 SDK 在 core 子路径 **`@worm-vue3-print/core/client`**（源码 `packages/print-core/src/client/`），不存在独立 `@worm-vue3-print/client` 包（0.1.0 从未发布，旧目录 `packages/print-client-sdk` 已删）。
+- 静默打印浏览器端 SDK 在 core 子路径 **`@go-wind/print-core/client`**（源码 `packages/print-core/src/client/`），不存在独立 `@go-wind/print（旧 scope）/client` 包（0.1.0 从未发布，旧目录 `packages/print-client-sdk` 已删）。
 - demo 线上预览：GitHub Pages `https://worm-longliu.github.io/worm-vue3-print/`，工作流 `.github/workflows/pages.yml`；EdgeOne 读根 `edgeone.json`。
 
 ## 打标签与 Release 正文的顺序（硬约束）

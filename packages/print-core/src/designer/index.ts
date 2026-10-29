@@ -1,4 +1,4 @@
-// @worm-vue3-print/core/designer
+// @go-wind/print-core/designer
 // 可视化设计器的框架无关内核：模板模型类型、通用工具、纯交互算法。
 // 不依赖 Vue / React / Lit，宿主 UI 包在此之上实现各自的响应式适配层。
 // 注意：本子路径的 TemplateData/PaperSize 等是「设计器完整模型」，

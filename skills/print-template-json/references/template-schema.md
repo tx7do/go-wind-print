@@ -76,7 +76,7 @@
 
 | `verticalAlign` | `top` / `middle` / `bottom` |
 | `textDecoration` | `underline` / `line-through` |
-| `wordWrap` / `textFit` | 换行开关（`false`＝单行）；溢出形式 `clip` / `shrink` / `autoHeight`。**省略号只在裁剪档（`clip`/`shrink`）才画得出**：`longText` 的缺省形式是 `autoHeight`（保留 `overflow:visible`），该档下关自动换行的落纸形态是**单行溢出**（文字越出元素右缘，可能与邻元素叠压），要省略号必须显式写 `"textFit": "clip"`。**版本边界**：V1.3.10 及更早，`longText` 关自动换行在出纸端**完全不生效**（纸面仍按多行折行、只有画布是单行），V1.3.11 起三端同源（`1.3.10` 及更早不含）——给存量模板补该档要按目标版本说话。判据：`npm test -w @worm-vue3-print/core`（`text-fit.test.ts`「longText 关自动换行的出纸落值」五组正/负对照）。**缺省行高**：不填 `lineHeight` 时 `text` 走 `normal`、`longText` 走 **1.5 倍**（三端同值，V1.3.11 起出纸与设计器一致；算行数按 1.5×字号估）。**注意**：元素级的 `\n` 在缺省下**不生效**（画布与出纸都不出 `white-space`，按 CSS 默认折叠成一行），要多行请开 `keepLineBreaks`（见下行），或把文字放进表格单元格 |
+| `wordWrap` / `textFit` | 换行开关（`false`＝单行）；溢出形式 `clip` / `shrink` / `autoHeight`。**省略号只在裁剪档（`clip`/`shrink`）才画得出**：`longText` 的缺省形式是 `autoHeight`（保留 `overflow:visible`），该档下关自动换行的落纸形态是**单行溢出**（文字越出元素右缘，可能与邻元素叠压），要省略号必须显式写 `"textFit": "clip"`。**版本边界**：V1.3.10 及更早，`longText` 关自动换行在出纸端**完全不生效**（纸面仍按多行折行、只有画布是单行），V1.3.11 起三端同源（`1.3.10` 及更早不含）——给存量模板补该档要按目标版本说话。判据：`npm test -w @go-wind/print-core`（`text-fit.test.ts`「longText 关自动换行的出纸落值」五组正/负对照）。**缺省行高**：不填 `lineHeight` 时 `text` 走 `normal`、`longText` 走 **1.5 倍**（三端同值，V1.3.11 起出纸与设计器一致；算行数按 1.5×字号估）。**注意**：元素级的 `\n` 在缺省下**不生效**（画布与出纸都不出 `white-space`，按 CSS 默认折叠成一行），要多行请开 `keepLineBreaks`（见下行），或把文字放进表格单元格 |
 | `keepLineBreaks` | **缺省不写＝关**。打开后 `text` / `longText` 出纸带 `white-space:pre-wrap`：`\n` 各占一行、行首与连续空格原样保留，同时仍按框宽自动换行。与 `wordWrap: false` 冲突时**单行优先**（新档不出声明）。判据单点在 core `resolveElementWhiteSpace`，画布 / print-common / 三条出纸链路同一份；仅这两类元素消费，挂到表格上不改一个字节 |
 | `borderWidth` `borderStyle` `borderColor` | 边框（宽度 pt） |
 | `zIndex` `locked` `visible` | 层级 / 锁定 / 可见 |
@@ -132,7 +132,7 @@ Chromium 会合成粗体，度量漂移会静默改分页。
 **余量按缩放模式逐轴算，两轴都可以写**：`cover` 是等比铺满，贴满框的那一轴没有溢出，它的百分比填 0 还是 100 出纸相同——竖图放 35×45mm 框只有垂直能动（上下共 7.5mm），横图进同框只有水平能动；而 `contain`／`none`／`scale-down` 在图比框小时挪的是框内空位，两轴都可能有余量（如 60×60px 的图进 35×45mm 框，水平 19.13mm、垂直 29.13mm 都能挪）；`fill` 把图钉成框，两轴都挪不动。
 所以生成模板时把有余量的轴写成非 50 的值、贴满的那一轴留 50；属性台水平／垂直两框常驻，档位只列能动的轴，挪不动的轴会直说「这一轴已贴满」。
 **图片单元格的锚点只在 `fit: cover` 时生效**：cover 会把图片外框钉在可用框高（所跨行高之和扣内边距与塌陷边框）、`<img>` 补 `width/height:100%`，与独立图片元素同构地裁得动；代价是含图单元格的出纸行高不再被图片撑高，所以写 cover 前先把行高给够，别把画面裁没。缺省／`contain`／`fill` 等档保持原状：外框 `height:100%`、img 不撑满，行高仍由内容决定，锚点无视觉后果。要控制图片大小仍可用单元格 `maxWidth`/`maxHeight`（钉盒后它仍是上限）。
-判据：`npm test -w @worm-vue3-print/core -- src/render/__tests__/crop-anchor.test.ts`（声明级，含 cover 钉盒与其余档不变的对照）；真浏览器几何与像素取证见 `services/print-render/src/cell-crop.integration.test.ts`。`scripts/validate_template.py` 不校验 `fit` 枚举，写错档位不报错、由浏览器忽略（要精确出纸就照上表取值）。
+判据：`npm test -w @go-wind/print-core -- src/render/__tests__/crop-anchor.test.ts`（声明级，含 cover 钉盒与其余档不变的对照）；真浏览器几何与像素取证见 `services/print-render/src/cell-crop.integration.test.ts`。`scripts/validate_template.py` 不校验 `fit` 枚举，写错档位不报错、由浏览器忽略（要精确出纸就照上表取值）。
 
 **条码尺寸口径**：每模块首选宽 = `barWidth/2 × 0.25mm`（`barWidth` 可填 2~8）；给了 `printerDpi` 就吸附到整数打印点
 （dpi 优先），可用框放不下则整体等比缩小，绝不溢出。热敏出纸「条宽忽宽忽窄」的根因就是没给 dpi。

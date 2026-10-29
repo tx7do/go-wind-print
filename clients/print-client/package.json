@@ -1,5 +1,5 @@
 {
-  "name": "@worm-vue3-print/print-client",
+  "name": "@go-wind/print-client",
   "version": "1.3.11",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
     "pack:dir": "electron-vite build && electron-builder --dir"
   },
   "dependencies": {
-    "@worm-vue3-print/core": "*",
+    "@go-wind/print-core": "*",
     "ws": "^8.18.0"
   },
   "devDependencies": {

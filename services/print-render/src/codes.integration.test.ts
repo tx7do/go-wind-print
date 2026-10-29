@@ -1,9 +1,9 @@
 // 端到端：含条形码/二维码的模板经「码值收集 → 执行器 renderCodes → 再生成 → PDF」全链路。
 // 回归：宿主曾把 document 当首参传给 renderCodes(specs)，页面内迭代 Document 抛 “t is not iterable”。
 import { describe, it, expect } from 'vitest'
-import { createDomHostRuntime, prepareDocument } from '@worm-vue3-print/core'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
+import { createDomHostRuntime, prepareDocument } from '@go-wind/print-core'
+import type { PrintTemplateData } from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'
 import { renderPdf } from './pdf-render.js'

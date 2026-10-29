@@ -144,14 +144,14 @@ import {
   createDefaultTemplate,
   provideToolbarOverflow,
   createOverflowUnitDirective,
-} from '@worm-vue3-print/canvas'
-import type { PrintBusinessField, TemplateData, MultiPageTemplateData } from '@worm-vue3-print/canvas'
-import { isMultiPageTemplate, mergeFontDeclarations } from '@worm-vue3-print/core'
+} from '@go-wind/print-canvas'
+import type { PrintBusinessField, TemplateData, MultiPageTemplateData } from '@go-wind/print-canvas'
+import { isMultiPageTemplate, mergeFontDeclarations } from '@go-wind/print-core'
 import type {
   PrintFontDeclaration,
   PrintTemplateData,
   MultiPageTemplateData as PrintMultiPageTemplateData,
-} from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
 import PrintOutputDialog from './components/PrintOutputDialog.vue'
 import DemoTopbarMore from './components/DemoTopbarMore.vue'
 import TemplateGalleryDialog from './components/TemplateGalleryDialog.vue'

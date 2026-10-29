@@ -1,5 +1,5 @@
 {
-  "name": "@worm-vue3-print/demo",
+  "name": "@go-wind/print-demo",
   "version": "1.3.11",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@worm-vue3-print/canvas": "file:../packages/print-canvas",
-    "@worm-vue3-print/core": "file:../packages/print-core",
+    "@go-wind/print-canvas": "file:../packages/print-canvas",
+    "@go-wind/print-core": "file:../packages/print-core",
     "dompurify": "^3.4.12",
     "jsbarcode": "^3.12.3",
     "lucide-vue-next": "^0.577.0",

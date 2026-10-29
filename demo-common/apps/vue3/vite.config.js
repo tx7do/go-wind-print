@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 /**
- * Vue 3 子 demo：只依赖 npm 包（@worm-vue3-print/common 与 /core），没有任何共用壳层。
+ * Vue 3 子 demo：只依赖 npm 包（@go-wind/print-common 与 /core），没有任何共用壳层。
  * 9331；/render-api 由 dev 代理转发到本地 render 微服务并注入密钥，前端代码不带密钥。
  */
 export default defineConfig({

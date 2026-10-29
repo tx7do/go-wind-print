@@ -2,9 +2,9 @@
 // 服务端真实 Chromium 测量分页后仍原样进入最终 HTML，并能出成 PDF。
 // happy-dom 没有排版引擎，这条链路只有这里能验。
 import { describe, it, expect } from 'vitest'
-import { createDomHostRuntime, prepareDocument } from '@worm-vue3-print/core'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
+import { createDomHostRuntime, prepareDocument } from '@go-wind/print-core'
+import type { PrintTemplateData } from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'
 import { renderPdf } from './pdf-render.js'

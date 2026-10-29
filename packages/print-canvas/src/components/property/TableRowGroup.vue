@@ -26,8 +26,8 @@
 
 <script setup lang="ts">
 import { computed, inject } from 'vue'
-import type { RuntimeElement, TableSelection, TableRowType } from '@worm-vue3-print/core/designer'
-import { setRowType, setHeaderRepeat, syncTableElementSize } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TableSelection, TableRowType } from '@go-wind/print-core/designer'
+import { setRowType, setHeaderRepeat, syncTableElementSize } from '@go-wind/print-core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'

@@ -177,9 +177,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { RuntimeElement, PrintBusinessField, TemplateData, TableSelection } from '@worm-vue3-print/core/designer'
-import { PAPER_PRESETS, isContinuousPaperSize, isLabelPaperSize, labelPaperDefaults, resolveCellGroupMode } from '@worm-vue3-print/core/designer'
-import { searchProperties } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, PrintBusinessField, TemplateData, TableSelection } from '@go-wind/print-core/designer'
+import { PAPER_PRESETS, isContinuousPaperSize, isLabelPaperSize, labelPaperDefaults, resolveCellGroupMode } from '@go-wind/print-core/designer'
+import { searchProperties } from '@go-wind/print-core/designer'
 import PropertySearch from './property/PropertySearch.vue'
 import ResetButton from './property/ResetButton.vue'
 import PositionSizeGroup from './property/PositionSizeGroup.vue'
@@ -200,9 +200,9 @@ import PresetColorPicker from './PresetColorPicker.vue'
 import WatermarkConfig from './WatermarkConfig.vue'
 import DesignBackgroundConfig from './property/DesignBackgroundConfig.vue'
 import TilingConfig from './property/TilingConfig.vue'
-import type { WatermarkOptions } from '@worm-vue3-print/core/designer'
-import { getElementBindings, getTableCellBindings } from '@worm-vue3-print/core/designer'
-import type { BindingDescriptor } from '@worm-vue3-print/core/designer'
+import type { WatermarkOptions } from '@go-wind/print-core/designer'
+import { getElementBindings, getTableCellBindings } from '@go-wind/print-core/designer'
+import type { BindingDescriptor } from '@go-wind/print-core/designer'
 
 const props = defineProps<{
   element: RuntimeElement | null

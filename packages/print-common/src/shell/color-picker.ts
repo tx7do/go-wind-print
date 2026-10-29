@@ -19,7 +19,7 @@
 // 回调一次 onChange —— 与 shell/table.ts 列宽拖拽同口径。键盘方向键与滑杆键盘操作逐次提交
 // （与 canvas 一致）。清除回传 undefined：canvas emit '' 后由消费方归一化为未设置，
 // 本包在触发器层直接归一，调用方 patch 后即删除该颜色属性。
-import { PRESET_COLORS } from '@worm-vue3-print/core/designer'
+import { PRESET_COLORS } from '@go-wind/print-core/designer'
 import { h, render } from '../core/h'
 import type { El } from '../core/h'
 

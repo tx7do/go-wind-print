@@ -1,4 +1,4 @@
-<!-- demo 顶部区的「更多」面板：机制来自 @worm-vue3-print/canvas 的收纳 composable，
+<!-- demo 顶部区的「更多」面板：机制来自 @go-wind/print-canvas 的收纳 composable，
      面板 DOM 与视觉由宿主自己掌握，落位容器只要带上 data-overflow-slot 属性即可被找到。 -->
 <template>
   <div v-if="ctx" v-show="hasMoved" ref="rootRef" class="demo-more-group" data-overflow-more :class="{ 'is-open': open }">
@@ -34,7 +34,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useToolbarOverflow } from '@worm-vue3-print/canvas'
+import { useToolbarOverflow } from '@go-wind/print-canvas'
 
 const ctx = useToolbarOverflow()
 const open = ref(false)

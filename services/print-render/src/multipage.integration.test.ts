@@ -1,9 +1,9 @@
 // 端到端：多页面模板 → 真实 Chromium 出 PDF → pdfjs 断言页数、页尺寸与文本归属
 import { describe, it, expect } from 'vitest'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
-import { renderPdf as coreRenderPdf, createDomHostRuntime } from '@worm-vue3-print/core'
-import type { PrintTemplateData, PrintTemplateElement } from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
+import { renderPdf as coreRenderPdf, createDomHostRuntime } from '@go-wind/print-core'
+import type { PrintTemplateData, PrintTemplateElement } from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'
 

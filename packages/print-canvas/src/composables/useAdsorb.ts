@@ -1,5 +1,5 @@
 // 吸附逻辑的 Vue 适配层：引导线/纸张尺寸保持响应式状态，
-// 吸附坐标与引导线计算全部委托 @worm-vue3-print/core/designer 的纯函数。
+// 吸附坐标与引导线计算全部委托 @go-wind/print-core/designer 的纯函数。
 import { ref, type Ref } from 'vue'
 import {
   computeAdsorb,
@@ -7,7 +7,7 @@ import {
   type ElementRect,
   type AlignLine,
   type AdsorbResult,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 
 export type { AdsorbConfig }
 

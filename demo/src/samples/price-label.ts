@@ -1,6 +1,6 @@
 // demo/src/samples/price-label.ts
 // 示例三：价签打印——货架价签，A4 拼版一张纸铺 4 列 × 8 行共 32 枚
-import type { PrintBusinessField, TemplateData } from '@worm-vue3-print/canvas'
+import type { PrintBusinessField, TemplateData } from '@go-wind/print-canvas'
 import { createElementFactory } from './element-helper'
 import type { SampleTemplate } from './types'
 

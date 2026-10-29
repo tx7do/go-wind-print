@@ -2,10 +2,10 @@
 //
 // common 的设计器是「状态变更即整树重建」：每次 paint 都 clear + render，
 // 所以收纳不靠搬运历史节点，而是每次重绘后按同一判定把内联节点放入落位槽。
-// 判定本身复用 @worm-vue3-print/core/designer 的 resolveToolbarOverflow，两宿主同链同序。
+// 判定本身复用 @go-wind/print-core/designer 的 resolveToolbarOverflow，两宿主同链同序。
 import { h } from '../core/h'
 import { iconSvg } from '../core/icons'
-import { resolveToolbarOverflow } from '@worm-vue3-print/core/designer'
+import { resolveToolbarOverflow } from '@go-wind/print-core/designer'
 import type { ShellCtx } from './controls'
 
 export const TOOLBAR_OVERFLOW_GAP = 2

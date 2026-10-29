@@ -6,14 +6,14 @@
 
 **Architecture:** Electron 主进程启动仅绑定 `127.0.0.1` 的 `ws` 服务；隐藏渲染窗口分两个职责——常驻 worker 窗口（**sandbox + contextIsolation + 专用 preload**，不开启 nodeIntegration）跑 core 两遍渲染生成最终 HTML，经自定义 `wormprint://` protocol 载入打印窗口后静默打印；协议类型/错误码定义在 SDK 包，客户端 import 同一份类型。连续纸（`paperSize: 'CONTINUOUS'`，热敏/标签）由 core 与设计器原生支持：设计高度默认 297mm、可配连续纸底边距，出纸高度由 core 在两遍渲染中按内容几何（测量 Map）推导，显式高度可覆盖。单任务串行锁，无队列。
 
-**Tech Stack:** Electron 37、electron-vite 3、Vue 3.5（仅配置窗口）、ws 8、TypeScript 5.9、Vitest 3、tsup 8（SDK 打包）、`@worm-vue3-print/core` workspace 依赖（条码由 core/browser 的 jsbarcode + qrcode 渲染，客户端不直接依赖 bwip-js）。
+**Tech Stack:** Electron 37、electron-vite 3、Vue 3.5（仅配置窗口）、ws 8、TypeScript 5.9、Vitest 3、tsup 8（SDK 打包）、`@go-wind/print-core` workspace 依赖（条码由 core/browser 的 jsbarcode + qrcode 渲染，客户端不直接依赖 bwip-js）。
 
 **Spec:** `docs/superpowers/specs/2026-09-12-print-client-design.md`（执行任务时 spec 与本计划同时阅读）
 
 ## Global Constraints
 
 - 所有回复、注释、提交信息使用简体中文；标识符保留英文。
-- monorepo npm workspaces；客户端代码在 `clients/print-client`（private，包名 `@worm-vue3-print/print-client`）；SDK 在 `packages/print-client-sdk`（发布名 `@worm-vue3-print/client`）。
+- monorepo npm workspaces；客户端代码在 `clients/print-client`（private，包名 `@go-wind/print-client`）；SDK 在 `packages/print-client-sdk`（发布名 `@worm-vue3-print/client`）。
 - 依赖方向：`core`（纯逻辑）← `client-sdk`（协议类型）← `print-client`（Electron）；禁止反向依赖，禁止 core 依赖 Vue/Electron。
 - Node 引擎 `>=20`；TypeScript `~5.9.3`；strict 模式；测试命令统一 `vitest run`。
 - WebSocket 仅绑定 `127.0.0.1`；默认端口 `17521`，占用时 +1 重试，上限 20 个端口。
@@ -1150,7 +1150,7 @@ git commit -m "feat(client-sdk)：新增对外 PrintClient 门面与集成文档
 
 ```json
 {
-  "name": "@worm-vue3-print/print-client",
+  "name": "@go-wind/print-client",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -1165,7 +1165,7 @@ git commit -m "feat(client-sdk)：新增对外 PrintClient 门面与集成文档
   },
   "dependencies": {
     "@worm-vue3-print/client": "*",
-    "@worm-vue3-print/core": "*",
+    "@go-wind/print-core": "*",
     "ws": "^8.18.0"
   },
   "devDependencies": {}
@@ -1175,8 +1175,8 @@ git commit -m "feat(client-sdk)：新增对外 PrintClient 门面与集成文档
 执行（electron 取安装时最新稳定大版本，不硬编码）：
 
 ```bash
-npm install -w @worm-vue3-print/print-client
-npm install -D -w @worm-vue3-print/print-client electron@latest electron-vite vite vitest typescript~5.9.3 @types/node@^22 @types/ws@^8 vue@^3.5 @vitejs/plugin-vue@^6
+npm install -w @go-wind/print-client
+npm install -D -w @go-wind/print-client electron@latest electron-vite vite vitest typescript~5.9.3 @types/node@^22 @types/ws@^8 vue@^3.5 @vitejs/plugin-vue@^6
 ```
 
 - [ ] **Step 2: 写失败测试 `src/main/config.test.ts`**
@@ -1243,7 +1243,7 @@ describe('ConfigStore', () => {
 
 - [ ] **Step 3: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: FAIL，`Cannot find module './config.js'`。
 
 - [ ] **Step 4: 实现 `src/main/config.ts`**
@@ -1452,10 +1452,10 @@ if (!gotLock) {
 
 - [ ] **Step 7: 运行测试与构建**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: config 用例全绿。
 
-Run: `npm run build -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-client`
 Expected: electron-vite 构建 main/preload（含 worker-preload）/renderer（含 worker）成功，`out/` 三个子目录齐备，无 TS/打包报错。
 
 - [ ] **Step 8: 提交**
@@ -1548,7 +1548,7 @@ describe('JobHistoryStore', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: FAIL，`Cannot find module './job-history.js'`。
 
 - [ ] **Step 3: 实现 `src/main/job-history.ts`**
@@ -1676,9 +1676,9 @@ export class Logger {
 
 - [ ] **Step 5: 运行测试与构建**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: job-history 与既有 config 用例全绿。
-Run: `npm run build -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-client`
 Expected: 构建通过。
 
 - [ ] **Step 6: 提交**
@@ -1825,7 +1825,7 @@ describe('checkAccess', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: FAIL，`Cannot find module './security.js'`。
 
 - [ ] **Step 3: 实现 `src/main/security.ts` 与 `src/main/protocol-error.ts`**
@@ -2140,9 +2140,9 @@ function makeServer(
 
 - [ ] **Step 6: 运行测试与构建**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: security 5 条 + ws-server 3 条及既有用例全绿。
-Run: `npm run build -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-client`
 Expected: 构建通过（ws 为外置依赖，不打进产物）。
 
 - [ ] **Step 7: 提交**
@@ -2236,7 +2236,7 @@ describe('PrinterService.resolve', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: FAIL，`Cannot find module './printer-service.js'`。
 
 - [ ] **Step 3: 实现 `src/main/printer-service.ts`**
@@ -2316,9 +2316,9 @@ export class PrinterService {
 
 - [ ] **Step 4: 运行测试与构建**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: 新增 8 条断言全绿，既有用例不回归。
-Run: `npm run build -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-client`
 Expected: 通过。
 
 - [ ] **Step 5: 提交**
@@ -2450,7 +2450,7 @@ describe('CONTINUOUS 纸型', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/core -- continuous`
+Run: `npm run test -w @go-wind/print-core -- continuous`
 Expected: FAIL（类型上 `'CONTINUOUS'` 不能赋给 PaperSize；`isContinuousPaper` 不存在）。
 
 - [ ] **Step 3: 修改 render/types.ts**
@@ -2731,11 +2731,11 @@ d. 导出确认：`packages/print-core/src/index.ts` 补充导出 `composeContin
 
 - [ ] **Step 9: 运行 core 全量测试与构建**
 
-Run: `npm run test -w @worm-vue3-print/core`
+Run: `npm run test -w @go-wind/print-core`
 Expected: 新用例（连续纸 7 条）+ 既有用例全绿。
-Run: `npm run build -w @worm-vue3-print/core`
+Run: `npm run build -w @go-wind/print-core`
 Expected: 构建通过。
-Run: `npm run build -w @worm-vue3-print/render`（print-render 依赖 core）
+Run: `npm run build -w @go-wind/print-render`（print-render 依赖 core）
 Expected: 构建通过；print-render 不调用 `/browser`、不传 pageHeightMm，CONTINUOUS 对其零影响（CONTINUOUS 模板走 PDF 不在本期支持范围，评审已知晓）。
 
 - [ ] **Step 10: 设计器页面属性面板**
@@ -2810,7 +2810,7 @@ const customWidth = computed(() => props.templateData?.customWidth ?? (paperSize
 
 - [ ] **Step 11: canvas 回归与设计器手工验证**
 
-Run: `npm run test -w @worm-vue3-print/canvas`
+Run: `npm run test -w @go-wind/print-canvas`
 Expected: 全绿。
 Run: `npm run dev`（仓库 demo，若根脚本为其它名以 package.json 为准）
 Expected（手工）：
@@ -2840,7 +2840,7 @@ git commit -m "feat(core,canvas)：新增连续纸页面属性（CONTINUOUS，�
 - Modify: `clients/print-client/package.json`（确认不引入 bwip-js；条码由 core/browser 承担）
 
 **Interfaces:**
-- Consumes: `@worm-vue3-print/core/browser` 的 `renderHtmlPages`、`browserCodeRenderer`（Task 8 后返回 `paperMm/continuous`）；SDK 协议类型 `PrintOptions`。
+- Consumes: `@go-wind/print-core/browser` 的 `renderHtmlPages`、`browserCodeRenderer`（Task 8 后返回 `paperMm/continuous`）；SDK 协议类型 `PrintOptions`。
 - Produces:
   - shared：`RenderJobSpec = { templateJson: Record<string, unknown>; printData?: Record<string, unknown>; baseUrl?: string }`；`RenderJobResult = { html: string; pageCount: number; paperMm: { width: number; height: number }; continuous: boolean }`（paperMm 直接来自 core：连续纸已探针推导，普通纸为模板纸张）；IPC 通道常量 `RENDER_REQUEST_CHANNEL = 'worm:render-request'`、`RENDER_RESPONSE_CHANNEL = 'worm:render-response'`。
   - `resolvePaper(input: { print: PrintOptions; paperMm: { width: number; height: number }; continuous: boolean }): { paper: { width: number; height: number }; heightSource: 'config' | 'derived' }`（纯函数，单位微米）。以 core 的 paperMm 为基准应用宿主覆盖；连续纸未覆盖高度时 heightSource='derived'。
@@ -2904,7 +2904,7 @@ describe('resolvePaper', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: FAIL，`Cannot find module './paper.js'`。
 
 - [ ] **Step 3: 实现 `src/main/paper.ts` 与 `src/shared/render-protocol.ts`**
@@ -3037,8 +3037,8 @@ d. `src/worker/worker.ts`（**主世界**代码，无 Node API，core 由 vite �
 
 ```ts
 // 隐藏渲染 worker（contextIsolation 主世界）：跑 core 浏览器侧两遍渲染，经 wormRender 桥返回结果。
-import { renderHtmlPages, browserCodeRenderer } from '@worm-vue3-print/core/browser'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
+import { renderHtmlPages, browserCodeRenderer } from '@go-wind/print-core/browser'
+import type { PrintTemplateData } from '@go-wind/print-core'
 import type { RenderJobSpec, RenderResponse } from '../shared/render-protocol.js'
 
 declare global {
@@ -3069,12 +3069,12 @@ window.wormRender.onRequest(async (_id, spec) => {
 
 - [ ] **Step 5: 确认构建（worker 沙箱化 + core 打包）**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: resolvePaper 7 条及既有用例全绿。
-Run: `npm run build -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-client`
 Expected:
 1. `out/preload/worker-preload.js` 与 `out/preload/index.js` 均产出；
-2. worker 入口把 `@worm-vue3-print/core`、`@worm-vue3-print/core/browser` 打包进 renderer 产物（若被 `externalizeDepsPlugin` 外置导致主世界 `import` 失败，在 renderer 配置中覆盖：`build.rollupOptions.external = id => /node_modules\/electron|^electron$/.test(id)` 即只外置 electron，其余 workspace 依赖全部打包——以实际产物验证为准）；
+2. worker 入口把 `@go-wind/print-core`、`@go-wind/print-core/browser` 打包进 renderer 产物（若被 `externalizeDepsPlugin` 外置导致主世界 `import` 失败，在 renderer 配置中覆盖：`build.rollupOptions.external = id => /node_modules\/electron|^electron$/.test(id)` 即只外置 electron，其余 workspace 依赖全部打包——以实际产物验证为准）；
 3. worker.ts 中**不得出现**任何 `from 'electron'`（`grep -n "from 'electron'" src/worker/*.ts` 应无输出）；
 4. **沙箱 preload 自包含**：`out/preload/worker-preload.js` 中不得残留 `require('../shared/...')`（render-protocol 的通道常量必须被打包器内联；检查：`grep -c "shared/render-protocol" out/preload/worker-preload.js` 应为 0），只允许 `require('electron')`。
 
@@ -3153,7 +3153,7 @@ describe('buildWebPrintSettings', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: FAIL，`Cannot find module './render-engine.js'`。
 
 - [ ] **Step 3: 实现 `src/main/render-engine.ts`**
@@ -3409,9 +3409,9 @@ init 中直接绑定一次：
 
 - [ ] **Step 5: 运行测试与构建**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: render-engine 4 条及既有用例全绿。
-Run: `npm run build -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-client`
 Expected: main/renderer 构建通过；`out/renderer/worker.html` 与 worker 资源存在（`ls out/renderer` 人工确认）。
 
 - [ ] **Step 6: 提交**
@@ -3519,7 +3519,7 @@ describe('parsePrintSubmit', () => {
 
 - [ ] **Step 3: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: FAIL，找不到两个模块。
 
 - [ ] **Step 4: 实现 `serial-gate.ts`**
@@ -3774,9 +3774,9 @@ function buildSettings(print: PrintOptions, prepared: PreparedPrint) {
 
 - [ ] **Step 7: 运行测试与构建**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: 新增 10 条断言全绿，既有不回归。
-Run: `npm run build -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-client`
 Expected: 构建通过（TypeScript 对 electron 类型检查通过；若 `wc.print` 的 options 类型与 `WebPrintSettings` 结构不兼容，以 `Electron.WebContentsPrintOptions` 为准微调字段——以 tsc 实际报错为准，不得用 any 绕过命名不匹配）。
 
 - [ ] **Step 8: 提交**
@@ -3867,7 +3867,7 @@ describe('makeMessageHandler', () => {
 
 - [ ] **Step 3: 运行确认失败**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: FAIL，`Cannot find module './protocol-handler.js'`。
 
 - [ ] **Step 4: 实现 `protocol-handler.ts`**
@@ -4145,7 +4145,7 @@ const TEST_TEMPLATE_JSON = JSON.parse(readFileSync(join(dirname(fileURLToPath(im
 
 - [ ] **Step 9: 手工真机验证（macOS，本机执行）**
 
-Run: `npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/client && npm run dev -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-core && npm run build -w @worm-vue3-print/client && npm run dev -w @go-wind/print-client`
 Expected: 应用启动，日志输出 `客户端启动完成 { port: 17521 }`，托盘出现图标。
 
 另开终端：
@@ -4155,7 +4155,7 @@ Expected: 打印出 A4 测试页（无默认打印机时先在 系统设置→�
 
 - [ ] **Step 10: 运行全部测试、构建并提交**
 
-Run: `npm run test -w @worm-vue3-print/print-client && npm run build -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client && npm run build -w @go-wind/print-client`
 Expected: 全绿、构建通过。
 
 ```bash
@@ -4598,10 +4598,10 @@ c. 托盘的 `showSettings` 改为 `() => mainWindow.show()`；单实例第二�
 
 - [ ] **Step 7: 构建与手工验证**
 
-Run: `npm run build -w @worm-vue3-print/print-client`
+Run: `npm run build -w @go-wind/print-client`
 Expected: main/preload/renderer 三环境构建通过，无 Vue 模板类型错误。
 
-Run: `npm run dev -w @worm-vue3-print/print-client`
+Run: `npm run dev -w @go-wind/print-client`
 Expected: 托盘「设置…」打开窗口；三项逐一手工验证：
 1. 设置页展示端口 17521、可改日志级别保存后日志页出现新级别过滤效果；安全开关打开后出现 token 与白名单；
 2. 任务记录初始为空，点「打印测试页」成功后记录实时出现一行；
@@ -4609,7 +4609,7 @@ Expected: 托盘「设置…」打开窗口；三项逐一手工验证：
 
 - [ ] **Step 8: 运行全量测试并提交**
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: 既有用例全绿（本任务无新增自动化测试，UI 以手工清单验证）。
 
 ```bash
@@ -4630,12 +4630,12 @@ git commit -m "feat(print-client)：新增配置窗口（设置/任务记录/日
 
 **Interfaces:**
 - Consumes: 前 12 个任务的全部产物。
-- Produces: `npm run pack:dir -w @worm-vue3-print/print-client` 产出**不安装即可运行**的绿色目录（mac: `dist/mac/<App>.app`；win: `dist/win-unpacked/`；linux: `dist/linux-unpacked/`），三平台只能在对应系统上构建对应产物（electron-builder 限制，不做跨平台编译）。
+- Produces: `npm run pack:dir -w @go-wind/print-client` 产出**不安装即可运行**的绿色目录（mac: `dist/mac/<App>.app`；win: `dist/win-unpacked/`；linux: `dist/linux-unpacked/`），三平台只能在对应系统上构建对应产物（electron-builder 限制，不做跨平台编译）。
 
 - [ ] **Step 1: 安装 electron-builder 并加脚本**
 
 ```bash
-npm install -D -w @worm-vue3-print/print-client electron-builder
+npm install -D -w @go-wind/print-client electron-builder
 ```
 
 `clients/print-client/package.json` 的 `scripts` 调整为：
@@ -4682,10 +4682,10 @@ linux:
 - macOS/Linux shell 与跨平台兼容写法直接在 package.json 中用顺序命令（不依赖 rimraf）：
 
 ```json
-    "pack:dir": "npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/client && electron-vite build && electron-builder --dir"
+    "pack:dir": "npm run build -w @go-wind/print-core && npm run build -w @worm-vue3-print/client && electron-vite build && electron-builder --dir"
 ```
 
-（在 workspace 包内执行 `npm run build -w <name>` 需要 npm 7+，当前环境满足；如执行者验证该写法在包目录下不可用，降级为根目录统一打包脚本根 package.json：`"pack:client:dir": "npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/client && npm run pack:dir -w @worm-vue3-print/print-client"`，二选一以实测为准。）
+（在 workspace 包内执行 `npm run build -w <name>` 需要 npm 7+，当前环境满足；如执行者验证该写法在包目录下不可用，降级为根目录统一打包脚本根 package.json：`"pack:client:dir": "npm run build -w @go-wind/print-core && npm run build -w @worm-vue3-print/client && npm run pack:dir -w @go-wind/print-client"`，二选一以实测为准。）
 
 - [ ] **Step 3: 根仓库构建/测试接线**
 
@@ -4693,8 +4693,8 @@ linux:
 
 ```json
   "scripts": {
-    "build": "npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/canvas && npm run build -w @worm-vue3-print/render && npm run build -w @worm-vue3-print/client && npm run build -w @worm-vue3-print/print-client",
-    "test": "npm run test -w @worm-vue3-print/core && npm run test -w @worm-vue3-print/canvas && npm run test -w @worm-vue3-print/client && npm run test -w @worm-vue3-print/print-client"
+    "build": "npm run build -w @go-wind/print-core && npm run build -w @go-wind/print-canvas && npm run build -w @go-wind/print-render && npm run build -w @worm-vue3-print/client && npm run build -w @go-wind/print-client",
+    "test": "npm run test -w @go-wind/print-core && npm run test -w @go-wind/print-canvas && npm run test -w @worm-vue3-print/client && npm run test -w @go-wind/print-client"
   }
 ```
 
@@ -4710,7 +4710,7 @@ Expected: 五个工作区构建全部成功。
 
 - [ ] **Step 5: macOS 绿色目录打包并运行验证**
 
-Run: `npm run pack:dir -w @worm-vue3-print/print-client`（或 Step 2 确定的根脚本）
+Run: `npm run pack:dir -w @go-wind/print-client`（或 Step 2 确定的根脚本）
 Expected: `clients/print-client/dist/mac/WormPrintClient.app` 生成。
 
 验证：
@@ -4741,7 +4741,7 @@ Expected: `clients/print-client/dist/mac/WormPrintClient.app` 生成。
 
 ```md
 - `@worm-vue3-print/client`（packages/print-client-sdk）：静默打印客户端的浏览器端 SDK（WebSocket 连接、打印机枚举、打印调用）。
-- `@worm-vue3-print/print-client`（clients/print-client）：跨平台（Win/Linux/macOS）Electron 静默打印桌面客户端，本地复用同构渲染管线出纸。详见 clients/print-client/README.md。
+- `@go-wind/print-client`（clients/print-client）：跨平台（Win/Linux/macOS）Electron 静默打印桌面客户端，本地复用同构渲染管线出纸。详见 clients/print-client/README.md。
 ```
 
 - [ ] **Step 8: 提交**

@@ -207,10 +207,10 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onUnmounted } from 'vue'
-import type { RuntimeElement, TemplateData, ElementRect, ElementZone, AlignLine } from '@worm-vue3-print/core/designer'
-import { getPaperDimensions } from '@worm-vue3-print/core/designer'
-import { mmToPx } from '@worm-vue3-print/core/designer'
-import { resolveWatermarkLayout } from '@worm-vue3-print/core'
+import type { RuntimeElement, TemplateData, ElementRect, ElementZone, AlignLine } from '@go-wind/print-core/designer'
+import { getPaperDimensions } from '@go-wind/print-core/designer'
+import { mmToPx } from '@go-wind/print-core/designer'
+import { resolveWatermarkLayout } from '@go-wind/print-core'
 import BaseElement from './elements/BaseElement.vue'
 import { useAdsorbManager } from '../composables/useAdsorbManager'
 

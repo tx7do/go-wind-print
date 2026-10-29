@@ -10,9 +10,9 @@
 // · 候选整理与模糊匹配都直接调 core 的 print/fonts.ts 导出，canvas 与本包同一份实现（不再有第二套目录算法）。
 import {
   filterFontOptions, findFontOption, fontOptionLabel, normalizeFontCatalog, normalizeFontQuery,
-} from '@worm-vue3-print/core'
-import type { FontCatalogOption, PrintFontDeclaration } from '@worm-vue3-print/core'
-import { resolveOverlayPlacement } from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core'
+import type { FontCatalogOption, PrintFontDeclaration } from '@go-wind/print-core'
+import { resolveOverlayPlacement } from '@go-wind/print-core/designer'
 import type { ShellState } from './controls'
 
 type FontRowKind = 'clear' | 'unknown' | 'font' | 'free'

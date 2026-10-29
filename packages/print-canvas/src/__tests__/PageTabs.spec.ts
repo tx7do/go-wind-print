@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import PageTabs from '../components/PageTabs.vue'
 import { TILING_SINGLE_PAGE_TIP } from '../composables/useDesignerState'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 /** PageTabs 只读 page.name：夹具按最小对象构造，类型上仍标成 TemplateData */
 const pg = (name: string) => ({ name }) as unknown as TemplateData

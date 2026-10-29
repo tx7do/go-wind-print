@@ -31,10 +31,10 @@
 // 之后单元格右键直接改写这份状态，外层无需再接开启/关闭动作），
 // 返回值非空时渲染进 shadow 内即可（.table-ctx-menu 为 position: fixed，按视口定位）。
 import JsBarcode from 'jsbarcode'
-import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
+import { browserCodeRenderer } from '@go-wind/print-core/browser'
 import type {
   ElementOptions, TableCell, TableRow, TableRowType, TableSelection, RuntimeElement, TextFit,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import {
   BARCODE_MARGIN_BOTTOM_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES, DEFAULT_DEMO_DATA, barcodeAvailableBoxMm, barcodeQuietZoneModules, barcodeUnitsPerModule,
@@ -42,8 +42,8 @@ import {
   evaluateTemplate, insertCol, insertRow, layoutBarcodeSize, mergeCells, normalizeSelection,
   resolveBarcodeDesignValue, resolveCellBorderCss, resolveCellTextFit,
   resolveShrinkMinFontSize, setRowType, splitCells, syncTableElementSize,
-} from '@worm-vue3-print/core/designer'
-import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
+} from '@go-wind/print-core/designer'
+import { resolveCanvasFontFamily } from '@go-wind/print-core'
 import type { DesignerStore } from '../core/store'
 import { SVG_NS_CONST, h } from '../core/h'
 import type { El } from '../core/h'

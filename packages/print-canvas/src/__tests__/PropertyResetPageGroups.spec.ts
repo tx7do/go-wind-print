@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import WatermarkConfig from '../components/WatermarkConfig.vue'
 import TilingConfig from '../components/property/TilingConfig.vue'
-import { WATERMARK_DEFAULTS, TILE_DEFAULTS } from '@worm-vue3-print/core'
+import { WATERMARK_DEFAULTS, TILE_DEFAULTS } from '@go-wind/print-core'
 
 function rowOf(w: any, text: string) {
   const row = w.findAll('.pd-field').find((f: any) => f.find('.pd-label').exists() && f.find('.pd-label').text().includes(text))

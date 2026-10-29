@@ -113,7 +113,7 @@ export interface PrintSubmitResponsePayload {
 }
 
 /**
- * 浏览器侧预渲染结果（@worm-vue3-print/core/browser 的 renderHtmlPages 输出子集）。
+ * 浏览器侧预渲染结果（@go-wind/print-core/browser 的 renderHtmlPages 输出子集）。
  * 业务页在浏览器内完成两遍渲染后，把最终 HTML 直接提交给客户端静默打印，
  * 客户端不再持有/执行模板渲染内核。
  */

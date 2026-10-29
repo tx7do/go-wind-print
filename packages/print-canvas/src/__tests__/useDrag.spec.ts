@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { useDrag } from '../composables/useDrag'
-import type { AdsorbResult } from '@worm-vue3-print/core/designer'
+import type { AdsorbResult } from '@go-wind/print-core/designer'
 
 function createTarget(left = 10, top = 20, width = 100, height = 50): { value: HTMLElement | null } {
   const el = document.createElement('div')

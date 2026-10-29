@@ -2,8 +2,8 @@
 // .canvas-area > .canvas-scroll > .paper-wrapper > .hiprint-printPaper > .hiprint-printPaper-content
 //   > .design-background? / .grid-bg? / .watermark-layer? / .zone-layer×3 / .adsorb-guide×n / .manual-guide×n
 // 缩放口径：wrapper 用缩放后像素尺寸占位，纸张本体 width/height 用 mm + transform: scale(s)。
-import { getPaperDimensions, mmToPx, resolveWatermarkLayout } from '@worm-vue3-print/core'
-import type { AlignLine, RuntimeElement, TemplateData } from '@worm-vue3-print/core/designer'
+import { getPaperDimensions, mmToPx, resolveWatermarkLayout } from '@go-wind/print-core'
+import type { AlignLine, RuntimeElement, TemplateData } from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 import { renderDesignElement } from './elements'
 import type { ShellCtx } from './controls'

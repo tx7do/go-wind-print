@@ -17,7 +17,7 @@ npm test
 
 - 遵循 Conventional Commits：`fix:`、`feat:`、`refactor:`、`docs:`、`chore:`、`test:` 等。
 - 改动请在提交前运行 `npm run build` 与 `npm test`（根测试覆盖 core + canvas）。
-- 涉及渲染管线的改动可在同仓库验证 `services/print-render`（两遍渲染逻辑在 core，render 经 workspace 软链消费 `@worm-vue3-print/core`）：先 `npx playwright install chromium`，再 `npm run test -w @worm-vue3-print/render`。
+- 涉及渲染管线的改动可在同仓库验证 `services/print-render`（两遍渲染逻辑在 core，render 经 workspace 软链消费 `@go-wind/print-core`）：先 `npx playwright install chromium`，再 `npm run test -w @go-wind/print-render`。
 
 ## 发布流程
 
@@ -37,8 +37,8 @@ npm test
 # 1. 更新四个包的版本号（必须一致：根包、print-core、print-canvas、demo）
 #    print-common 不在其中——它走独立的预览号（主线号-beta.N），见方式三
 #    可用命令，例如发布 1.2.3：
-npm version 1.2.3 -w @worm-vue3-print/core
-npm version 1.2.3 -w @worm-vue3-print/canvas
+npm version 1.2.3 -w @go-wind/print-core
+npm version 1.2.3 -w @go-wind/print-canvas
 # 根包与 demo/package.json 版本号同步手动修改
 
 # 2. 同步更新记录（三处缺一不可）
@@ -84,20 +84,20 @@ npm run publish:npm
 
 ```bash
 # 1. 版本号（遵循语义化版本，core 与 canvas 保持一致）
-npm version patch -w @worm-vue3-print/core
-npm version patch -w @worm-vue3-print/canvas
+npm version patch -w @go-wind/print-core
+npm version patch -w @go-wind/print-canvas
 
 # 2. 构建产物（必须先 core 后 canvas，保证全新环境可解析到 core 的 dist）
 npm run build
 
-# 3. 发布（需 npm 登录且拥有 @worm-vue3-print scope）
-npm publish -w @worm-vue3-print/core
-npm publish -w @worm-vue3-print/canvas
+# 3. 发布（需 npm 登录且拥有 @go-wind scope）
+npm publish -w @go-wind/print-core
+npm publish -w @go-wind/print-canvas
 ```
 
-> 范围说明：渲染微服务为本仓库私有 workspace 包 `services/print-render`（`@worm-vue3-print/render`），不发布 npm。`packages/print-common` 是唯一例外——只发**预览版**，见方式三。
+> 范围说明：渲染微服务为本仓库私有 workspace 包 `services/print-render`（`@go-wind/print-render`），不发布 npm。`packages/print-common` 是唯一例外——只发**预览版**，见方式三。
 
-### 方式三：发布 `@worm-vue3-print/common` 预览版（本地手工）
+### 方式三：发布 `@go-wind/print-common` 预览版（本地手工）
 
 `common`（零框架宿主适配设计器）尚未完成稳定性测试，因此**不进 `latest`**：版本号取 `主线号-beta.N`，dist-tag 固定 `next`，不接 GitHub Actions（避免和正式 tag 的节奏绑在一起）。
 
@@ -135,13 +135,13 @@ node scripts/check-common-dist-tag.mjs --fix
 要点：
 
 - **构建顺序不能调**：`scripts/gen-styles.mjs` 从 `packages/print-canvas/dist/canvas.css` 派生样式，canvas 没构建时 common 直接报错退出；
-- **`--tag next` 是脚本内的硬约束**：手敲 `npm publish` 漏掉它会把实验包挂上 `latest`，非 Vue3 宿主一句 `npm i @worm-vue3-print/common` 就吃到预览版；
+- **`--tag next` 是脚本内的硬约束**：手敲 `npm publish` 漏掉它会把实验包挂上 `latest`，非 Vue3 宿主一句 `npm i @go-wind/print-common` 就吃到预览版；
 - **本机默认 registry 是 `registry.npmmirror.com`**（2026-10-26 实测：不带 `--registry` 的 `npm publish --dry-run` 显示 `Publishing to https://registry.npmmirror.com`）——手敲发布必须显式带 `--registry=https://registry.npmjs.org`，`publish:npm` 与 `publish:common:beta` 里已经写死；
 - **`publishConfig.tag` 不是兜底**（实测 npm 11.19：不带 `--tag` 的 dry-run 仍报 `with tag latest`，而 `publishConfig.access/registry` 确实生效）——别指望它防住手敲发布，防线只有两条：脚本里的 `--tag next`，以及发布后 `--fix` 摘掉自动挂上的 `latest`；
 - **但 `--tag next` 只约束本次发布写入的 tag，挡不住 npm 给新包首发自动打的 `latest`**：首次发布后 `latest` 与 `next` 同指那个预览版，裸装不会报错而是静默装上实验包。`publish:common:beta` 已在发布后自动跑 `scripts/check-common-dist-tag.mjs --fix` 摘除 `latest`，单独复查用 `npm run publish:common:check`（exit 0 健康 / 1 红灯 / 2 读不到）；
 - 主线发版（方式一/二）不动 `common` 的 `version`，避免它被 `1.3.7` 这类正式号带上 `latest`；
 - npm 账号若开启 2FA，最后一步会交互式索取验证码（新包首次发布同样需要），照着 Authenticator 填即可；
-- 转正条件满足后：`version` 去掉 `-beta.N`，改用 `npm publish -w @worm-vue3-print/common --access public`（不带 `--tag`，落 `latest`），并把该包补进 `publish:npm`、`release.yml` 的标签校验与 README / AGENTS.md 的发布口径。
+- 转正条件满足后：`version` 去掉 `-beta.N`，改用 `npm publish -w @go-wind/print-common --access public`（不带 `--tag`，落 `latest`），并把该包补进 `publish:npm`、`release.yml` 的标签校验与 README / AGENTS.md 的发布口径。
 
 ## 代码规范
 

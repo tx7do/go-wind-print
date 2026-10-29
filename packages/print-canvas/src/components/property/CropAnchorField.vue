@@ -54,10 +54,10 @@ import {
   propertyTip,
   resolveCropPreview,
   resolveCropTravel,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import StepperInput from './StepperInput.vue'
 import ResetButton from './ResetButton.vue'
-import { propertyDefault } from '@worm-vue3-print/core/designer'
+import { propertyDefault } from '@go-wind/print-core/designer'
 
 /** 注册表纯提示字段：只喂文案 */
 const def = (key: string) => propertyDefault(key)

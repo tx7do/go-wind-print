@@ -74,7 +74,7 @@ export type { RenderFinalPagesOptions } from './render/html-generator.js'
 
 ```ts
 it('多页面模板 API 从根入口导出', () => {
-  const core = await import('@worm-vue3-print/core')
+  const core = await import('@go-wind/print-core')
   expect(typeof core.normalizeTemplate).toBe('function')
   expect(typeof core.composeMultiPageDocument).toBe('function')
   expect(typeof core.isMultiPageTemplate).toBe('function')
@@ -86,13 +86,13 @@ it('多页面模板 API 从根入口导出', () => {
 
 - [ ] **Step 5: 运行 core 测试**
 
-Run: `npm exec -w @worm-vue3-print/core vitest run -- src/print/__tests__/exports.spec.ts src/print/__tests__/multi-template.spec.ts`
+Run: `npm exec -w @go-wind/print-core vitest run -- src/print/__tests__/exports.spec.ts src/print/__tests__/multi-template.spec.ts`
 Expected: PASS（含既有多模板 15 用例）
 
 - [ ] **Step 6: 构建 core 并提交**
 
 ```bash
-npm run build -w @worm-vue3-print/core
+npm run build -w @go-wind/print-core
 git add packages/print-core/src/print/multi-template.ts packages/print-core/src/index.ts packages/print-core/src/render/types.ts packages/print-core/src/print/types.ts packages/print-core/src/print/__tests__/exports.spec.ts
 git commit -m "feat(core): 多页面模板 API 导出与 templateJson 类型放宽"
 ```
@@ -175,7 +175,7 @@ describe('多页面模板', () => {
 
 - [ ] **Step 2: 运行测试确认失败**
 
-Run: `npm exec -w @worm-vue3-print/core vitest run -- src/print/__tests__/pipeline.spec.ts`
+Run: `npm exec -w @go-wind/print-core vitest run -- src/print/__tests__/pipeline.spec.ts`
 Expected: FAIL（pipeline 尚无多模板分支）
 
 - [ ] **Step 3: 实现 pipeline 多模板分支**
@@ -257,14 +257,14 @@ async function prepareMultiCopy(
 
 - [ ] **Step 4: 运行测试确认通过**
 
-Run: `npm exec -w @worm-vue3-print/core vitest run -- src/print/__tests__/pipeline.spec.ts`
+Run: `npm exec -w @go-wind/print-core vitest run -- src/print/__tests__/pipeline.spec.ts`
 Expected: PASS（新增 4 用例 + 既有用例）
 
 - [ ] **Step 5: 全量 core 测试 + 提交**
 
 ```bash
-npm exec -w @worm-vue3-print/core vitest run
-npm run build -w @worm-vue3-print/core
+npm exec -w @go-wind/print-core vitest run
+npm run build -w @go-wind/print-core
 git add packages/print-core/src/print/pipeline.ts packages/print-core/src/print/__tests__/pipeline.spec.ts
 git commit -m "feat(core): pipeline 接入多页面模板渲染（批量/截图/1页wrapper归一化）"
 ```
@@ -279,7 +279,7 @@ git commit -m "feat(core): pipeline 接入多页面模板渲染（批量/截图/
 - Test: `services/print-render/src/multipage.integration.test.ts`
 
 **Interfaces:**
-- Consumes: core 已导出的 `renderPdf`/`normalizeTemplate`；`@worm-vue3-print/core/node` 的 `loadExecutorBundle`；`BrowserPool`/`createPlaywrightDriverFactory`（render 包既有）。
+- Consumes: core 已导出的 `renderPdf`/`normalizeTemplate`；`@go-wind/print-core/node` 的 `loadExecutorBundle`；`BrowserPool`/`createPlaywrightDriverFactory`（render 包既有）。
 - Produces: 无新接口；验证多模板 PDF 出图。
 
 - [ ] **Step 1: 放宽 `server.ts` 的 templateJson 结构校验**
@@ -302,9 +302,9 @@ if (!hasMultiPages && (!tpl.paperSize || !tpl.orientation || !tpl.margins)) {
 ```ts
 import { describe, it, expect } from 'vitest'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
-import { renderPdf as coreRenderPdf, createDomHostRuntime } from '@worm-vue3-print/core'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
+import { renderPdf as coreRenderPdf, createDomHostRuntime } from '@go-wind/print-core'
+import type { PrintTemplateData } from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'
 
@@ -357,7 +357,7 @@ describe('多页面模板渲染（真实 Chromium）', () => {
 
 - [ ] **Step 3: 跑 render 集成测试**
 
-Run: `npm run build -w @worm-vue3-print/core && npm run test -w @worm-vue3-print/render -- src/multipage.integration.test.ts`
+Run: `npm run build -w @go-wind/print-core && npm run test -w @go-wind/print-render -- src/multipage.integration.test.ts`
 Expected: PASS（首次需 `npx playwright install chromium`；测试较慢）
 
 - [ ] **Step 4: 确认 electron/SDK 松散耦合无需改动**
@@ -395,7 +395,7 @@ git commit -m "feat(render): 多页面模板校验放宽与 PDF 集成测试"
 ```ts
 import { describe, it, expect } from 'vitest'
 import { useDesignerState } from '../composables/useDesignerState'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 function page(name: string, height: number): TemplateData {
   return {
@@ -472,7 +472,7 @@ describe('useDesignerState 多页面', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm run build -w @worm-vue3-print/core && npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/useDesignerState-multipage.spec.ts`
+Run: `npm run build -w @go-wind/print-core && npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/useDesignerState-multipage.spec.ts`
 Expected: FAIL（无 `pages` 等导出）
 
 - [ ] **Step 3: 实现 useDesignerState 多页状态**
@@ -622,13 +622,13 @@ function movePage(from: number, to: number) {
 
 - [ ] **Step 4: 运行测试确认通过**
 
-Run: `npm run build -w @worm-vue3-print/core && npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/useDesignerState-multipage.spec.ts`
+Run: `npm run build -w @go-wind/print-core && npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/useDesignerState-multipage.spec.ts`
 Expected: PASS
 
 - [ ] **Step 5: 全量 canvas 测试 + 提交**
 
 ```bash
-npm exec -w @worm-vue3-print/canvas vitest run
+npm exec -w @go-wind/print-canvas vitest run
 git add packages/print-canvas/src/composables/useDesignerState.ts packages/print-canvas/src/__tests__/useDesignerState-multipage.spec.ts
 git commit -m "feat(canvas): 设计器多页面状态（页面列表/切换/纸张传播/序列化）"
 ```
@@ -682,7 +682,7 @@ describe('PageTabs', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/PageTabs.spec.ts`
+Run: `npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/PageTabs.spec.ts`
 Expected: FAIL（组件不存在）
 
 - [ ] **Step 3: 创建 PageTabs.vue**（原生控件，遵循 `native-controls.css` 风格；含重命名输入与左右移动）
@@ -711,7 +711,7 @@ Expected: FAIL（组件不存在）
 </template>
 
 <script setup lang="ts">
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 defineProps<{
   pages: TemplateData[]
   activeIndex: number
@@ -758,7 +758,7 @@ function templateJsonWithFonts(): TemplateData | MultiPageTemplateData {
 - `handleSave` 前加多页校验（用 core `normalizeTemplate`，错误 `alert` 并中断）：
 
 ```ts
-import { normalizeTemplate } from '@worm-vue3-print/core'
+import { normalizeTemplate } from '@go-wind/print-core'
 const json = templateJsonWithFonts()
 if (Array.isArray((json as MultiPageTemplateData).pages)) {
   try { normalizeTemplate(json) } catch (e) { alert(e instanceof Error ? e.message : String(e)); return }
@@ -770,7 +770,7 @@ emit('save', JSON.stringify(json))
 
 - [ ] **Step 5: 跑 canvas 测试**
 
-Run: `npm run build -w @worm-vue3-print/core && npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/PageTabs.spec.ts src/__tests__/useDesignerState-multipage.spec.ts`
+Run: `npm run build -w @go-wind/print-core && npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/PageTabs.spec.ts src/__tests__/useDesignerState-multipage.spec.ts`
 Expected: PASS
 
 - [ ] **Step 6: 提交**
@@ -798,7 +798,7 @@ git commit -m "feat(canvas): 多页面栏 UI 与 PrintDesigner 接线（含保�
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PropertyPanel from '../components/PropertyPanel.vue'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 function tpl(): TemplateData {
   return {
@@ -823,7 +823,7 @@ describe('PropertyPanel 多页 gating', () => {
 
 - [ ] **Step 2: 运行确认失败**
 
-Run: `npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/PropertyPanel-multipage.spec.ts`
+Run: `npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/PropertyPanel-multipage.spec.ts`
 Expected: FAIL（无 `multiPage` prop 逻辑）
 
 - [ ] **Step 3: 实现 gating**
@@ -841,7 +841,7 @@ Expected: FAIL（无 `multiPage` prop 逻辑）
 - [ ] **Step 5: 跑 canvas 测试 + 提交**
 
 ```bash
-npm exec -w @worm-vue3-print/canvas vitest run
+npm exec -w @go-wind/print-canvas vitest run
 git add packages/print-canvas/src/components/PropertyPanel.vue packages/print-canvas/src/components/property/TilingConfig.vue packages/print-canvas/src/__tests__/PropertyPanel-multipage.spec.ts
 git commit -m "feat(canvas): 属性面板多页 gating（隐藏拼版/禁用连续纸）"
 ```
@@ -899,7 +899,7 @@ Expected: PASS（多页编排逻辑全在 core，render/electron 源码无新违
 
 - [ ] **Step 3: render 集成测试（含新增多模板用例）**
 
-Run: `npm run test -w @worm-vue3-print/render`
+Run: `npm run test -w @go-wind/print-render`
 Expected: PASS（含 `multipage.integration.test.ts`）
 
 - [ ] **Step 4: 自审 `git diff`**

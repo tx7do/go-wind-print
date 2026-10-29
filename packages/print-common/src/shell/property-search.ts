@@ -1,6 +1,6 @@
 // 属性台搜索：移植 print-canvas 的 PropertySearch.vue + PropertyPanel.vue 的
 // filteredGroups / matchedKeys / searching 门控口径（无框架版）。
-// 注册表与命中算法直接走 core 导出（@worm-vue3-print/core/designer 的
+// 注册表与命中算法直接走 core 导出（@go-wind/print-core/designer 的
 // PROPERTY_REGISTRY / searchProperties），本文件只做「接线」不重写算法。
 //
 // canvas 侧口径逐条对应：
@@ -10,7 +10,7 @@
 //
 // 为什么用 display 而不是直接不建节点：canvas 的 v-show 本身就是保留节点隐藏，
 // 且输入过滤词时只做定点 DOM 更新（不整体重绘），中文输入法组合与光标才不会被打断。
-import { PROPERTY_REGISTRY, searchProperties } from '@worm-vue3-print/core/designer'
+import { PROPERTY_REGISTRY, searchProperties } from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import type { ShellCtx } from './controls'

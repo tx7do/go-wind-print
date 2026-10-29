@@ -6,7 +6,7 @@
 // 逻辑全部走 core/format.ts（从 useFormatToolbar + useFormatPainter 移植），本文件只负责呈现与派发。
 import { h } from '../core/h'
 import { iconSvg } from '../core/icons'
-import type { VerticalAlign } from '@worm-vue3-print/core/designer'
+import type { VerticalAlign } from '@go-wind/print-core/designer'
 import { colorTrigger, dropdown, field, stepper } from './controls'
 import type { ShellCtx } from './controls'
 import { renderFontSelect } from './font-select'

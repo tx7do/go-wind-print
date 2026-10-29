@@ -7,9 +7,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { evaluateTemplate, cropStyleDeclarations } from '@worm-vue3-print/core/designer'
-import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
+import { evaluateTemplate, cropStyleDeclarations } from '@go-wind/print-core/designer'
+import { DEFAULT_DEMO_DATA } from '@go-wind/print-core/designer'
 
 const props = defineProps<{
   element: RuntimeElement

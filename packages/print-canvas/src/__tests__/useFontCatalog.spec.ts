@@ -1,7 +1,7 @@
 // packages/print-canvas/src/__tests__/useFontCatalog.spec.ts
 import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
-import type { PrintFontDeclaration } from '@worm-vue3-print/core'
+import type { PrintFontDeclaration } from '@go-wind/print-core'
 import { filterFontOptions, useFontCatalog, type FontOption } from '../composables/useFontCatalog'
 
 const decl = (family: string, label?: string): PrintFontDeclaration => ({

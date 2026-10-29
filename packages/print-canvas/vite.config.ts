@@ -33,6 +33,8 @@ export default defineConfig({
   },
   build: {
     lib: {
+      // CSS 产物名钉死 canvas.css：包改名后 vite 默认取 entry 名会漂移，下游 gen-styles 按此名消费
+      cssFileName: "canvas",
       entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       formats: ['es', 'cjs'],
       fileName: (format) => (format === 'es' ? 'index.js' : 'index.cjs'),
@@ -41,7 +43,7 @@ export default defineConfig({
       external: [
         'vue',
         // 匹配主包及 /designer、/browser 等全部子路径，均作为外部依赖不打进 canvas
-        /^@worm-vue3-print\/core(\/.*)?$/,
+        /^@go-wind\/print-core(\/.*)?$/,
         'dompurify',
         'jsbarcode',
         'qrcode',

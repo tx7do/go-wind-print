@@ -2,7 +2,7 @@
 // 元素台边框入口 Common 端契约：与 canvas 的 BorderBgGroup.vue 同位同文案，
 // 写入统一经 store.updateElement 收口，落盘口径由 core 的 element-border-edit 保证（两宿主同一条）。
 import { describe, it, expect } from 'vitest'
-import type { ElementBorderSide, ElementType, RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { ElementBorderSide, ElementType, RuntimeElement } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

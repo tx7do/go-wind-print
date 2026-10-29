@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { TILE_DEFAULTS } from '@worm-vue3-print/core'
+import { TILE_DEFAULTS } from '@go-wind/print-core'
 import { useDesignerState, TILING_SINGLE_PAGE_TIP } from '../composables/useDesignerState'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 function page(name: string, height: number): TemplateData {
   return {

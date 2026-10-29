@@ -1,4 +1,4 @@
-# @worm-vue3-print/core
+# @go-wind/print-core
 
 打印模板表达式引擎与**同构渲染管线**（数据绑定 / HTML 生成 / 分页 / 测量元素），纯 TypeScript。
 
@@ -21,7 +21,7 @@ print-core/
     browser/                # 渲染管线浏览器适配器（iframe 两遍分页、jsbarcode/qrcode）
 ```
 
-`core` 无 Vue、无宿主依赖，可在 Node 服务端（`@worm-vue3-print/render`）与浏览器端（`@worm-vue3-print/canvas`）共用，
+`core` 无 Vue、无宿主依赖，可在 Node 服务端（`@go-wind/print-render`）与浏览器端（`@go-wind/print-canvas`）共用，
 保证「浏览器预览」「服务端 PDF」「桌面客户端出图」共用同一套算法（逻辑同源；像素级一致还需三端字体与 Chromium 内核同源）。
 
 ### 打印管线（`print/`，纯 TS）
@@ -34,16 +34,16 @@ print-core/
 - 拼版：`computeTileLayout` / `validateTiling` / `computeMaxColumns` / `tilePosition` / `resolveSheetMm` /
   `composeTiledHtml`（标签多行多列铺到目标纸，如 70×40 标签铺满 A4）。配置为模板级 `TemplateData.tiling`，
   目标纸可由用户自定义；页尺寸经 `PreparedDocument.paperMm` 透出，**服务端与客户端零协议改动**；
-- DOM 能力：`@worm-vue3-print/core/browser` 导出执行器与 iframe driver；`@worm-vue3-print/core/node` 的
+- DOM 能力：`@go-wind/print-core/browser` 导出执行器与 iframe driver；`@go-wind/print-core/node` 的
   `loadExecutorBundle()` 供 Node 宿主读取 `dist/dom-executor.iife.global.js` 注入页面。
 
 ### 子路径导出
 
 | 子路径 | 内容 | 运行环境 |
 | --- | --- | --- |
-| `@worm-vue3-print/core` | 表达式引擎 + 同构渲染管线（零运行时依赖） | Node / 浏览器 |
-| `@worm-vue3-print/core/designer` | 设计器模型类型、通用工具、纯交互逻辑 | 任意（交互中的 DOM 事件绑定需浏览器） |
-| `@worm-vue3-print/core/browser` | 浏览器分页渲染（`renderHtmlPages`）、条形码/二维码渲染器 | 仅浏览器 |
+| `@go-wind/print-core` | 表达式引擎 + 同构渲染管线（零运行时依赖） | Node / 浏览器 |
+| `@go-wind/print-core/designer` | 设计器模型类型、通用工具、纯交互逻辑 | 任意（交互中的 DOM 事件绑定需浏览器） |
+| `@go-wind/print-core/browser` | 浏览器分页渲染（`renderHtmlPages`）、条形码/二维码渲染器 | 仅浏览器 |
 
 > 注意：`/designer` 子路径的 `TemplateData` 等类型是设计器完整模型，与主入口渲染管线的简化同名类型有意分离，因此不从主入口转出。
 
@@ -63,23 +63,23 @@ print-core/
 ## 使用
 
 ```ts
-import { generateHtml, paginate, bindData } from '@worm-vue3-print/core'
+import { generateHtml, paginate, bindData } from '@go-wind/print-core'
 
 const bound = bindData(templateJson, printData)
 const pages = paginate(bound, measured, options)
 const html = generateHtml(pages)
 ```
 
-## 在 Vue 3 项目中使用（与 `@worm-vue3-print/canvas` 配合）
+## 在 Vue 3 项目中使用（与 `@go-wind/print-canvas` 配合）
 
-`core` 的同构渲染管线由 `@worm-vue3-print/canvas` 的 `PrintHtmlPreview` 组件内部调用，
+`core` 的同构渲染管线由 `@go-wind/print-canvas` 的 `PrintHtmlPreview` 组件内部调用，
 浏览器端接入无需直接调用 `core` API。以下配置与仓库 `demo/App.vue` 保持一致：
 
 ```ts
-import { PrintDesigner, PrintHtmlPreview, createDefaultTemplate } from '@worm-vue3-print/canvas'
-import type { PrintBusinessField, TemplateData } from '@worm-vue3-print/canvas'
+import { PrintDesigner, PrintHtmlPreview, createDefaultTemplate } from '@go-wind/print-canvas'
+import type { PrintBusinessField, TemplateData } from '@go-wind/print-canvas'
 // 设计器控件样式（发布包唯一对外样式入口），需全局引入一次
-import '@worm-vue3-print/canvas/style.css'
+import '@go-wind/print-canvas/style.css'
 ```
 
 ```vue

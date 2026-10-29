@@ -290,7 +290,7 @@ import { computed, inject, ref, watch } from 'vue'
 import type {
   ElementBorderSide, RuntimeElement, TableSelection, TableCell, TableCellBorder, TableCellType, TextAlign,
   PrintBusinessField,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import {
   canMergeReason, mergeCells, splitCells, applyBorderPreset, setCellBorderEdge, findMainCell,
   resolveBorderEdgeStates, resolveCellBorderDisplay, collectWritableCells, resolveCellGroupMode,
@@ -298,7 +298,7 @@ import {
   resolveCellTextFit, type TextFit, propertyTip, IMAGE_FIT_OPTIONS, evaluateTemplate, DEFAULT_DEMO_DATA, barcodeBarWidthRecommendText,
   cellFitCapMm, cellFitWidthMm, CELL_BORDER_APPLY_HINT, CELL_BORDER_APPLY_HINT_MULTI,
   CELL_BORDER_APPLY_HINT_MIXED,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import { TABLE_EDIT_KEY } from '../../composables/useTableSelection'
 import PropertyGroup from './PropertyGroup.vue'
 import ResetButton from './ResetButton.vue'

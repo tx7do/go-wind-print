@@ -54,13 +54,13 @@
 import { computed } from 'vue'
 import type {
   BorderPreset, ElementBorderFieldKey, ElementBorderSide, RuntimeElement,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import {
   acceptsElementBorder, applyElementBorderPreset, effectiveElementBorderSpec, elementBorderEdgeVisible,
   resolveElementBorderDisplay, setElementBorderEdgeVisible, setElementBorderField, BORDER_LINE_STYLES,
   ELEMENT_BORDER_APPLY_HINT,
   createDefaultOptions, propertyDefault,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import PresetColorPicker from '../PresetColorPicker.vue'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'

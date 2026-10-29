@@ -15,9 +15,9 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@worm-vue3-print/canvas": ["../packages/print-canvas/src/index.ts"],
-      "@worm-vue3-print/canvas/*": ["../packages/print-canvas/src/*"],
-      "@worm-vue3-print/core": ["../packages/print-core/src/index.ts"]
+      "@go-wind/print-canvas": ["../packages/print-canvas/src/index.ts"],
+      "@go-wind/print-canvas/*": ["../packages/print-canvas/src/*"],
+      "@go-wind/print-core": ["../packages/print-core/src/index.ts"]
     }
   },
   "include": [

@@ -3,13 +3,13 @@ import { computed, type Ref } from 'vue'
 import type {
   RuntimeElement, TableSelection, TableCell, TextAlign, VerticalAlign, TableCellBorder,
   ElementBorderSide,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import {
   applyBorderPreset, setCellBorderEdge, type BorderPreset,
   applyElementBorderPreset, setElementBorderEdgeVisible, elementVisibleBorders, resolveBorderEdgeStates,
   resolveCellGroupMode, resolveCellBorderDisplay,
   type BorderEdgeState, type ElementBorderSpec,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 
 /** 多选目标间字段值不一致的哨兵 */
 export const MIXED: unique symbol = Symbol('mixed')

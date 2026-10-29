@@ -27,12 +27,12 @@ jobs:
           cache: npm
       - run: npm ci
       # 矩阵只盖三个公开包；render 有下方专用 job，print-client 依赖 Electron 二进制暂不进矩阵
-      - run: npm run build -w @worm-vue3-print/core
-      - run: npm run build -w @worm-vue3-print/canvas
-      - run: npm run build -w @worm-vue3-print/common
-      - run: npm run test -w @worm-vue3-print/core
-      - run: npm run test -w @worm-vue3-print/canvas
-      - run: npm run test -w @worm-vue3-print/common
+      - run: npm run build -w @go-wind/print-core
+      - run: npm run build -w @go-wind/print-canvas
+      - run: npm run build -w @go-wind/print-common
+      - run: npm run test -w @go-wind/print-core
+      - run: npm run test -w @go-wind/print-canvas
+      - run: npm run test -w @go-wind/print-common
       - run: npm run lint:print-architecture
 
   render:
@@ -50,13 +50,13 @@ jobs:
       - name: 安装 Chromium 与系统依赖
         run: npx playwright install --with-deps chromium
       - name: 构建 core 与 render
-        run: npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/render
+        run: npm run build -w @go-wind/print-core && npm run build -w @go-wind/print-render
       - name: 连续纸与出图规格集成测试
-        run: npm run test -w @worm-vue3-print/render -- src/continuous.integration.test.ts
+        run: npm run test -w @go-wind/print-render -- src/continuous.integration.test.ts
         timeout-minutes: 5
       - name: 明细分页集成测试
-        run: npm run test -w @worm-vue3-print/render -- src/subtotal.integration.test.ts
+        run: npm run test -w @go-wind/print-render -- src/subtotal.integration.test.ts
         timeout-minutes: 5
       - name: 码值渲染集成测试
-        run: npm run test -w @worm-vue3-print/render -- src/codes.integration.test.ts
+        run: npm run test -w @go-wind/print-render -- src/codes.integration.test.ts
         timeout-minutes: 5

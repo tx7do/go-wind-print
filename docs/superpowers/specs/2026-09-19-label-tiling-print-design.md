@@ -319,7 +319,7 @@ render 集成（Playwright，慢）：新增 `services/print-render/src/tiling.i
 - 页内网格：`page.emulateMedia({ media: 'print' })` + `getBoundingClientRect` 断言 12 格的 left/top/宽高与理论值误差 < 0.5mm（SPIKE H5 已证明可行，误差为 0）。
 - 分张归属：用 `pdfjs-dist` 断言「第 1 张文本含 L01/L12 不含 L13、第 2 张含 L13 不含 L01」（写法已实测，见下方）。
 
-**分张归属断言（已决策并落地）**：新增 `pdfjs-dist@6.3.289` 为 `@worm-vue3-print/render` 的 devDependency。SPIKE §4.6 已用纯 Node 实测 12/12 项通过（第 1 张 L01–L12、第 2 张仅 L13、页尺寸 210×297mm、2×6 网格、列距 72mm、行距 42mm）。要点：入口 `pdfjs-dist/legacy/build/pdf.mjs`；**v6 起析构在 loadingTask 上**（`await task.destroy()`）；坐标为**标准 pt、按页重置**。另新增 `services/print-render/vitest.config.ts` 把 `spike/**` 排除出 `npm test`。
+**分张归属断言（已决策并落地）**：新增 `pdfjs-dist@6.3.289` 为 `@go-wind/print-render` 的 devDependency。SPIKE §4.6 已用纯 Node 实测 12/12 项通过（第 1 张 L01–L12、第 2 张仅 L13、页尺寸 210×297mm、2×6 网格、列距 72mm、行距 42mm）。要点：入口 `pdfjs-dist/legacy/build/pdf.mjs`；**v6 起析构在 loadingTask 上**（`await task.destroy()`）；坐标为**标准 pt、按页重置**。另新增 `services/print-render/vitest.config.ts` 把 `spike/**` 排除出 `npm test`。
 
 canvas：新增 `src/__tests__/TilingConfig.spec.ts`，覆盖开关联动（打开写入 `TILE_DEFAULTS`、关闭保留字段）、**开关打开时列数按 `maxColumns` 收敛**（小自定义纸 → 收敛为 1；正常 A4 → 2；`maxColumns=0` → 写 1 并保留红字）、切换预设纸张 / 方向后实时摘要更新、选「自定义」后显示宽高输入并落盘 `sheetCustomWidth` / `sheetCustomHeight`、非法列数的即时红字（**且不阻断输入**）；补 `PropertyPanel` 页签挂载交互。
 
@@ -331,7 +331,7 @@ canvas 保存拦截（落地为 `src/__tests__/print-designer-tiling.spec.ts`，
 - 暴露的 `validateTemplate()`：非法 → 返回 issue 数组且**不弹窗、不切页签**（纯查询，供宿主自行拦截）；合法 → `[]`。
 - 非法配置下打「预览」仍可进入（不被保存闸门连带拦死）。
 
-收尾门禁：`npm run build`、`npm test`、`npm run lint:print-architecture`、`npm run test -w @worm-vue3-print/render`。
+收尾门禁：`npm run build`、`npm test`、`npm run lint:print-architecture`、`npm run test -w @go-wind/print-render`。
 
 ## 11. 版本与文档
 

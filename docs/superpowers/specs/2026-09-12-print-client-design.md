@@ -8,8 +8,8 @@
 
 worm-vue3-print 现有能力：
 
-- `@worm-vue3-print/core`：模板表达式引擎、同构渲染管线（纯 TypeScript）；
-- `@worm-vue3-print/canvas`：Vue 3 可视化设计器画布；
+- `@go-wind/print-core`：模板表达式引擎、同构渲染管线（纯 TypeScript）；
+- `@go-wind/print-canvas`：Vue 3 可视化设计器画布；
 - `services/print-render`：基于 Playwright(Headless Chromium) 的 PDF/截图渲染微服务（Docker 部署）。
 
 现有链路只完成「渲染」，缺少把渲染结果送到物理打印机、无弹框静默出纸的最后一公里。
@@ -105,7 +105,7 @@ flowchart LR
 
 ### 4.3 渲染复用
 
-直接复用 core 的浏览器侧管线 `@worm-vue3-print/core/browser`（`renderHtmlPages`，内部封装 bindData → 测量 iframe → paginate → generateHtml 两遍渲染），无需从 print-render 迁移 Playwright 逻辑：
+直接复用 core 的浏览器侧管线 `@go-wind/print-core/browser`（`renderHtmlPages`，内部封装 bindData → 测量 iframe → paginate → generateHtml 两遍渲染），无需从 print-render 迁移 Playwright 逻辑：
 
 1. worker 主世界页面 import `renderHtmlPages(template, data, baseUrl, browserCodeRenderer, options?)`；
 2. 该函数内部完成测量与分页，返回最终 HTML、页数，以及最终纸张尺寸 `paperMm` 与 `continuous` 标志（连续纸在 core 内部用测量 Map 做几何推导，见 6.2）；

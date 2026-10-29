@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TableSettingsGroup from '../components/property/TableSettingsGroup.vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 const tableElement = {
   id: 't1',

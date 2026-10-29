@@ -20,7 +20,7 @@ Design a print template once — paper size, margins, text, tables, barcodes, QR
 
 Two properties define the architecture:
 
-- **Framework-neutral core.** `@worm-vue3-print/core` is pure TypeScript with no Vue/React dependency. It owns the expression engine (`lexer` → `parser` → `evaluator`), data binding, pagination, and HTML generation, and runs in both browser and Node.
+- **Framework-neutral core.** `@go-wind/print-core` is pure TypeScript with no Vue/React dependency. It owns the expression engine (`lexer` → `parser` → `evaluator`), data binding, pagination, and HTML generation, and runs in both browser and Node.
 - **One pipeline, three renderers.** All output paths share the same generated print CSS and the same layout code, so what you see in the designer is what the paper gets. The core package publishes subpaths (`/designer`, `/browser`, `/client`, `/node`) instead of forcing a single bundle.
 
 Layout is authored in millimetres with `pt` for line and font units, against fixed paper sizes (A4, labels, receipts) or continuous paper.
@@ -29,21 +29,21 @@ Layout is authored in millimetres with `pt` for line and font units, against fix
 
 | Package | Directory | Published | Purpose |
 |---|---|---|---|
-| `@worm-vue3-print/core` | `packages/print-core` | npm | Expression engine + isomorphic rendering pipeline; browser silent-print SDK at `/client` |
-| `@worm-vue3-print/canvas` | `packages/print-canvas` | npm | Vue 3 visual designer (`PrintDesigner`) and preview component (`PrintHtmlPreview`), native controls, no UI kit |
-| `@worm-vue3-print/render` | `services/print-render` | Docker | Server-side PDF renderer built on Playwright (Headless Chromium) |
-| `@worm-vue3-print/print-client` | `clients/print-client` | installer | Cross-platform Electron silent-print client (loopback WebSocket + `webContents.print`) |
+| `@go-wind/print-core` | `packages/print-core` | npm | Expression engine + isomorphic rendering pipeline; browser silent-print SDK at `/client` |
+| `@go-wind/print-canvas` | `packages/print-canvas` | npm | Vue 3 visual designer (`PrintDesigner`) and preview component (`PrintHtmlPreview`), native controls, no UI kit |
+| `@go-wind/print-render` | `services/print-render` | Docker | Server-side PDF renderer built on Playwright (Headless Chromium) |
+| `@go-wind/print-client` | `clients/print-client` | installer | Cross-platform Electron silent-print client (loopback WebSocket + `webContents.print`) |
 
 Only `core` and `canvas` are published to npm.
 
 ## Installation
 
 ```bash
-npm install @worm-vue3-print/core      # engine + rendering pipeline
-npm install @worm-vue3-print/canvas    # Vue 3 designer
+npm install @go-wind/print-core      # engine + rendering pipeline
+npm install @go-wind/print-canvas    # Vue 3 designer
 ```
 
-The browser-side silent-print SDK ships inside `core`; import it from `@worm-vue3-print/core/client`. It requires the desktop client to be running on the same machine.
+The browser-side silent-print SDK ships inside `core`; import it from `@go-wind/print-core/client`. It requires the desktop client to be running on the same machine.
 
 Current version: `1.3.10`.
 
@@ -52,7 +52,7 @@ Current version: `1.3.10`.
 ### Render a template programmatically
 
 ```ts
-import { bindData, paginate, generateHtml } from '@worm-vue3-print/core'
+import { bindData, paginate, generateHtml } from '@go-wind/print-core'
 
 const bound = bindData(templateJson, printData)   // resolve {field.path} bindings
 const pages = paginate(bound, measured, options)  // paginate and lay out
@@ -62,10 +62,10 @@ const html = generateHtml(pages)                  // print-ready HTML
 ### Mount the designer
 
 ```ts
-import { PrintDesigner, PrintHtmlPreview, createDefaultTemplate } from '@worm-vue3-print/canvas'
-import type { PrintBusinessField, TemplateData } from '@worm-vue3-print/canvas'
+import { PrintDesigner, PrintHtmlPreview, createDefaultTemplate } from '@go-wind/print-canvas'
+import type { PrintBusinessField, TemplateData } from '@go-wind/print-canvas'
 // Designer control styles ship as one stylesheet; import it once, globally.
-import '@worm-vue3-print/canvas/style.css'
+import '@go-wind/print-canvas/style.css'
 ```
 
 ```vue

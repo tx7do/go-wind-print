@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { useAdsorb } from '../composables/useAdsorb'
-import type { ElementRect } from '@worm-vue3-print/core/designer'
+import type { ElementRect } from '@go-wind/print-core/designer'
 
 describe('useAdsorb', () => {
   it('阈值内水平吸附到其他元素左边缘', () => {

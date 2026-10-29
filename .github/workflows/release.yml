@@ -52,13 +52,13 @@ jobs:
           echo "标签与两个包版本一致：$TAG"
 
       # canvas 依赖 core，必须先发 core
-      - name: 发布 @worm-vue3-print/core
+      - name: 发布 @go-wind/print-core
         working-directory: packages/print-core
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: 发布 @worm-vue3-print/canvas
+      - name: 发布 @go-wind/print-canvas
         working-directory: packages/print-canvas
         run: npm publish --access public
         env:

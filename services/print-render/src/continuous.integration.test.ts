@@ -1,8 +1,8 @@
 // 端到端：连续纸模板经 测量 → 分页 → 探针推导 → PDF；服务端此前固定输出 80×297mm
 import { describe, it, expect } from 'vitest'
-import { createDomHostRuntime, prepareDocument, renderPdf as coreRenderPdf } from '@worm-vue3-print/core'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
+import { createDomHostRuntime, prepareDocument, renderPdf as coreRenderPdf } from '@go-wind/print-core'
+import type { PrintTemplateData } from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'
 import { renderPdf } from './pdf-render.js'

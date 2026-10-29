@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import LayerPanel from '../components/LayerPanel.vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function mkEl(id: string, z: number, groupId?: string): RuntimeElement {
   return {

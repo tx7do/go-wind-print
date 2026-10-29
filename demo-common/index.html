@@ -38,15 +38,15 @@
     </p>
 
     <p class="warn">
-      <strong>⚠ 实验性质</strong>：<code>@worm-vue3-print/common</code> 尚未定版，接口与产物形态仍可能调整，
-      <strong>不建议应用到生产环境</strong>；Vue 3 项目请使用成熟方案 <code>@worm-vue3-print/canvas</code>
+      <strong>⚠ 实验性质</strong>：<code>@go-wind/print-common</code> 尚未定版，接口与产物形态仍可能调整，
+      <strong>不建议应用到生产环境</strong>；Vue 3 项目请使用成熟方案 <code>@go-wind/print-canvas</code>
       （对应 <code>demo/</code>，端口 9303）。本组示例仅供评估与非生产环境的集成验证。
     </p>
 
     <div class="grid">
       <div class="card">
         <h2>Vue 3 canvas<span class="tag">组件版设计器</span></h2>
-        <p><code>@worm-vue3-print/canvas</code> 的 <code>&lt;PrintDesigner&gt;</code> SFC 组件，本仓库的权威示例（样式与示例库的抽取源）。</p>
+        <p><code>@go-wind/print-canvas</code> 的 <code>&lt;PrintDesigner&gt;</code> SFC 组件，本仓库的权威示例（样式与示例库的抽取源）。</p>
         <pre>cd demo
 npm install
 npm run dev     # :9303</pre>
@@ -94,8 +94,8 @@ npm run dev     # :9334（node server.mjs 纯静态）</pre>
     <footer>
       五个 demo 都能单独跑，本页由 <code>node demo-common/scripts/serve-nav.mjs</code> 挂在 <code>:9300</code>
       （<code>npm run nav:demo-common</code>；<code>npm run dev:demo-common:all</code> 会顺带起它）。
-      <code>@worm-vue3-print/common</code> 是零框架 Web Component，设计器样式内置在组件 Shadow DOM；
-      <code>@worm-vue3-print/core</code> 提供同构出纸管线（<code>renderHtmlPages</code> / <code>PrintClient</code>）。
+      <code>@go-wind/print-common</code> 是零框架 Web Component，设计器样式内置在组件 Shadow DOM；
+      <code>@go-wind/print-core</code> 提供同构出纸管线（<code>renderHtmlPages</code> / <code>PrintClient</code>）。
       可选依赖：<code>npm run dev:render</code>（服务端 PDF，:3001）、本机 print-client 桌面客户端（:17521）；
       两者不在时「打印输出」弹窗显示「离线」并给出可读提示。
       验收：<code>node demo-common/scripts/verify-demo.mjs http://localhost:&lt;端口&gt;/</code>（四个宿主同一套 34 项 UI 级断言）。

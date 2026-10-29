@@ -6,8 +6,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
+import { resolveCanvasFontFamily } from '@go-wind/print-core'
 
 const props = defineProps<{
   element: RuntimeElement

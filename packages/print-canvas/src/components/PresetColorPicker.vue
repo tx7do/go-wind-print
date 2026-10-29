@@ -95,7 +95,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { PRESET_COLORS } from '@worm-vue3-print/core/designer'
+import { PRESET_COLORS } from '@go-wind/print-core/designer'
 
 // 根节点为 button + Teleport 双根，Vue 无法自动继承宿主传入的 class：显式关闭并绑到触发器
 defineOptions({ inheritAttrs: false })

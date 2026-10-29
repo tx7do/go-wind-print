@@ -20,7 +20,7 @@ node ../../scripts/verify-demo.mjs http://localhost:9334/
 可选（不装也能跑，弹窗里显示「离线」并给出可读提示）：
 
 ```bash
-npm run dev -w @worm-vue3-print/render     # 服务端 PDF（3001）
+npm run dev -w @go-wind/print-render     # 服务端 PDF（3001）
 # 客户端静默打印需要本机跑着 print-client 桌面客户端（ws 127.0.0.1:17521）
 ```
 
@@ -28,8 +28,8 @@ npm run dev -w @worm-vue3-print/render     # 服务端 PDF（3001）
 
 | 取自 | 拷到 | 作用 |
 | --- | --- | --- |
-| `@worm-vue3-print/common/dist/common.js` | `public/vendor/worm-print-common.js` | UMD，core 与码制库已内联，挂出 `window.WormPrintCommon` |
-| `@worm-vue3-print/common/dist/common.css` | `public/vendor/worm-print-common.css` | 设计器样式（light DOM 兜底 + `:host` 基线） |
+| `@go-wind/print-common/dist/common.js` | `public/vendor/worm-print-common.js` | UMD，core 与码制库已内联，挂出 `window.WormPrintCommon` |
+| `@go-wind/print-common/dist/common.css` | `public/vendor/worm-print-common.css` | 设计器样式（light DOM 兜底 + `:host` 基线） |
 | `jquery/dist/jquery.min.js` | `public/vendor/jquery.min.js` | jQuery 本体 |
 
 真实项目里这一步等价于「从制品库下载这两个文件丢进 `static/`」，本仓库为了 CI/离线复现才用脚本拷。

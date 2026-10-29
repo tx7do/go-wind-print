@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { effectScope, nextTick, ref } from 'vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 import FormatToolbar from '../components/FormatToolbar.vue'
 import { useFormatToolbar } from '../composables/useFormatToolbar'
 import { useFormatPainter } from '../composables/useFormatPainter'

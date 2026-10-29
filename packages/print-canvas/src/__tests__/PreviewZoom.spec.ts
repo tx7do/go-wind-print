@@ -6,13 +6,13 @@ import {
   paperWidthPx,
   resolvePrinterDpi,
   zoomPresets,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 
 const MM_TO_PX = 96 / 25.4
 
 /** 预览 iframe 的渲染产物与本用例无关：桩掉 core/browser，只验缩放写进文档 */
 const PREVIEW_HTML = '<html><head></head><body><div class="print-page">纸面</div></body></html>'
-vi.mock('@worm-vue3-print/core/browser', () => ({
+vi.mock('@go-wind/print-core/browser', () => ({
   renderHtmlPages: async () => ({ html: PREVIEW_HTML, pageCount: 1, copies: 1 }),
   browserCodeRenderer: { render: () => '<svg />' },
 }))

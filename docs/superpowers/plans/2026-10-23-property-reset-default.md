@@ -17,8 +17,8 @@
 - **图标**：lucide `RotateCcw`，`viewBox="0 0 24 24"`、`fill="none"`、`stroke="currentColor"`、`stroke-width="2"`、属性台内尺寸 **13**。canvas 的 `import` 语句是**唯一真源**，**禁止手改** `packages/print-common/src/core/icons.ts`（会被派生覆盖）。
 - **图标按钮禁止任何文本子节点**（含"默认"二字），提示只走 `data-tip` + `aria-label`——属性搜索与宿主验收依赖 `.pd-label` 的 `textContent`。
 - **用户可见文案一律中文且不出现技术标识**：提示写「恢复默认值（10 模块）」，不得出现 `barQuietZone` / `object-position` 这类字段名。
-- **common 样式与图标只能派生**：`npm run styles -w @worm-vue3-print/common`；类名与 canvas 逐字对齐。
-- **跨包改动后先重建 core**：`npm run build -w @worm-vue3-print/core`，否则 canvas/common 测试读到的还是旧 dist。
+- **common 样式与图标只能派生**：`npm run styles -w @go-wind/print-common`；类名与 canvas 逐字对齐。
+- **跨包改动后先重建 core**：`npm run build -w @go-wind/print-core`，否则 canvas/common 测试读到的还是旧 dist。
 - **提交信息用中文描述式，不加 Conventional 前缀**（仓库实操口径，见 CONTRIBUTING 与既有 git log）。
 - **外科手术式修改**：不混入无关重构；批量改属性行**禁用宽跨度正则**，逐处 `Edit`，同文件多个 `Edit` 必须串行。
 - **本期不做**（spec 第十一节）：`default-config.ts` 常量上收；纸型 / 方向 / 输出旋转 / 页边距 / 页眉页脚；拼版 `enabled` 与 `columns`；设计背景 `rotation`；格式工具栏；分组级与元素级批量恢复。
@@ -110,7 +110,7 @@ import { matchKeywords, searchProperties, PROPERTY_REGISTRY, propertyDefault } f
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `npm run test -w @worm-vue3-print/core -- src/designer/utils/__tests__/property-search.spec.ts`
+Run: `npm run test -w @go-wind/print-core -- src/designer/utils/__tests__/property-search.spec.ts`
 Expected: FAIL —— `QR_DEFAULT_QUIET_MODULES` 不是 `render/barcode-dot.js` 的导出（`SyntaxError` 或 `undefined`），且 `default` 全部为 `undefined`。
 
 - [ ] **Step 3: 把二维码静区常量迁到同构层**
@@ -184,12 +184,12 @@ export function propertyDefault(key: string): { value: number | string; unit?: s
 
 - [ ] **Step 5: 跑测试确认通过**
 
-Run: `npm run test -w @worm-vue3-print/core`
+Run: `npm run test -w @go-wind/print-core`
 Expected: PASS（含既有 matchKeywords / searchProperties 用例，注册表新增可选字段不应破坏任何断言）
 
 - [ ] **Step 6: 重建 dist 供下游消费**
 
-Run: `npm run build -w @worm-vue3-print/core`
+Run: `npm run build -w @go-wind/print-core`
 Expected: 构建成功，无 `designer → browser` 越界告警
 
 - [ ] **Step 7: 提交**
@@ -288,7 +288,7 @@ describe('ResetButton 派生规则', () => {
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/ResetButton.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/ResetButton.spec.ts`
 Expected: FAIL —— 找不到模块 `../components/property/ResetButton.vue`
 
 - [ ] **Step 3: 写组件**
@@ -352,7 +352,7 @@ function reset() {
 
 - [ ] **Step 4: 跑测试确认通过**
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/ResetButton.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/ResetButton.spec.ts`
 Expected: PASS，7 个用例全绿
 
 - [ ] **Step 5: 改标签行布局与图标样式**
@@ -402,7 +402,7 @@ Expected: PASS，7 个用例全绿
 
 - [ ] **Step 6: 冒烟验证布局不塌**
 
-Run: `npm run test -w @worm-vue3-print/canvas`
+Run: `npm run test -w @go-wind/print-canvas`
 Expected: 全绿。若 `AppearanceGroup.spec.ts` / `CodeGroup.spec.ts` 里有按 `.pd-label` 结构取节点的断言，属预期变化，按新结构（`.pd-label > .pd-label-t`）就地更新，**不得改文本内容**。
 
 - [ ] **Step 7: 提交**
@@ -421,7 +421,7 @@ git commit -m "新增 ResetButton 属性级恢复默认值控件与标签行右�
 - Test: `packages/print-canvas/src/__tests__/AppearanceGroup.spec.ts`
 
 **Interfaces:**
-- Consumes：Task 2 的 `ResetButton.vue`；Task 1 的 `propertyDefault()`；core 的 `createDefaultOptions(type)`（`@worm-vue3-print/core/designer` 已导出）
+- Consumes：Task 2 的 `ResetButton.vue`；Task 1 的 `propertyDefault()`；core 的 `createDefaultOptions(type)`（`@go-wind/print-core/designer` 已导出）
 - Produces：外观组内每个纳入行的 DOM 形态 `<span class="pd-label"><span class="pd-label-t">…</span><button class="pd-reset-btn">…</button></span>`，后续分组照此复制
 
 - [ ] **Step 1: 写失败测试**
@@ -432,7 +432,7 @@ git commit -m "新增 ResetButton 属性级恢复默认值控件与标签行右�
 import { reactive } from 'vue'
 import { mount } from '@vue/test-utils'
 import AppearanceGroup from '../components/property/AppearanceGroup.vue'
-import { createDefaultOptions } from '@worm-vue3-print/core/designer'
+import { createDefaultOptions } from '@go-wind/print-core/designer'
 
 function mountAppearance(type: 'text' | 'longText' | 'image', options: Record<string, any> = {}) {
   const element = reactive({
@@ -482,7 +482,7 @@ describe('外观组「恢复默认值」', () => {
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/AppearanceGroup.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/AppearanceGroup.spec.ts`
 Expected: FAIL —— `labelOf` 取不到 `.pd-label-t`（该结构尚不存在）
 
 - [ ] **Step 3: 逐行接入**
@@ -491,10 +491,10 @@ Expected: FAIL —— `labelOf` 取不到 `.pd-label-t`（该结构尚不存在�
 
 ```ts
 import ResetButton from './ResetButton.vue'
-import { createDefaultOptions, propertyDefault } from '@worm-vue3-print/core/designer'
+import { createDefaultOptions, propertyDefault } from '@go-wind/print-core/designer'
 ```
 
-> 注意：该文件第 109 行已从 `@worm-vue3-print/core/designer` 有一行 import，把 `createDefaultOptions`、`propertyDefault` **合并进那一行**，不要新增重复 import 语句。
+> 注意：该文件第 109 行已从 `@go-wind/print-core/designer` 有一行 import，把 `createDefaultOptions`、`propertyDefault` **合并进那一行**，不要新增重复 import 语句。
 
 在 `props` 定义之后加两个共用派生量（整组复用，避免每行重复调用）：
 
@@ -550,7 +550,7 @@ const def = (key: string) => propertyDefault(key)
 
 - [ ] **Step 5: 跑测试确认通过**
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/AppearanceGroup.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/AppearanceGroup.spec.ts`
 Expected: PASS
 
 - [ ] **Step 6: 提交**
@@ -632,12 +632,12 @@ it('数据源字段与列宽两组不挂图标', () => {
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/CodeGroup.spec.ts src/__tests__/TableSettingsGroup.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/CodeGroup.spec.ts src/__tests__/TableSettingsGroup.spec.ts`
 Expected: FAIL —— `.pd-label-t` 不存在
 
 - [ ] **Step 3: 条码组接入**
 
-`CodeGroup.vue` import 块补 `ResetButton`，并把 `createDefaultOptions`、`propertyDefault` 合并进已有的 `@worm-vue3-print/core/designer` import；在 `props` 之后加与 Task 3 同名的两个派生量：
+`CodeGroup.vue` import 块补 `ResetButton`，并把 `createDefaultOptions`、`propertyDefault` 合并进已有的 `@go-wind/print-core/designer` import；在 `props` 之后加与 Task 3 同名的两个派生量：
 
 ```ts
 const factoryOptions = computed(() => createDefaultOptions(props.element.printElementType.type as any))
@@ -678,7 +678,7 @@ const def = (key: string) => propertyDefault(key)
 
 - [ ] **Step 5: 跑测试确认通过**
 
-Run: `npm run test -w @worm-vue3-print/canvas`
+Run: `npm run test -w @go-wind/print-canvas`
 Expected: 全绿
 
 - [ ] **Step 6: 提交**
@@ -766,7 +766,7 @@ describe('单元格「恢复默认值」', () => {
 
 - [ ] **Step 3: 跑测试确认失败**
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/TableCellGroup.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/TableCellGroup.spec.ts`
 Expected: FAIL —— 无 `.pd-reset-btn`
 
 - [ ] **Step 4: 单元格组接入**
@@ -822,7 +822,7 @@ const CELL_TIP = '恢复默认值（跟随表格默认）'
 
 - [ ] **Step 6: 跑测试确认通过**
 
-Run: `npm run test -w @worm-vue3-print/canvas`
+Run: `npm run test -w @go-wind/print-canvas`
 Expected: 全绿
 
 - [ ] **Step 7: 提交**
@@ -843,7 +843,7 @@ git commit -m "边框背景/表格行/单元格接入「恢复默认值」，单
 - Test: `packages/print-canvas/src/__tests__/TilingConfig.spec.ts`（无则新建）、`PropertyPanel-multipage.spec.ts` 或新建 `PropertyPanel-pagebg.spec.ts`
 
 **Interfaces:**
-- Consumes：`WATERMARK_DEFAULTS`（`@worm-vue3-print/core` 根入口）、`TILE_DEFAULTS`（同上）
+- Consumes：`WATERMARK_DEFAULTS`（`@go-wind/print-core` 根入口）、`TILE_DEFAULTS`（同上）
 - Produces：页面背景色行的文字按钮「默认」消失，改为同一枚图标
 
 - [ ] **Step 1: 写失败测试**
@@ -889,7 +889,7 @@ it('页面背景色：文字按钮「默认」已换成图标；设过颜色后�
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/TilingConfig.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/TilingConfig.spec.ts`
 Expected: FAIL
 
 - [ ] **Step 3: 水印与拼版接入**
@@ -919,7 +919,7 @@ Expected: FAIL
 
 - [ ] **Step 5: 跑测试确认通过**
 
-Run: `npm run test -w @worm-vue3-print/canvas`
+Run: `npm run test -w @go-wind/print-canvas`
 Expected: 全绿
 
 - [ ] **Step 6: 提交**
@@ -946,7 +946,7 @@ git commit -m "水印与拼版接入恢复默认值，页面背景色文字按�
 
 - [ ] **Step 1: 先构建 canvas，让新样式进入派生输入**
 
-Run: `npm run build -w @worm-vue3-print/canvas`
+Run: `npm run build -w @go-wind/print-canvas`
 Expected: 成功产出 `packages/print-canvas/dist/canvas.css`，其中含 `.pd-reset-btn` 规则
 
 - [ ] **Step 2: 改 controls.ts 的行结构与新增助手**
@@ -994,7 +994,7 @@ export function resetButton(o: {
 
 - [ ] **Step 3: 跑派生，让图标与样式进 common**
 
-Run: `npm run styles -w @worm-vue3-print/common`
+Run: `npm run styles -w @go-wind/print-common`
 Expected: `src/core/icons.ts` 出现 `RotateCcw` 键；`src/styles/designer.css` 出现 `.pd-reset-btn` 规则
 
 Run: `node demo-common/scripts/class-audit.mjs`
@@ -1018,10 +1018,10 @@ const propertyDefaultArgs = (key: string) => {
 
 - [ ] **Step 5: 更新 DOM 签名断言并跑测试**
 
-Run: `npm run test -w @worm-vue3-print/common -- src/shell/__tests__/property-search.spec.ts`
+Run: `npm run test -w @go-wind/print-common -- src/shell/__tests__/property-search.spec.ts`
 Expected: 先 FAIL（`.pd-label` 结构变了）→ 把该文件里取标签文本的断言改走 `.pd-label-t`（**文本内容不得改**），再跑至 PASS
 
-Run: `npm run test -w @worm-vue3-print/common`
+Run: `npm run test -w @go-wind/print-common`
 Expected: 全绿
 
 - [ ] **Step 6: 提交**
@@ -1097,7 +1097,7 @@ describe('恢复默认值 ⇒ 与出厂模板同形', () => {
 
 - [ ] **Step 2: 跑测试**
 
-Run: `npm run test -w @worm-vue3-print/core -- src/render/__tests__/reset-default-parity.test.ts`
+Run: `npm run test -w @go-wind/print-core -- src/render/__tests__/reset-default-parity.test.ts`
 Expected: PASS。若 `table` 那条 FAIL，说明 `tableDefaultFontSize` / `Color` 的写回被误做成了删键——回到 Task 4 检查 `base` 是否真的来自 `createDefaultOptions('table')`。
 
 - [ ] **Step 3: 钉住"出厂值即落点"的耦合**
@@ -1113,12 +1113,12 @@ it('出厂默认值即「恢复默认值」落点：改动这些键必须同步 
 })
 ```
 
-Run: `npm run test -w @worm-vue3-print/core`
+Run: `npm run test -w @go-wind/print-core`
 Expected: 全绿
 
 - [ ] **Step 4: 渲染服务与客户端回归**
 
-Run: `npm run test -w @worm-vue3-print/render`
+Run: `npm run test -w @go-wind/print-render`
 Expected: 全绿（spec 验收清单要求）
 
 - [ ] **Step 5: 全量构建**
@@ -1484,7 +1484,7 @@ spec 第八节验收第 2 条要求「对纳入清单的每个 key，断言出�
 四个 `BARCODE_*`、`QR_DEFAULT_QUIET_MODULES`），并反面对照禁止出现 `default: <数字>` 这种抄字面值的写法；
 再做一次运行时对账（`propertyDefault()` 取到的值必须等于常量本身），以及「无单一常量源的行不声明 default」。
 **变异自证**：把 `default: CROP_SCALE_MIN` 改成 `default: 100` ⇒ 立刻变红并命中「疑似抄了字面值」，还原后复绿。
-（首版断言曾把常量从 `@worm-vue3-print/core` 根入口导入，取到的是 `undefined`——注册表实际用的是
+（首版断言曾把常量从 `@go-wind/print-core` 根入口导入，取到的是 `undefined`——注册表实际用的是
 `../../render/barcode-dot.js` 这类包内相对导出，测试已改成同一路径。）
 
 **加图标后的布局回归检查**（15px 图标挤占标签行是本特性唯一的排版风险）：

@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import { registerAll } from '@worm-vue3-print/common'
+import { registerAll } from '@go-wind/print-common'
 import App from './App.vue'
 
 // 一次性注册 <print-designer>：不自动污染全局，宿主按需调用

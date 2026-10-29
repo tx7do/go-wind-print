@@ -103,7 +103,7 @@ pypdf 能逐页提取文本：第 1 张 = `L01…L12`，第 2 张 = `L13`。**�
 
 ### 4.6 纯 Node 断言链路（H9/H10/H11）—— 已决策：新增 `pdfjs-dist`
 
-**决策**：新增 `pdfjs-dist` 为 `@worm-vue3-print/render` 的 devDependency（实测版本 **6.3.289**）。理由：分张归属是拼版最核心的正确性，不能只靠「页数 + 页尺寸」。
+**决策**：新增 `pdfjs-dist` 为 `@go-wind/print-render` 的 devDependency（实测版本 **6.3.289**）。理由：分张归属是拼版最核心的正确性，不能只靠「页数 + 页尺寸」。
 
 探针 `spike/pdfjs-assert.spike.test.ts` 解析 SPIKE 产物 `A-height___break-after-13.pdf`，12/12 项通过：
 
@@ -155,7 +155,7 @@ npx vitest run spike/<probe>.spike.test.ts   # 需在 vitest.config.ts 已排除
 现在若只需回归拼版行为，直接跑永久集成测试即可（快且进 CI）：
 
 ```bash
-npm run test -w @worm-vue3-print/render -- tiling.integration
+npm run test -w @go-wind/print-render -- tiling.integration
 ```
 
 环境：macOS + 系统 Chrome（`BrowserPool` 自动探测到 `/Applications/Google Chrome.app`）、Playwright 1.63。

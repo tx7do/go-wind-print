@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import JsBarcode from 'jsbarcode'
-import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
+import { browserCodeRenderer } from '@go-wind/print-core/browser'
 import {
   BARCODE_MARGIN_BOTTOM_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
@@ -18,7 +18,7 @@ import {
   barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   layoutBarcodeSize,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 
 const props = defineProps<{
   cellType: 'barcode' | 'qrcode'

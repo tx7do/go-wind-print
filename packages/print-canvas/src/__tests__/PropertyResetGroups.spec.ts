@@ -3,9 +3,9 @@ import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import AdvancedGroup from '../components/property/AdvancedGroup.vue'
 import TableSettingsGroup from '../components/property/TableSettingsGroup.vue'
-import { createDefaultOptions } from '@worm-vue3-print/core/designer'
+import { createDefaultOptions } from '@go-wind/print-core/designer'
 import { TABLE_EDIT_KEY } from '../composables/useTableSelection'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function makeElement(type: 'text' | 'table', options: Record<string, any> = {}): RuntimeElement {
   return reactive({

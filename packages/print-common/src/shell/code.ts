@@ -2,7 +2,7 @@
 // （条宽定首选尺寸 → dpi 吸附 → 框不够等比缩小；二维码取 core/browser 同一份 SVG 出 <img> 铺满元素盒）。
 // 绘制在 DOM 落位后由 hydrateCodes 补上，避免每次重渲染都同步跑一遍码制计算。
 import JsBarcode from 'jsbarcode'
-import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
+import { browserCodeRenderer } from '@go-wind/print-core/browser'
 import {
   BARCODE_MARGIN_BOTTOM_MODULES,
   BARCODE_TEXT_FONT_SIZE_MODULES,
@@ -10,8 +10,8 @@ import {
   barcodeQuietZoneModules,
   barcodeUnitsPerModule,
   layoutBarcodeSize,
-} from '@worm-vue3-print/core/designer'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 
 const FIT_TO_PAR: Record<string, string> = {

@@ -65,7 +65,7 @@
 
 **Interfaces:**
 - Consumes: 无
-- Produces（全部从 `@worm-vue3-print/core` 根入口可用）：
+- Produces（全部从 `@go-wind/print-core` 根入口可用）：
   - `type FontSource = 'server' | 'client'`
   - `interface FontSourceReport { available: boolean; fonts: readonly string[] }`
   - `const UNAVAILABLE: FontSourceReport`
@@ -246,7 +246,7 @@ describe('findMissingFonts', () => {
 - [x] **Step 2: 跑测试确认失败**
 
 ```bash
-npm exec -w @worm-vue3-print/core vitest run -- tests/fonts.test.ts
+npm exec -w @go-wind/print-core vitest run -- tests/fonts.test.ts
 ```
 
 预期：FAIL，报无法解析 `../src/print/fonts.js`。
@@ -464,7 +464,7 @@ export function findMissingFonts(
 - [x] **Step 4: 跑测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/core vitest run -- tests/fonts.test.ts
+npm exec -w @go-wind/print-core vitest run -- tests/fonts.test.ts
 ```
 
 预期：PASS，16 个用例全绿。
@@ -477,11 +477,11 @@ npm exec -w @worm-vue3-print/core vitest run -- tests/fonts.test.ts
 export * from './fonts.js'
 ```
 
-根入口 `packages/print-core/src/index.ts` 已有 `export * from './print/index.js'`，无需再改——`@worm-vue3-print/core` 根入口即自动获得全部字体契约。
+根入口 `packages/print-core/src/index.ts` 已有 `export * from './print/index.js'`，无需再改——`@go-wind/print-core` 根入口即自动获得全部字体契约。
 
 ```bash
-npm run build -w @worm-vue3-print/core
-npm exec -w @worm-vue3-print/core vitest run -- tests/fonts.test.ts
+npm run build -w @go-wind/print-core
+npm exec -w @go-wind/print-core vitest run -- tests/fonts.test.ts
 git add packages/print-core/src/print/fonts.ts packages/print-core/src/print/index.ts packages/print-core/tests/fonts.test.ts
 git commit -m "feat(core): 新增字体清单合并、字体栈生成与缺失校验模块
 
@@ -595,7 +595,7 @@ describe('splitCells 保留字体', () => {
 - [x] **Step 2: 跑测试确认失败**
 
 ```bash
-npm exec -w @worm-vue3-print/core vitest run -- src/render/html-generator.test.ts src/designer/utils/__tests__/table-matrix.spec.ts
+npm exec -w @go-wind/print-core vitest run -- src/render/html-generator.test.ts src/designer/utils/__tests__/table-matrix.spec.ts
 ```
 
 预期：新增的 4 个用例 FAIL（单元格两条找不到 `font-family`；文本元素实际为 `font-family:KaiTi`；拆分后 `fontFamily` 为 `undefined`），既有用例保持 PASS。
@@ -659,7 +659,7 @@ body { font-family: ${FALLBACK_FONT_STACK.join(', ')}; }
 - [x] **Step 7: 跑测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/core vitest run -- src/render/html-generator.test.ts src/designer/utils/__tests__/table-matrix.spec.ts src/render/css-builder.test.ts src/render/data-binder.test.ts
+npm exec -w @go-wind/print-core vitest run -- src/render/html-generator.test.ts src/designer/utils/__tests__/table-matrix.spec.ts src/render/css-builder.test.ts src/render/data-binder.test.ts
 ```
 
 预期：全部 PASS。特别注意 `css-builder.test.ts` 保持绿——它验证兜底栈替换后输出逐字未变。
@@ -667,7 +667,7 @@ npm exec -w @worm-vue3-print/core vitest run -- src/render/html-generator.test.t
 - [x] **Step 8: 构建并提交**
 
 ```bash
-npm run build -w @worm-vue3-print/core
+npm run build -w @go-wind/print-core
 git add packages/print-core/src/render packages/print-core/src/designer/utils/table-matrix.ts
 git commit -m "fix(core): 修复单元格字体断链并统一字体兜底栈
 
@@ -721,7 +721,7 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 // pages/print-canvas/src/__tests__/useFontCatalog.spec.ts
 import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
-import type { FontSourceReport } from '@worm-vue3-print/core'
+import type { FontSourceReport } from '@go-wind/print-core'
 import { useFontCatalog } from '../composables/useFontCatalog'
 
 describe('useFontCatalog', () => {
@@ -761,8 +761,8 @@ describe('useFontCatalog', () => {
 - [x] **Step 2: 跑测试确认失败**
 
 ```bash
-npm run build -w @worm-vue3-print/core   # 确保下游能解到 Task 1 的新导出
-npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/useFontCatalog.spec.ts
+npm run build -w @go-wind/print-core   # 确保下游能解到 Task 1 的新导出
+npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/useFontCatalog.spec.ts
 ```
 
 预期：FAIL，报无法解析 `../composables/useFontCatalog`。
@@ -780,7 +780,7 @@ import {
   mergeFontSources,
   type FontCatalog,
   type FontSourceReport,
-} from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
 import { FONT_CATALOG_KEY } from './useHostAdapter'
 
 /** 空目录：两端均不可用，用于未注入或未上报时的兜底 */
@@ -824,7 +824,7 @@ export const FONT_CATALOG_KEY: InjectionKey<ComputedRef<FontCatalog>> =
 对应地在顶部补 import：
 
 ```ts
-import type { FontCatalog } from '@worm-vue3-print/core'
+import type { FontCatalog } from '@go-wind/print-core'
 ```
 
 - [x] **Step 5: 接到 PrintDesigner**
@@ -850,12 +850,12 @@ const { catalog: fontCatalog } = useFontCatalog(
 provide(FONT_CATALOG_KEY, fontCatalog)
 ```
 
-并在顶部 import 区补上 `useFontCatalog`（自 `../composables/useFontCatalog`）、`FONT_CATALOG_KEY`（并入已有的 `../composables/useHostAdapter` import），以及 `FontSourceReport` 类型（自 `@worm-vue3-print/core`）。
+并在顶部 import 区补上 `useFontCatalog`（自 `../composables/useFontCatalog`）、`FONT_CATALOG_KEY`（并入已有的 `../composables/useHostAdapter` import），以及 `FontSourceReport` 类型（自 `@go-wind/print-core`）。
 
 - [x] **Step 6: 跑测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/useFontCatalog.spec.ts
+npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/useFontCatalog.spec.ts
 npm run typecheck -w @worm-vue3-print/client
 ```
 
@@ -909,7 +909,7 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 import { describe, it, expect } from 'vitest'
 import { computed } from 'vue'
 import { mount } from '@vue/test-utils'
-import type { FontCatalog } from '@worm-vue3-print/core'
+import type { FontCatalog } from '@go-wind/print-core'
 import FontSelect from '../components/property/FontSelect.vue'
 import { FONT_CATALOG_KEY } from '../composables/useHostAdapter'
 
@@ -989,7 +989,7 @@ describe('FontSelect', () => {
 - [x] **Step 2: 跑测试确认失败**
 
 ```bash
-npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/FontSelect.spec.ts
+npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/FontSelect.spec.ts
 ```
 
 预期：FAIL，报无法解析 `../components/property/FontSelect.vue`。
@@ -1135,8 +1135,8 @@ function onChange(value: string): void {
 - [x] **Step 8: 跑测试确认通过**
 
 ```bash
-npm run build -w @worm-vue3-print/core   # property-search 改动需重新构建
-npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/FontSelect.spec.ts src/__tests__/TableSettingsGroup.spec.ts
+npm run build -w @go-wind/print-core   # property-search 改动需重新构建
+npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/FontSelect.spec.ts src/__tests__/TableSettingsGroup.spec.ts
 ```
 
 预期：FontSelect 的 9 个用例 PASS；既有面板 spec 保持绿（回归验证）。
@@ -1265,7 +1265,7 @@ describe('StatusBar 字体缺失汇总', () => {
 - [x] **Step 2: 跑测试确认失败**
 
 ```bash
-npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/FontSelect.spec.ts src/__tests__/StatusBar.spec.ts
+npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/FontSelect.spec.ts src/__tests__/StatusBar.spec.ts
 ```
 
 预期：FAIL——FontSelect 4 条找不到提示文案；StatusBar 3 条因 `fontIssues` prop 尚未定义而不符预期。
@@ -1443,12 +1443,12 @@ const fontIssues = computed<FontIssueSummary[]>(() => {
 })
 ```
 
-顶部 import 区补上 `findMissingFonts`（自 `@worm-vue3-print/core`）与 `FontIssueSummary`（自 `../composables/useFontCatalog`）。
+顶部 import 区补上 `findMissingFonts`（自 `@go-wind/print-core`）与 `FontIssueSummary`（自 `../composables/useFontCatalog`）。
 
 - [x] **Step 7: 跑测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/canvas vitest run -- src/__tests__/FontSelect.spec.ts src/__tests__/StatusBar.spec.ts
+npm exec -w @go-wind/print-canvas vitest run -- src/__tests__/FontSelect.spec.ts src/__tests__/StatusBar.spec.ts
 ```
 
 预期：FontSelect 累计 13 个用例、StatusBar 3 个用例全部 PASS。
@@ -1592,7 +1592,7 @@ describe('readSystemFonts', () => {
 - [x] **Step 2: 跑测试确认失败**
 
 ```bash
-npm exec -w @worm-vue3-print/core vitest run -- tests/system-fonts.test.ts
+npm exec -w @go-wind/print-core vitest run -- tests/system-fonts.test.ts
 ```
 
 预期：FAIL——`Failed to resolve import "../src/print/system-fonts.js"`。
@@ -1709,7 +1709,7 @@ export * from './system-fonts.js'
 - [x] **Step 4: 跑测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/core vitest run -- tests/system-fonts.test.ts
+npm exec -w @go-wind/print-core vitest run -- tests/system-fonts.test.ts
 ```
 
 预期：11 个用例全部 PASS。
@@ -1753,7 +1753,7 @@ describe('render 服务字体清单', () => {
 // 容器内系统字体清单：进进程采集一次并缓存（容器字体集在部署生命周期内不变）。
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { readSystemFonts, type FontCommandRunner, type FontSourceReport } from '@worm-vue3-print/core'
+import { readSystemFonts, type FontCommandRunner, type FontSourceReport } from '@go-wind/print-core'
 
 const execFileAsync = promisify(execFile)
 
@@ -1784,7 +1784,7 @@ export function makeFontService(run: FontCommandRunner = runCommand): FontServic
 - [x] **Step 7: 跑测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/render vitest run -- src/font-service.test.ts
+npm exec -w @go-wind/print-render vitest run -- src/font-service.test.ts
 ```
 
 预期：3 个用例全部 PASS。
@@ -1991,8 +1991,8 @@ describe('FontService', () => {
 // 采集走 core 的 readSystemFonts（平台差异集中在那里），此处只负责缓存策略。
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { readSystemFonts } from '@worm-vue3-print/core'
-import type { FontCommandRunner, FontSourceReport } from '@worm-vue3-print/core'
+import { readSystemFonts } from '@go-wind/print-core'
+import type { FontCommandRunner, FontSourceReport } from '@go-wind/print-core'
 
 const execFileAsync = promisify(execFile)
 
@@ -2092,7 +2092,7 @@ import type { FontService } from './font-service.js'   // ← 新增
 - [x] **Step 10: 跑客户端测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/print-client vitest run -- src/main/font-service.test.ts src/main/protocol-handler.test.ts
+npm exec -w @go-wind/print-client vitest run -- src/main/font-service.test.ts src/main/protocol-handler.test.ts
 ```
 
 预期：全部 PASS（含新增 5 例）。
@@ -2116,7 +2116,7 @@ import 区按既有风格加入 `import { makeFontService } from './font-service
 - [x] **Step 12: 类型检查**
 
 ```bash
-npm run typecheck -w @worm-vue3-print/print-client
+npm run typecheck -w @go-wind/print-client
 ```
 
 预期：无输出（通过）。
@@ -2237,7 +2237,7 @@ describe('buildFontWarningsHeader', () => {
 - [x] **Step 2: 跑测试确认失败**
 
 ```bash
-npm exec -w @worm-vue3-print/render vitest run -- src/font-warnings.test.ts
+npm exec -w @go-wind/print-render vitest run -- src/font-warnings.test.ts
 ```
 
 预期：FAIL——`Failed to resolve import "./font-warnings.js"`。
@@ -2247,8 +2247,8 @@ npm exec -w @worm-vue3-print/render vitest run -- src/font-warnings.test.ts
 ```ts
 // services/print-render/src/font-warnings.ts
 // 出图前的字体可用性告警：以响应头承载（PDF/PNG 响应体放不下 JSON）。
-import { findMissingFonts, mergeFontSources, UNAVAILABLE } from '@worm-vue3-print/core'
-import type { FontSourceReport, MissingFont } from '@worm-vue3-print/core'
+import { findMissingFonts, mergeFontSources, UNAVAILABLE } from '@go-wind/print-core'
+import type { FontSourceReport, MissingFont } from '@go-wind/print-core'
 
 /** 响应头名；新增头对既有消费者惰性 */
 export const FONT_WARNINGS_HEADER = 'X-Font-Warnings'
@@ -2290,7 +2290,7 @@ export function buildFontWarningsHeader(
 - [x] **Step 4: 跑测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/render vitest run -- src/font-warnings.test.ts
+npm exec -w @go-wind/print-render vitest run -- src/font-warnings.test.ts
 ```
 
 预期：5 个用例全部 PASS。
@@ -2370,8 +2370,8 @@ describe('collectMissingFonts', () => {
 ```ts
 // clients/print-client/src/main/font-warning.ts
 // 出图前校验：模板所用字体在本机是否可用。只做诊断，不影响出图成败。
-import { findMissingFonts, mergeFontSources, UNAVAILABLE } from '@worm-vue3-print/core'
-import type { FontSourceReport, MissingFont } from '@worm-vue3-print/core'
+import { findMissingFonts, mergeFontSources, UNAVAILABLE } from '@go-wind/print-core'
+import type { FontSourceReport, MissingFont } from '@go-wind/print-core'
 
 /**
  * 收集模板中在本机缺失的字体。
@@ -2391,7 +2391,7 @@ export function collectMissingFonts(
 - [x] **Step 8: 跑测试确认通过**
 
 ```bash
-npm exec -w @worm-vue3-print/print-client vitest run -- src/main/font-warning.test.ts
+npm exec -w @go-wind/print-client vitest run -- src/main/font-warning.test.ts
 ```
 
 预期：5 个用例全部 PASS。
@@ -2462,7 +2462,7 @@ import type { FontService } from './font-service.js'
 （`fontService` 在 Task 7 已定义在 `printerService` 之后，此处是同一实例。）
 
 ```bash
-npm run typecheck -w @worm-vue3-print/print-client
+npm run typecheck -w @go-wind/print-client
 ```
 
 预期：无输出（通过）。
@@ -2470,7 +2470,7 @@ npm run typecheck -w @worm-vue3-print/print-client
 - [x] **Step 11: 跑既有打印引擎测试确认无回归**
 
 ```bash
-npm exec -w @worm-vue3-print/print-client vitest run -- src/main/print-engine.test.ts src/main/protocol-handler.test.ts
+npm exec -w @go-wind/print-client vitest run -- src/main/print-engine.test.ts src/main/protocol-handler.test.ts
 ```
 
 预期：全部 PASS（`fontService` 为可选依赖，既有用例不传即跳过校验）。
@@ -2640,11 +2640,11 @@ onMounted(async () => {
 - [x] **Step 4: 构建并手工验证**
 
 ```bash
-npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/canvas
+npm run build -w @go-wind/print-core && npm run build -w @go-wind/print-canvas
 cd demo && npm run dev
 ```
 
-验证（需 render 服务已启动；无 Docker 时可用 `npm run dev -w @worm-vue3-print/render` 本地起服务，其宿主平台为 macOS，走 `system_profiler` 分支）：
+验证（需 render 服务已启动；无 Docker 时可用 `npm run dev -w @go-wind/print-render` 本地起服务，其宿主平台为 macOS，走 `system_profiler` 分支）：
 
 1. 打开设计器 → 选中文本元素 → 字体下拉展开，选项带可用范围标注；服务端不可用时下拉仍可用且**不标注**任何范围。
 2. 点开「打印输出」弹窗 → 客户端在线后（无客户端时跳过）下拉标注出现「仅本机」项。
@@ -2688,11 +2688,11 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 `docs/中文/CHANGELOG.md` 的 `## [Unreleased]` 段内，在既有条目之后追加：
 
 ```markdown
-- `@worm-vue3-print/core`：**行为变更** 表格单元格此前已存有 `fontFamily` 的模板，渲染时该字段被静默丢弃（`data-binder` 的字段映射表未收录）；本次修复后单元格字体会真正生效，**同一份旧模板的呈现会发生变化**。同时修复 `font-family` 输出未加引号、未带兜底栈的问题（含空格的族名如 `Microsoft YaHei` 此前不生效）。
-- `@worm-vue3-print/canvas`：文本元素与表格单元格属性面板新增「字体」下拉，列出服务端与本机两端可用字体的并集并标注可用范围（「仅服务端」/「仅本机」）；清单之外的字体名照常展示并标注「（未知）」，不做静默清除。
-- `@worm-vue3-print/canvas`：新增 `PrintDesigner` 的 `serverFonts` / `clientFonts` 两个可选 prop（`{ available: boolean; fonts: string[] }`），由宿主注入两端字体清单；不传则下拉退化为自由输入，功能不缺失。（**宿主契约**：`available: false` 表示「该端未能给出清单」，**不得**据此判定字体缺失。）
+- `@go-wind/print-core`：**行为变更** 表格单元格此前已存有 `fontFamily` 的模板，渲染时该字段被静默丢弃（`data-binder` 的字段映射表未收录）；本次修复后单元格字体会真正生效，**同一份旧模板的呈现会发生变化**。同时修复 `font-family` 输出未加引号、未带兜底栈的问题（含空格的族名如 `Microsoft YaHei` 此前不生效）。
+- `@go-wind/print-canvas`：文本元素与表格单元格属性面板新增「字体」下拉，列出服务端与本机两端可用字体的并集并标注可用范围（「仅服务端」/「仅本机」）；清单之外的字体名照常展示并标注「（未知）」，不做静默清除。
+- `@go-wind/print-canvas`：新增 `PrintDesigner` 的 `serverFonts` / `clientFonts` 两个可选 prop（`{ available: boolean; fonts: string[] }`），由宿主注入两端字体清单；不传则下拉退化为自由输入，功能不缺失。（**宿主契约**：`available: false` 表示「该端未能给出清单」，**不得**据此判定字体缺失。）
 - `@worm-vue3-print/client`：新增协议消息 `fonts.list` 与 SDK 方法 `PrintClient.listFonts()`，返回桌面客户端所在机器的系统字体清单。
-- `@worm-vue3-print/render`：新增 `GET /fonts` 上报容器内系统字体清单；`/render/pdf`、`/render/screenshot` 在存在缺失字体时返回响应头 `X-Font-Warnings`（值为 `encodeURIComponent` 后的 `Array<{ code: 'FONT_MISSING'; family: string; targets: string[] }>`），无缺失时不返回该头。
+- `@go-wind/print-render`：新增 `GET /fonts` 上报容器内系统字体清单；`/render/pdf`、`/render/screenshot` 在存在缺失字体时返回响应头 `X-Font-Warnings`（值为 `encodeURIComponent` 后的 `Array<{ code: 'FONT_MISSING'; family: string; targets: string[] }>`），无缺失时不返回该头。
 - 打印客户端：`print.submit` 在任务开始时校验模板字体在本机是否可用，缺失时记 `warn` 日志（**不阻断打印**，Chromium 自行回退）。
 - 已知限制：不做跨语言字体别名归一（「宋体」与「SimSun」视为两个字体名），中文 Windows 与本机字体名不一致时可能产生**假阳性**提示；客户端清单只代表运行浏览器的工位机，不代表其他工位机。
 ```
@@ -2702,23 +2702,23 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 `docs/en/CHANGELOG.en.md` 的 `## [Unreleased]` 段内对应位置追加（与该文件既有条目风格一致）：
 
 ```markdown
-- `@worm-vue3-print/core`: **Behavior change** Templates that already stored a `fontFamily`
+- `@go-wind/print-core`: **Behavior change** Templates that already stored a `fontFamily`
   on table cells had that field silently dropped at render time (it was missing from the
   data-binder field map). Cell fonts now take effect, so **the output of such existing
   templates will change**. Also fixed `font-family` output missing quotes and the fallback
   stack (family names containing spaces, e.g. `Microsoft YaHei`, did not apply before).
-- `@worm-vue3-print/canvas`: Added a font picker to the text-element and table-cell property
+- `@go-wind/print-canvas`: Added a font picker to the text-element and table-cell property
   panels. It lists the union of fonts available on the server and on the local machine and
   marks the available scope ("server only" / "local only"). Font names outside the list are
   still shown, marked "(unknown)", and never silently cleared.
-- `@worm-vue3-print/canvas`: `PrintDesigner` accepts two new optional props, `serverFonts` and
+- `@go-wind/print-canvas`: `PrintDesigner` accepts two new optional props, `serverFonts` and
   `clientFonts` (`{ available: boolean; fonts: string[] }`), supplied by the host. When omitted,
   the picker falls back to free-text entry. **Host contract**: `available: false` means "this
   end could not produce a list" and must NOT be read as "the font is missing".
 - `@worm-vue3-print/client`: Added protocol message `fonts.list` and SDK method
   `PrintClient.listFonts()`, returning the system font list of the machine running the
   desktop client.
-- `@worm-vue3-print/render`: Added `GET /fonts`, reporting the container's system fonts.
+- `@go-wind/print-render`: Added `GET /fonts`, reporting the container's system fonts.
   `/render/pdf` and `/render/screenshot` now return an `X-Font-Warnings` response header when
   fonts are missing (value is `encodeURIComponent` of
   `Array<{ code: 'FONT_MISSING'; family: string; targets: string[] }>`); the header is omitted

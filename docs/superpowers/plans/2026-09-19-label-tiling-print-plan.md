@@ -10,12 +10,12 @@
 - 单文件单次写入不超过 500 行。
 - **外科手术式修改**：不顺手重构无关代码；本次触碰到的无用 import / 变量要清掉。
 - **红绿 TDD**：每个功能先写失败测试（红），再实现（绿）。
-- 测试命令：core → `npm test -w @worm-vue3-print/core`；canvas → `npm test -w @worm-vue3-print/canvas`。
+- 测试命令：core → `npm test -w @go-wind/print-core`；canvas → `npm test -w @go-wind/print-canvas`。
 - 实现严格照抄验证过的 CSS（RESULTS.md §5 的 D1/D2/D3/D4 是实测结论，不要"优化"掉）。
 
 ## 已拍板的决策
 
-- **集成测试新增 `pdfjs-dist` devDependency**：已落地（`@worm-vue3-print/render` devDependencies，实测版本 6.3.289），可行性见 RESULTS.md §4.6。分张归属断言（第 13 条落在第 2 张）纳入 D1。
+- **集成测试新增 `pdfjs-dist` devDependency**：已落地（`@go-wind/print-render` devDependencies，实测版本 6.3.289），可行性见 RESULTS.md §4.6。分张归属断言（第 13 条落在第 2 张）纳入 D1。
 - 连带改动：新增 `services/print-render/vitest.config.ts`，把 `spike/**` 排除出 `npm test`（探针保留到实现完成，收尾时删除）。
 
 ## 阶段 A：core 布局与校验（纯函数）
@@ -118,7 +118,7 @@ export function normalizeTilingOptions(t: TemplateData): TilingOptions {
 - 注意：`TemplateData.tiling` 此时还不存在，先不要 import 它——本任务只写独立类型，`normalizeTilingOptions` 的参数类型暂时用 `{ tiling?: TilingOptions }` 结构化写法：
   `export function normalizeTilingOptions(t: { tiling?: TilingOptions }): TilingOptions`
   等任务 A3 改两处 `TemplateData` 后再换成 `TemplateData`。
-- 验证：`npm run build -w @worm-vue3-print/core` 通过（无类型错误）。
+- 验证：`npm run build -w @go-wind/print-core` 通过（无类型错误）。
 
 ### 任务 A2：布局的失败测试（红）
 
@@ -223,7 +223,7 @@ describe('computeTileLayout', () => {
 ```
 
 - 不要漏 `tilePosition` 的 import（同文件导出）。
-- 验证：`npm test -w @worm-vue3-print/core -- tiling` → 红（模块缺导出）。
+- 验证：`npm test -w @go-wind/print-core -- tiling` → 红（模块缺导出）。
 
 ### 任务 A3：实现 `resolveSheetMm` / `computeTileLayout` / `tilePosition`（绿）
 
@@ -332,7 +332,7 @@ export function computeMaxColumns(t: TemplateData, opts?: TilingResolveOptions):
     `tiling?: import('../print/tiling.js').TilingOptions`
   - `packages/print-core/src/designer/types.ts` 的 `TemplateData` 内加同一行（该文件的 import 路径同为 `../print/tiling.js`）。
 - 注意 A3 依赖 A5 的 `validateTiling`——若按顺序执行，本任务先写一个「总是返回 `[]`」的占位实现，A5 再换成真实现（或在 A4/A5 提前完成）。推荐把 A4/A5 与 A3 合并执行，见下。
-- 验证：`npm test -w @worm-vue3-print/core -- tiling` 全绿；`npm run build -w @worm-vue3-print/core` 通过。
+- 验证：`npm test -w @go-wind/print-core -- tiling` 全绿；`npm run build -w @go-wind/print-core` 通过。
 
 ### 任务 A4：校验的失败测试（红）
 
@@ -477,7 +477,7 @@ export function validateTiling(t: TemplateData, opts?: TilingResolveOptions): Ti
 ```
 
 - 删除任务 A3 里为解耦而写的 `validateTiling` 占位实现（若采用了占位方案）。
-- 验证：`npm test -w @worm-vue3-print/core -- tiling` 全绿。
+- 验证：`npm test -w @go-wind/print-core -- tiling` 全绿。
 
 ## 阶段 B：CSS 与合成器
 
@@ -573,7 +573,7 @@ export function buildSheetPageCss(layout: TileLayout): string {
 }
 ```
 
-- 验证：`npm test -w @worm-vue3-print/core -- css-builder` 全绿。
+- 验证：`npm test -w @go-wind/print-core -- css-builder` 全绿。
 
 ### 任务 B3：合并器的失败测试（红）
 
@@ -733,7 +733,7 @@ export function composeTiledHtml(input: {
 }
 ```
 
-- 验证：`npm test -w @worm-vue3-print/core -- tile-compose` 全绿。
+- 验证：`npm test -w @go-wind/print-core -- tile-compose` 全绿。
 
 ## 阶段 C：管线接线
 
@@ -898,7 +898,7 @@ function composeTiledPrepared(job: PrintJob, copies: BatchCopyInput[]): Prepared
 ```
 
 - 注意：`renderScreenshot` 不参与拼版（仍是标签纸单页快照）——在函数注释补一句该语义，不要改逻辑。
-- 验证：`npm test -w @worm-vue3-print/core -- pipeline` 全绿。
+- 验证：`npm test -w @go-wind/print-core -- pipeline` 全绿。
 
 ### 任务 C3：导出与导出断言（绿）
 
@@ -919,7 +919,7 @@ it('导出拼版能力', () => {
 })
 ```
       （import 从 `'../index.js'` 或该文件既有来源取，保持文件风格）
-- 验证：`npm test -w @worm-vue3-print/core` 全绿；`npm run build -w @worm-vue3-print/core` 通过。
+- 验证：`npm test -w @go-wind/print-core` 全绿；`npm run build -w @go-wind/print-core` 通过。
 
 ## 阶段 D：端到端验证（真实 Chromium）
 
@@ -984,7 +984,7 @@ it('12 格落在 2×6 网格上（print media 实测坐标，SPIKE H5）', async
 }, 60000)
 ```
 
-- 验证：`npm run test -w @worm-vue3-print/render -- tiling.integration` 通过（慢，首次约 10–20s）。
+- 验证：`npm run test -w @go-wind/print-render -- tiling.integration` 通过（慢，首次约 10–20s）。
 - **换算规则（写测试时必读）**：pdfjs 的 `item.transform` 是**标准 PDF 用户空间单位 pt、原点在该页左下角**，`mm = pt × 25.4 / 72`；**坐标按页重置**，无需按页码补偿。B 阶段若看到「用 `25.4/96`、要减 `(N-1) × 纸高`」的说法，那是 **pypdf 的特例**（D5 已修正），不要套用。
 - `spike/` 已在 `services/print-render/vitest.config.ts` 排除出 `npm test`；本任务的文件放 `src/` 下按既有命名即可被收集。
 
@@ -1020,9 +1020,9 @@ const emit = defineEmits<{ 'update:modelValue': [value: TilingOptions] }>()
   4. **实时红字**：`validateTiling({ ...templateData, tiling: cfg })` 的全部 message，逐条显示；**只预警、不阻断输入**（列数从 2 改成 5 的中间态必然非法，阻断会导致改不回去）。
   5. 列数 `StepperInput` 的 `:max` 用 `Math.max(maxColumns, 1)`。
   6. 连续纸模板（`templateData.paperSize === 'CONTINUOUS'`）：**开关置灰** + 文案「连续纸不支持拼版」。
-  7. 目标纸张下拉的数据源：`PAPER_PRESETS`（`@worm-vue3-print/core/designer`）**排除 `CONTINUOUS`**；选「自定义」时显示两个 `StepperInput`（min 25 / max 2000，与模板自定义纸张同一交互）。
+  7. 目标纸张下拉的数据源：`PAPER_PRESETS`（`@go-wind/print-core/designer`）**排除 `CONTINUOUS`**；选「自定义」时显示两个 `StepperInput`（min 25 / max 2000，与模板自定义纸张同一交互）。
   8. 复用既有样式类：`pd-divider` / `pd-form` / `pd-field` / `pd-label` / `pd-select` / `pd-radio-group` / `pd-radio` / `pd-hint` / `margin-grid` / `custom-size-grid` / `custom-size-x`。
-- 验证：`npm test -w @worm-vue3-print/canvas -- TilingConfig`（见 E4）。
+- 验证：`npm test -w @go-wind/print-canvas -- TilingConfig`（见 E4）。
 
 ### 任务 E2：挂进「页面属性」页签
 
@@ -1037,8 +1037,8 @@ const emit = defineEmits<{ 'update:modelValue': [value: TilingOptions] }>()
           />
 ```
   2. import 区（约 170 行）加：`import TilingConfig from './property/TilingConfig.vue'`
-  3. 加类型 import：`import type { TilingOptions } from '@worm-vue3-print/core'`（`emitUpdate` 的 `Partial<TemplateData>` 已能容纳 `tiling`）
-- 验证：`npm run build -w @worm-vue3-print/canvas` 通过；设计器里「页面属性 → 拼版打印」可见可交互。
+  3. 加类型 import：`import type { TilingOptions } from '@go-wind/print-core'`（`emitUpdate` 的 `Partial<TemplateData>` 已能容纳 `tiling`）
+- 验证：`npm run build -w @go-wind/print-canvas` 通过；设计器里「页面属性 → 拼版打印」可见可交互。
 
 ### 任务 E3：保存闸门 + 暴露 `validateTemplate`
 
@@ -1050,8 +1050,8 @@ const emit = defineEmits<{ 'update:modelValue': [value: TilingOptions] }>()
 1. 新建闸门函数（把「保存闸门的定义」集中一处，便于单测）：
 ```ts
 // packages/print-canvas/src/utils/tiling-guard.ts
-import { validateTiling } from '@worm-vue3-print/core'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import { validateTiling } from '@go-wind/print-core'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 /**
  * 拼版保存闸门：返回应阻断保存的错误文案；null = 放行。
@@ -1095,7 +1095,7 @@ defineExpose({
 })
 ```
    注：这里的返回值语义是「错误文案或 null」。若宿主更需要 issue 列表，改为返回 `validateTiling(json)` 的结果数组（`[]` = 合法），并在文档里写清。**二者只能有一个**——推荐返回 issue 数组（信息更全），此时 `tilingSaveGuardMessage` 内部改为取 `[0].message`。
-- 验证：`npm run build -w @worm-vue3-print/canvas` 通过；手工验收见 F3。
+- 验证：`npm run build -w @go-wind/print-canvas` 通过；手工验收见 F3。
 
 ### 任务 E4：canvas 测试
 
@@ -1119,7 +1119,7 @@ it('拼版开启且列数超宽 → 返回错误文案，与 validateTiling 首�
 it('拼版开启且合法 → 放行', …)
 ```
 
-- 验证：`npm test -w @worm-vue3-print/canvas` 全绿。
+- 验证：`npm test -w @go-wind/print-canvas` 全绿。
 
 > **实施偏离记录（2026-09-19 落地时）**：
 > 1. 未抽出 `utils/tiling-guard.ts` 与 `tiling-guard.spec.ts`，改为在 `PrintDesigner.vue` 内用组件已有的 `tilingIssues` computed 直接判定；`validateTemplate` 按 E3 注释里的推荐方案返回 **issue 数组**（而非文案/null），与设计文档 §3.3 一致。
@@ -1153,7 +1153,7 @@ it('拼版开启且合法 → 放行', …)
 npm run build
 npm test
 npm run lint:print-architecture
-npm run test -w @worm-vue3-print/render
+npm run test -w @go-wind/print-render
 ```
 - **探针清理（实施完成后执行）**：删除 `services/print-render/spike/` 整个目录（spike 测试 + 2 个 Python 校验脚本 + `output/` 下 PDF 与 JSON），验证结论已全部固化在 `docs/superpowers/spikes/2026-09-19-tiling-poc/RESULTS.md`。
 - **`services/print-render/vitest.config.ts` 保留**：`spike/**` 排除规则在删除探针后虽无对象，但保留可防止将来再引入 PoC 时污染 `npm test`；该文件是本任务新增的唯一测试基建改动，需与 D1 一起提交。
@@ -1183,7 +1183,7 @@ npm run test -w @worm-vue3-print/render
 - `npm run build` —— 通过（core / client / render / canvas / Electron 客户端全链）
 - `npm test` —— 通过，共 96 文件 / 887 测试：core 559（47 文件）、canvas 219（33 文件）、client 19（3 文件）、print-client 90（13 文件）
 - `npm run lint:print-architecture` —— 通过（三端无重复测量/纸高/出图/码制实现）
-- `npm run test -w @worm-vue3-print/render` —— 6 文件 15 测试通过（含新增 4 项拼版集成）
+- `npm run test -w @go-wind/print-render` —— 6 文件 15 测试通过（含新增 4 项拼版集成）
 - `demo` 类型检查（`vue-tsc`）—— 通过，确认新 expose 的 `validateTemplate()` 类型可达
 - `services/print-render/spike/` —— 已删除；`vitest.config.ts` 的 `spike/**` 排除规则保留
 

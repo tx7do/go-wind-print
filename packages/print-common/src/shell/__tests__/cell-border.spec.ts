@@ -2,7 +2,7 @@
 // 单元格台边框草稿：线型/宽度/颜色只暂存，点预设或勾单边才落盘。
 // 说明文案取自 core（与 canvas 的 TableCellGroup 同一条），本文件锁住 DOM 位置与「点了才写」的行为。
 import { describe, it, expect } from 'vitest'
-import type { RuntimeElement, TableCell } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TableCell } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

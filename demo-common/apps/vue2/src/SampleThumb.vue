@@ -1,7 +1,7 @@
 <script>
 // 示例卡片缩略图：按模板元素坐标等比绘制示意图（不渲染真实条码/二维码），实现口径与 demo 的 SampleThumb 一致。
 // 只做版式示意，出纸效果以「预览」为准。Vue 2.7 Options API 写法。
-import { getByPath, getPaperDimensions, isContinuousPaperSize } from '@worm-vue3-print/core'
+import { getByPath, getPaperDimensions, isContinuousPaperSize } from '@go-wind/print-core'
 
 /** 缩略图舞台尺寸（px）：纸张等比缩放后居中放置 */
 const STAGE_W = 148

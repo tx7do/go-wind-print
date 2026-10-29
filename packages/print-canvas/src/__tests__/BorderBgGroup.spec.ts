@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import BorderBgGroup from '../components/property/BorderBgGroup.vue'
-import type { ElementBorderSide, RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { ElementBorderSide, RuntimeElement } from '@go-wind/print-core/designer'
 
 function makeElement(type: string, options: Record<string, unknown> = {}): RuntimeElement {
   return reactive({

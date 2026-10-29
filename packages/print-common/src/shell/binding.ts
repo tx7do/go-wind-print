@@ -2,8 +2,8 @@
 // + ImageContentUpload.vue。
 // 每项由 core 的绑定注册表声明（getElementBindings / getTableCellBindings），
 // 输入框双击打开表达式编辑器，写回统一走 parsePath → 路径末段赋值（与 canvas 同实现）。
-import { getElementBindings, getTableCellBindings } from '@worm-vue3-print/core/designer'
-import type { BindingDescriptor, RuntimeElement } from '@worm-vue3-print/core/designer'
+import { getElementBindings, getTableCellBindings } from '@go-wind/print-core/designer'
+import type { BindingDescriptor, RuntimeElement } from '@go-wind/print-core/designer'
 import { h, render } from '../core/h'
 import { field } from './controls'
 import type { ShellCtx } from './controls'

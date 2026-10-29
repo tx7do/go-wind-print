@@ -8,8 +8,8 @@ import {
   resolveFlowColumns,
   resolveFlowGapX,
   resolveFlowRowHeight,
-} from '@worm-vue3-print/core/designer'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 
 /** 与 canvas FlowListElement 的 DESIGN_FALLBACK_ITEMS 逐字一致：新拖入的元素也要看得见形状 */

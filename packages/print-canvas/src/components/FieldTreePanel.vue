@@ -41,8 +41,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { PrintBusinessField } from '@worm-vue3-print/core/designer'
-import { groupFields, filterGroups } from '@worm-vue3-print/core/designer'
+import type { PrintBusinessField } from '@go-wind/print-core/designer'
+import { groupFields, filterGroups } from '@go-wind/print-core/designer'
 import { useHoverTip } from '../composables/useHoverTip'
 
 const props = defineProps<{

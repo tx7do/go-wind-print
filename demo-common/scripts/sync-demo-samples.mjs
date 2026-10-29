@@ -28,12 +28,12 @@ export { deriveBatchData } from './batch-data'
 
 /**
  * demo 侧示例相对宿主可能多出的两类依赖，在生成期一次消解：
- * - `@worm-vue3-print/canvas` 的运行时导出（DEFAULT_DEMO_DATA）本就转发自 core/designer，别名到真源；
+ * - `@go-wind/print-canvas` 的运行时导出（DEFAULT_DEMO_DATA）本就转发自 core/designer，别名到真源；
  * - `import.meta.env.BASE_URL` 是 Vite 注入的部署根路径，宿主与 demo 一样挂在站点根下，取 '/'。
  */
 async function loadSamples() {
   if (!existsSync(join(REPO, 'packages', 'print-core', 'dist', 'designer', 'index.js'))) {
-    console.error('[sync] 缺少 @worm-vue3-print/core 的 dist/designer：先 npm run build -w @worm-vue3-print/core')
+    console.error('[sync] 缺少 @go-wind/print-core 的 dist/designer：先 npm run build -w @go-wind/print-core')
     process.exit(1)
   }
   const result = await esbuild.build({
@@ -43,7 +43,7 @@ async function loadSamples() {
     platform: 'node',
     target: 'es2022',
     write: false,
-    alias: { '@worm-vue3-print/canvas': '@worm-vue3-print/core/designer' },
+    alias: { '@go-wind/print-canvas': '@go-wind/print-core/designer' },
     define: { 'import.meta.env.BASE_URL': '"/"' },
     logLevel: 'silent',
   })

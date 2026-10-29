@@ -3,9 +3,9 @@
 import {
   createDomHostRuntime,
   renderPdf as coreRenderPdf,
-} from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
-import type { PrintJob, PrintRuntime, RenderRequest } from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
+import type { PrintJob, PrintRuntime, RenderRequest } from '@go-wind/print-core'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'
 

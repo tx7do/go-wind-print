@@ -77,7 +77,7 @@ describe('设计背景不进入渲染管线', () => {
 
 - [ ] **Step 2: 运行测试确认失败**
 
-Run: `npm test -w @worm-vue3-print/core -- --run src/render/html-generator.test.ts`
+Run: `npm test -w @go-wind/print-core -- --run src/render/html-generator.test.ts`
 
 Expected: FAIL（`designBackground` 经 JS 展开进入模板对象后，当前用例对路径的断言即应失败；若 `makeTemplate` 产物序列化不含额外字段导致先通过，保留该用例作为回归锁，继续 Step 3）。
 
@@ -117,7 +117,7 @@ export type UploadDesignBackgroundFn = (file: File) => Promise<string>
 
 - [ ] **Step 4: 运行测试与构建**
 
-Run: `npm test -w @worm-vue3-print/core -- --run src/render/html-generator.test.ts && npm run build -w @worm-vue3-print/core`
+Run: `npm test -w @go-wind/print-core -- --run src/render/html-generator.test.ts && npm run build -w @go-wind/print-core`
 
 Expected: PASS；core 构建成功。
 
@@ -149,7 +149,7 @@ git commit -m "feat: 新增设计背景模型与上传适配器类型"
 
 ```ts
 import type { ComputedRef, InjectionKey } from 'vue'
-import type { UploadDesignBackgroundFn, UploadImageFn } from '@worm-vue3-print/core/designer'
+import type { UploadDesignBackgroundFn, UploadImageFn } from '@go-wind/print-core/designer'
 
 /** 图片上传适配器：PrintDesigner provide，ImageContentUpload inject */
 export const UPLOAD_IMAGE_KEY: InjectionKey<ComputedRef<UploadImageFn | undefined>> =
@@ -165,7 +165,7 @@ export const UPLOAD_DESIGN_BACKGROUND_KEY: InjectionKey<ComputedRef<UploadDesign
 在 `PrintDesigner.vue` 的类型 import 中加入 `UploadDesignBackgroundFn`：
 
 ```ts
-import type { RuntimeElement, PrintBusinessField, TemplateData, TableCell, RequestScreenshotFn, UploadImageFn, UploadDesignBackgroundFn } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, PrintBusinessField, TemplateData, TableCell, RequestScreenshotFn, UploadImageFn, UploadDesignBackgroundFn } from '@go-wind/print-core/designer'
 ```
 
 将 `useHostAdapter` 的 import 改为：
@@ -198,7 +198,7 @@ export { UPLOAD_IMAGE_KEY, UPLOAD_DESIGN_BACKGROUND_KEY } from './composables/us
 
 - [ ] **Step 4: 类型构建验证**
 
-Run: `npm run build -w @worm-vue3-print/canvas`
+Run: `npm run build -w @go-wind/print-canvas`
 
 Expected: `vite build` 与 `vue-tsc -p tsconfig.build.json` 均通过。
 
@@ -229,7 +229,7 @@ git commit -m "feat: 新增设计背景上传适配器注入链路"
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CanvasPaper from '../components/CanvasPaper.vue'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 function makeTemplate(designBackground?: TemplateData['designBackground']): TemplateData {
   return {
@@ -307,7 +307,7 @@ describe('CanvasPaper 设计背景', () => {
 
 - [ ] **Step 2: 运行测试确认失败**
 
-Run: `npm test -w @worm-vue3-print/canvas -- --run src/__tests__/CanvasPaperDesignBackground.spec.ts`
+Run: `npm test -w @go-wind/print-canvas -- --run src/__tests__/CanvasPaperDesignBackground.spec.ts`
 
 Expected: FAIL（`.design-background` 不存在）。
 
@@ -394,7 +394,7 @@ function onBackgroundError() {
 
 - [ ] **Step 5: 运行测试与构建**
 
-Run: `npm test -w @worm-vue3-print/canvas -- --run src/__tests__/CanvasPaperDesignBackground.spec.ts && npm run build -w @worm-vue3-print/canvas`
+Run: `npm test -w @go-wind/print-canvas -- --run src/__tests__/CanvasPaperDesignBackground.spec.ts && npm run build -w @go-wind/print-canvas`
 
 Expected: PASS；构建通过。
 
@@ -502,7 +502,7 @@ describe('DesignBackgroundConfig', () => {
 
 - [ ] **Step 2: 运行测试确认失败**
 
-Run: `npm test -w @worm-vue3-print/canvas -- --run src/__tests__/DesignBackgroundConfig.spec.ts`
+Run: `npm test -w @go-wind/print-canvas -- --run src/__tests__/DesignBackgroundConfig.spec.ts`
 
 Expected: FAIL（组件不存在，导入失败）。
 
@@ -541,7 +541,7 @@ Expected: FAIL（组件不存在，导入失败）。
 
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
-import type { DesignBackground } from '@worm-vue3-print/core/designer'
+import type { DesignBackground } from '@go-wind/print-core/designer'
 import { UPLOAD_DESIGN_BACKGROUND_KEY } from '../../composables/useHostAdapter'
 
 const props = defineProps<{ modelValue?: DesignBackground }>()
@@ -673,7 +673,7 @@ function onDesignBackgroundChange(value: TemplateData['designBackground'] | unde
 
 - [ ] **Step 5: 运行测试与构建**
 
-Run: `npm test -w @worm-vue3-print/canvas -- --run src/__tests__/DesignBackgroundConfig.spec.ts && npm run build -w @worm-vue3-print/canvas`
+Run: `npm test -w @go-wind/print-canvas -- --run src/__tests__/DesignBackgroundConfig.spec.ts && npm run build -w @go-wind/print-canvas`
 
 Expected: PASS；构建通过（若提示 `_removed` 未使用，确保 `tsconfig.build.json` 未开启 `noUnusedLocals` 报错；如报错则改写为 `const rest = { ...props.templateData }; delete rest.designBackground`）。
 
@@ -705,7 +705,7 @@ git commit -m "feat: 页面属性支持上传旋转移除设计背景"
 ```ts
 import { describe, it, expect } from 'vitest'
 import { useDesignerState } from '../composables/useDesignerState'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 describe('designBackground 序列化透传', () => {
   it('updateTemplateData 后 getTemplateJson 保留背景与旋转角度', () => {
@@ -746,7 +746,7 @@ describe('designBackground 序列化透传', () => {
 })
 ```
 
-Run: `npm test -w @worm-vue3-print/canvas -- --run src/__tests__/design-background-persistence.spec.ts`
+Run: `npm test -w @go-wind/print-canvas -- --run src/__tests__/design-background-persistence.spec.ts`
 
 Expected: PASS（`getTemplateJson` / `toRuntimePool` 均为整体展开，无需改实现；若失败，检查是否有白名单过滤，并在 `useDesignerState.ts` 补透传后重跑）。
 
@@ -771,7 +771,7 @@ const uploadDesignBackground: UploadDesignBackgroundFn = async (file) => {
 }
 ```
 
-并将 import 示例类型改为 `import type { RequestScreenshotFn, UploadImageFn, UploadDesignBackgroundFn } from '@worm-vue3-print/canvas'`。
+并将 import 示例类型改为 `import type { RequestScreenshotFn, UploadImageFn, UploadDesignBackgroundFn } from '@go-wind/print-canvas'`。
 
 「七、模板模型 TemplateData」代码块中 `guides?` 之后新增：
 
@@ -803,10 +803,10 @@ import 类型列表中加入 `UploadDesignBackgroundFn`；「另导出」一段�
 Run:
 
 ```bash
-npm test -w @worm-vue3-print/core
-npm test -w @worm-vue3-print/canvas
-npm run build -w @worm-vue3-print/core
-npm run build -w @worm-vue3-print/canvas
+npm test -w @go-wind/print-core
+npm test -w @go-wind/print-canvas
+npm run build -w @go-wind/print-core
+npm run build -w @go-wind/print-canvas
 git diff --stat
 ```
 

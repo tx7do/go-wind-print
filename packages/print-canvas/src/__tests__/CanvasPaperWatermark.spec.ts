@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CanvasPaper from '../components/CanvasPaper.vue'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 // 说明：水印文本的解析取值（完整路径/表达式/回退/时间戳）与瓦片网格计算
 // 在 print-core 的 watermark.test.ts 中已完整覆盖（与画布共用同一核心函数）。

@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import CodeGroup from '../components/property/CodeGroup.vue'
 import PropertyPanel from '../components/PropertyPanel.vue'
-import type { RuntimeElement, TemplateData } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TemplateData } from '@go-wind/print-core/designer'
 
 function makeElement(type: 'barcode' | 'qrcode' | 'text', options: Record<string, any> = {}): RuntimeElement {
   return reactive({

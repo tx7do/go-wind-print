@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PropertyPanel from '../components/PropertyPanel.vue'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 function pageTemplate(over: Partial<TemplateData> = {}): TemplateData {
   return {

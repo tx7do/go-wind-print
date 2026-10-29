@@ -8,8 +8,8 @@ import { render } from '../../core/h'
 import type { El } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
 import { tableCellGroup, tableSettingsGroup } from '../table-props'
-import { createDefaultOptions } from '@worm-vue3-print/core/designer'
-import type { TableCell } from '@worm-vue3-print/core/designer'
+import { createDefaultOptions } from '@go-wind/print-core/designer'
+import type { TableCell } from '@go-wind/print-core/designer'
 
 function makeCtx(cellPatches: Partial<TableCell>[]) {
   const store = new DesignerStore()

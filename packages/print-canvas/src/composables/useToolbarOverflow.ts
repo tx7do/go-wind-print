@@ -1,7 +1,7 @@
 import { computed, inject, nextTick, onUnmounted, provide, reactive, ref, shallowRef } from 'vue'
 import type { DirectiveBinding, InjectionKey, ObjectDirective, Ref } from 'vue'
-import { resolveToolbarOverflow } from '@worm-vue3-print/core/designer'
-import type { OverflowUnitInput } from '@worm-vue3-print/core/designer'
+import { resolveToolbarOverflow } from '@go-wind/print-core/designer'
+import type { OverflowUnitInput } from '@go-wind/print-core/designer'
 
 /** 收纳单元声明：id 同时用于「更多」面板的落位容器配对 */
 export interface OverflowUnitDef {

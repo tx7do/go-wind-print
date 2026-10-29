@@ -86,7 +86,7 @@ export class PrintClient {
   /**
    * 提交浏览器侧预渲染结果静默打印（print.submitHtml）。
    *
-   * 业务页先用 @worm-vue3-print/core/browser 的 renderHtmlPages 在浏览器内完成
+   * 业务页先用 @go-wind/print-core/browser 的 renderHtmlPages 在浏览器内完成
    * 两遍渲染，再调用本方法把最终 HTML 直送客户端；客户端不再执行模板渲染。
    *
    * @param rendered renderHtmlPages 返回值（html/paperMm/continuous/pageCount）

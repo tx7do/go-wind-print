@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import TableCellGroup from '../components/property/TableCellGroup.vue'
 import { TABLE_EDIT_KEY } from '../composables/useTableSelection'
-import type { RuntimeElement, TableCell } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TableCell } from '@go-wind/print-core/designer'
 
 function makeElement(cells: Partial<TableCell>[]): RuntimeElement {
   return reactive({

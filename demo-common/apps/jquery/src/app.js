@@ -1,4 +1,4 @@
-// jQuery 宿主直挂集成 @worm-vue3-print/common 的完整链路示例（无打包器、无框架封装）。
+// jQuery 宿主直挂集成 @go-wind/print-common 的完整链路示例（无打包器、无框架封装）。
 // 版式与 ./demo（Vue 3 打印设计器示例）完全一致：样式来自 sync-demo-styles.mjs 抽取的 demo-ui.css，
 // 本文件不写任何私有样式；宿主事件只进控制台，不做侧栏日志面板。
 // 插件能力全部来自 window.WormPrintCommon（<script src="/vendor/worm-print-common.js"> 挂上的全局）。

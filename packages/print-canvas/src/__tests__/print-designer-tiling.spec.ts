@@ -7,9 +7,9 @@ import PrintDesigner from '../components/PrintDesigner.vue'
 import DesignerToolbar from '../components/DesignerToolbar.vue'
 import PropertyPanel from '../components/PropertyPanel.vue'
 import PageTabs from '../components/PageTabs.vue'
-import { TILE_DEFAULTS } from '@worm-vue3-print/core'
-import type { TilingOptions } from '@worm-vue3-print/core'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import { TILE_DEFAULTS } from '@go-wind/print-core'
+import type { TilingOptions } from '@go-wind/print-core'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 function tilingTemplate(
   tiling: Partial<TilingOptions> = {},

@@ -3,7 +3,7 @@
 // 设计器不内置任何字体名档位：替用户预置或陈列第三方授权字体会把版权风险带进设计器与产出物。
 // 目录整理与模糊匹配算法已下沉 core（print/fonts.ts），无框架外壳与本包共用同一份；本文件只留 Vue 侧包装。
 import { computed, inject, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
-import { normalizeFontCatalog, type PrintFontDeclaration } from '@worm-vue3-print/core'
+import { normalizeFontCatalog, type PrintFontDeclaration } from '@go-wind/print-core'
 import { FONT_CATALOG_KEY } from './useHostAdapter'
 
 export {
@@ -11,9 +11,9 @@ export {
   findFontOption,
   fontOptionLabel,
   normalizeFontQuery,
-} from '@worm-vue3-print/core'
-export type { FontCatalogOption as FontOption } from '@worm-vue3-print/core'
-import type { FontCatalogOption } from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
+export type { FontCatalogOption as FontOption } from '@go-wind/print-core'
+import type { FontCatalogOption } from '@go-wind/print-core'
 
 /** 空目录：宿主未声明字体时不陈列任何字体名，下拉只剩「默认」与手工输入 */
 export const EMPTY_FONT_CATALOG: ComputedRef<readonly FontCatalogOption[]> = computed(() => normalizeFontCatalog())

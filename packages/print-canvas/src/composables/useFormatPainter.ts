@@ -1,8 +1,8 @@
 // 格式刷：捕获单个源元素的格式快照，选中集变化即把快照刷到目标元素
 // 交互仿 Word：单击工具栏按钮刷一次后退出，双击锁定连续刷，Esc 或清空选中退出
 import { computed, onScopeDispose, ref, watch, type Ref } from 'vue'
-import type { RuntimeElement, ElementOptions } from '@worm-vue3-print/core/designer'
-import { acceptsElementBorder, ELEMENT_BORDER_SIDES } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, ElementOptions } from '@go-wind/print-core/designer'
+import { acceptsElementBorder, ELEMENT_BORDER_SIDES } from '@go-wind/print-core/designer'
 import { TEXT_TYPES } from './useFormatToolbar'
 
 /** 随文本组一起复制的字段（与格式工具栏可写集一致；textFit/行距等属性面板字段不纳入） */

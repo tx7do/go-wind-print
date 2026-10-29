@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { useDesignerState } from '../composables/useDesignerState'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 describe('designBackground 序列化透传', () => {
   it('updateTemplateData 后 getTemplateJson 保留背景与旋转角度', () => {

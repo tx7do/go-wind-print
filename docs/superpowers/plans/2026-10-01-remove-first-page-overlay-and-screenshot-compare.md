@@ -19,7 +19,7 @@
 - **每个任务收尾必须 `npm run build` 与相关测试全绿后才提交**；跨包类型删除一律放在其引用方之后。
 - 术语防撞：`firstPageOverlay / 首页专属 / 首页叠加 / .zone-overlay` 属功能 A；`overlayVisible / toggle-overlay / .overlay-layer / 叠层对比 / requestScreenshot / setOverlay` 属功能 B。两组在 4 组相邻行并存（`DesignerToolbar.vue:78/79`、`shell/toolbar.ts:53/54`、`print-designer.ts:648/649`、`shell/canvas.ts:96/207-211`），删除时不得连坐。`.pd-dialog-overlay`、`.ruler-overlay`、Playwright 自身的 `page.screenshot()` 与本计划无关，禁动。
 - 批量改写一律逐处 Edit，不用跨跨度正则批量替换；同一文件内多个 Edit 必须串行执行（并行会吞掉属性）。
-- 版本号：`@worm-vue3-print/core`、`@worm-vue3-print/canvas`、`@worm-vue3-print/common` 由 `1.3.5` → `2.0.0`；`@worm-vue3-print/render`（1.0.0, private）、`@worm-vue3-print/print-client`（0.1.0, private）、`@worm-vue3-print/demo` 不动。
+- 版本号：`@go-wind/print-core`、`@go-wind/print-canvas`、`@go-wind/print-common` 由 `1.3.5` → `2.0.0`；`@go-wind/print-render`（1.0.0, private）、`@go-wind/print-client`（0.1.0, private）、`@go-wind/print-demo` 不动。
 - 产物目录（各包 `dist/`、`demo-common/apps/*/dist/`、`demo-common/apps/*/public/vendor/`、`demo/video/out/`）禁止手改，由构建与 `npm run styles:demo-common`、`npm run samples:demo-common` 重生成。
 - 历史存档不改：`docs/superpowers/{specs,plans}` 既成记述、`.workbuddy/`、`docs/中文/CHANGELOG.md:105-116` 与 `docs/en/CHANGELOG.en.md:125/136` 的旧版本条目、`demo/video/` 剧本与成品。
 - 定向测试命令形态：`npm run test -w <包名> -- <文件路径>`（canvas 的 `.vue` spec 必须走 workspace 形式，根目录 `npx vitest` 会缺 vue 插件）。
@@ -122,7 +122,7 @@ Expected: `git diff --stat` 只有 `packages/print-common/src/print-designer.ts`
 
 - [ ] **Step 6: 跑吸附回归确认绿**
 
-Run: `npm run test -w @worm-vue3-print/common -- src/__tests__/adsorb-drag.spec.ts`
+Run: `npm run test -w @go-wind/print-common -- src/__tests__/adsorb-drag.spec.ts`
 Expected: PASS，无用例失败
 
 - [ ] **Step 7: 提交吸附修复**
@@ -172,7 +172,7 @@ Expected: 文件清单只有上述两个文件；`git show HEAD | grep firstPage
   })
 ```
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/DesignerToolbar.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/DesignerToolbar.spec.ts`
 Expected: PASS —— 这条是基线检查：本任务后它仍绿，Task 3 才把它删掉，证明两个功能没被连坐。
 
 - [ ] **Step 2: 删工具栏按钮与事件声明**
@@ -280,7 +280,7 @@ Expected: PASS —— 这条是基线检查：本任务后它仍绿，Task 3 才
 
 - [ ] **Step 8: 验证 canvas 绿并确认无残留**
 
-Run: `npm run test -w @worm-vue3-print/canvas && npm run build -w @worm-vue3-print/canvas`
+Run: `npm run test -w @go-wind/print-canvas && npm run build -w @go-wind/print-canvas`
 Expected: PASS（含 `vue-tsc`）
 
 Run: `grep -rn -E "firstPageOverlay|zone-overlay|add-overlay-element|首页叠加" packages/print-canvas/src | grep -v "help-content/changelog.ts" | wc -l`
@@ -319,7 +319,7 @@ EOF
 
 `packages/print-canvas/src/__tests__/DesignerToolbar.spec.ts`：删除整条 `it('叠层对比收入视图下拉', ...)`（Task 2 Step 1 写入）。
 
-Run: `npm run test -w @worm-vue3-print/canvas -- src/__tests__/DesignerToolbar.spec.ts`
+Run: `npm run test -w @go-wind/print-canvas -- src/__tests__/DesignerToolbar.spec.ts`
 Expected: PASS —— 该 describe 其余用例（标尺/网格开关态）仍在，证明只摘掉这一条
 
 `packages/print-canvas/src/components/DesignerToolbar.vue`：删除第 79 行按钮、第 151 行 `  overlayVisible?: boolean`、第 181 行 `  'toggle-overlay': []`。
@@ -338,7 +338,7 @@ Expected: PASS —— 该 describe 其余用例（标尺/网格开关态）仍�
 
 2. 删除第 300-332 行整块（`// 叠层对比模式` 注释 + 三个 ref + `async function toggleOverlay()`）
 3. 第 154 行 type import 去掉 `RequestScreenshotFn,`
-4. 删除第 165 行 `import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'`
+4. 删除第 165 行 `import { DEFAULT_DEMO_DATA } from '@go-wind/print-core/designer'`
 5. 删除 props 声明第 192-193 行：
 
 ```ts
@@ -375,14 +375,14 @@ Expected: PASS —— 该 describe 其余用例（标尺/网格开关态）仍�
 // 开源核心不含 Element Plus 与宿主业务逻辑；保存/字段/上传/业务字典由宿主注入。
 ```
 
-第 14 行注释去掉 `ScreenshotRequest/RequestScreenshotFn/`，保留其余标识符与 `export type * from '@worm-vue3-print/core/designer'`（第 15 行不动）。
+第 14 行注释去掉 `ScreenshotRequest/RequestScreenshotFn/`，保留其余标识符与 `export type * from '@go-wind/print-core/designer'`（第 15 行不动）。
 
 `packages/print-canvas/src/help-content/faq.ts`：删除第 87 行 `  <li>可通过"叠层对比"功能对比设计稿与截图</li>`。
 `packages/print-canvas/README.md`：删除第 92 行 `requestScreenshot({ templateJson, printData }) => Promise<Blob>`：叠层对比截图。` 条目。
 
 - [ ] **Step 5: 验证**
 
-Run: `npm run test -w @worm-vue3-print/canvas && npm run build -w @worm-vue3-print/canvas`
+Run: `npm run test -w @go-wind/print-canvas && npm run build -w @go-wind/print-canvas`
 Expected: PASS
 
 Run: `grep -rn -E "overlayVisible|toggle-overlay|requestScreenshot|overlay-layer|overlay-image|DEFAULT_DEMO_DATA|screenshotUrl" packages/print-canvas/src packages/print-canvas/README.md | grep -v "pd-dialog-overlay" | wc -l`
@@ -473,7 +473,7 @@ EOF
 
 - [ ] **Step 6: 重派生样式并核对**
 
-Run: `npm run styles -w @worm-vue3-print/common`
+Run: `npm run styles -w @go-wind/print-common`
 Expected: `scripts/gen-styles.mjs` + `gen-icons.mjs` 成功退出
 
 Run: `grep -c -E "zone-overlay|overlay-layer|overlay-image" packages/print-common/src/styles/designer.css`
@@ -493,7 +493,7 @@ Expected: `0`。若仍命中，说明派生脚本白名单硬编码了这两个�
 
 - [ ] **Step 8: 验证**
 
-Run: `npm run test -w @worm-vue3-print/common && npm run build -w @worm-vue3-print/common`
+Run: `npm run test -w @go-wind/print-common && npm run build -w @go-wind/print-common`
 Expected: PASS
 
 Run: `grep -rn -E "firstPageOverlay|首页专属|首页叠加|叠层对比|overlayVisible|toggle-overlay|requestScreenshot|setOverlay|add-overlay-element" packages/print-common/src | grep -v "pd-dialog-overlay" | grep -v "help-content/changelog.ts" | wc -l`
@@ -535,7 +535,7 @@ EOF
     expect(css).not.toContain('.first-page-overlay')
 ```
 
-Run: `npm run test -w @worm-vue3-print/core -- src/render/css-builder.test.ts`
+Run: `npm run test -w @go-wind/print-core -- src/render/css-builder.test.ts`
 Expected: FAIL —— 第 105-138 行 4 条逐字比对用例与新的 `not.toContain` 全红（实现仍输出该块）
 
 - [ ] **Step 2: 删实现里的 overlayH 与规则块**
@@ -554,7 +554,7 @@ ${desc}.first-page-overlay {
 - [ ] **Step 3: 重录 golden CSS（仓内已无 dump 脚本，用 dist 产物现算）**
 
 ```bash
-npm run build -w @worm-vue3-print/core && node -e '
+npm run build -w @go-wind/print-core && node -e '
 const fs = require("node:fs");
 const { buildPageCss } = require("./packages/print-core/dist/index.cjs");
 const base = {
@@ -577,11 +577,11 @@ console.log("re-recorded:", Object.keys(out).join(", "));
 Run: `git diff --numstat packages/print-core/src/render/__fixtures__/build-page-css.json`
 Expected: `4 4`（4 个键各一行，删=增=4）。再跑
 `git diff packages/print-core/src/render/__fixtures__/build-page-css.json | grep -c "first-page-overlay"`
-Expected: 非 0（删除侧含该选择器），且 `grep -c "\.page-header {"` 在 `+` 侧与 `-` 侧数量相同（其余几何块未漂移）。若 numstat 不是 `4 4`，先 `npm run build -w @worm-vue3-print/core` 重跑再复核——产物过期是常见误因。
+Expected: 非 0（删除侧含该选择器），且 `grep -c "\.page-header {"` 在 `+` 侧与 `-` 侧数量相同（其余几何块未漂移）。若 numstat 不是 `4 4`，先 `npm run build -w @go-wind/print-core` 重跑再复核——产物过期是常见误因。
 
 - [ ] **Step 5: 跑 CSS 测试与 core 全量**
 
-Run: `npm run test -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/core`
+Run: `npm run test -w @go-wind/print-core && npm run build -w @go-wind/print-core`
 Expected: PASS（分页/HTML 仍带 `firstPageOverlay` 读取，但字段未删，编译不红）
 
 - [ ] **Step 6: 提交**
@@ -627,7 +627,7 @@ describe('首页预算与后续页一致（2.0.0 起无首页叠加扣减）', (
 })
 ```
 
-Run: `npm run test -w @worm-vue3-print/core -- src/render/pagination-engine.test.ts`
+Run: `npm run test -w @go-wind/print-core -- src/render/pagination-engine.test.ts`
 Expected: PASS（改动前后皆然，本用例锁定语义，防后续误改）
 
 - [ ] **Step 2: 删 overlayH 与首页分支**
@@ -669,7 +669,7 @@ Expected: PASS（改动前后皆然，本用例锁定语义，防后续误改）
 
 - [ ] **Step 4: 验证**
 
-Run: `npm run test -w @worm-vue3-print/core -- src/render/pagination-engine.test.ts src/render/pagination-engine.edge.test.ts src/render/__tests__/continuous-paper.test.ts`
+Run: `npm run test -w @go-wind/print-core -- src/render/pagination-engine.test.ts src/render/pagination-engine.edge.test.ts src/render/__tests__/continuous-paper.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: 提交**
@@ -703,7 +703,7 @@ EOF
 
 `packages/print-core/src/print/__tests__/multi-template.spec.ts` 删除第 156-186 行整块 `it('首页叠加仅在各模板自身首页出现', ...)`（从 `it(` 行到其收尾 `  })`，含中间 `firstPageOverlay` 构造与 5 条断言）。
 
-Run: `npm run test -w @worm-vue3-print/core -- src/print/__tests__/multi-template.spec.ts`
+Run: `npm run test -w @go-wind/print-core -- src/print/__tests__/multi-template.spec.ts`
 Expected: 其余用例 PASS（证明摘的是一条独立用例，没伤及邻近 describe）
 
 - [ ] **Step 2: 改 html-generator**
@@ -749,7 +749,7 @@ Expected: 其余用例 PASS（证明摘的是一条独立用例，没伤及邻�
 
 - [ ] **Step 4: 验证 core 全绿**
 
-Run: `npm run test -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/core`
+Run: `npm run test -w @go-wind/print-core && npm run build -w @go-wind/print-core`
 Expected: PASS。此时 `grep -rn "firstPageOverlay" packages/print-core/src` 只剩 `designer/types.ts`、`render/types.ts`、`designer/utils/migrate.ts` 与各测试夹具行——由 Task 10 收口。
 
 Run: `grep -rn "firstPageOverlay" packages/print-core/src | grep -v "__tests__\|\.test\.ts\|types.ts\|migrate.ts" | wc -l`
@@ -816,7 +816,7 @@ rm services/print-render/src/screenshot.test.ts
 
 ```yaml
       - name: 截图集成测试
-        run: npm run test -w @worm-vue3-print/render -- src/screenshot.test.ts
+        run: npm run test -w @go-wind/print-render -- src/screenshot.test.ts
         timeout-minutes: 5
 ```
 
@@ -832,10 +832,10 @@ rm services/print-render/src/screenshot.test.ts
 
 - [ ] **Step 5: 验证**
 
-Run: `npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/render && npm run test -w @worm-vue3-print/render`
+Run: `npm run build -w @go-wind/print-core && npm run build -w @go-wind/print-render && npm run test -w @go-wind/print-render`
 Expected: 构建通过；集成测试全绿（真实起 Headless Chromium）
 
-Run: `npm run test -w @worm-vue3-print/print-client`
+Run: `npm run test -w @go-wind/print-client`
 Expected: PASS
 
 - [ ] **Step 6: 提交**
@@ -935,7 +935,7 @@ export function buildScreenshotTargetSpec(): ScreenshotTargetSpec {
 
 - [ ] **Step 5: 验证**
 
-Run: `npm run test -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/core && npm run build -w @worm-vue3-print/render`
+Run: `npm run test -w @go-wind/print-core && npm run build -w @go-wind/print-core && npm run build -w @go-wind/print-render`
 Expected: PASS
 
 Run: `grep -rn -iE "renderScreenshot|ScreenshotTargetSpec|toScreenshot" packages/print-core/src | wc -l`
@@ -996,7 +996,7 @@ EOF
   })
 ```
 
-Run: `npm run test -w @worm-vue3-print/core -- src/designer/utils/__tests__/migrate.spec.ts`
+Run: `npm run test -w @go-wind/print-core -- src/designer/utils/__tests__/migrate.spec.ts`
 Expected: FAIL —— 两条 `'firstPageOverlay' in out` 断言均为 `true`
 
 - [ ] **Step 2: 改 `normalizeTemplateUnits` 为无条件剥离**
@@ -1021,7 +1021,7 @@ export function normalizeTemplateUnits(data: TemplateData): TemplateData {
 }
 ```
 
-Run: `npm run test -w @worm-vue3-print/core -- src/designer/utils/__tests__/migrate.spec.ts`
+Run: `npm run test -w @go-wind/print-core -- src/designer/utils/__tests__/migrate.spec.ts`
 Expected: PASS（4 项全绿）
 
 - [ ] **Step 3: 删类型字段与截图宿主契约**
@@ -1054,7 +1054,7 @@ export type RequestScreenshotFn = (req: ScreenshotRequest) => Promise<Blob>
 
 - [ ] **Step 4: 按 TS 报错清单清余下夹具行**
 
-Run: `npm run build -w @worm-vue3-print/core 2>&1 | grep -E "firstPageOverlay|error TS" | head -40`
+Run: `npm run build -w @go-wind/print-core 2>&1 | grep -E "firstPageOverlay|error TS" | head -40`
 Expected: 列出全部多余属性位置。逐处删除整行 `firstPageOverlay: { height: 0, elements: [] },`（已被前面任务清掉的跳过）：
 
 - `src/render/types.test.ts:12`、`src/render/text-fit.test.ts:126`、`src/render/watermark.test.ts:33`、`src/render/multilevel-header.test.ts:54`
@@ -1225,9 +1225,9 @@ EOF
 - [ ] **Step 1: 三个已发布包升 2.0.0**
 
 ```bash
-npm version 2.0.0 --no-git-tag-version -w @worm-vue3-print/core
-npm version 2.0.0 --no-git-tag-version -w @worm-vue3-print/canvas
-npm version 2.0.0 --no-git-tag-version -w @worm-vue3-print/common
+npm version 2.0.0 --no-git-tag-version -w @go-wind/print-core
+npm version 2.0.0 --no-git-tag-version -w @go-wind/print-canvas
+npm version 2.0.0 --no-git-tag-version -w @go-wind/print-common
 ```
 
 Run: `grep -h '"version"' packages/print-core/package.json packages/print-canvas/package.json packages/print-common/package.json`
@@ -1242,9 +1242,9 @@ Expected: 三行均为 `2.0.0`
 
 ### ⚠️ 破坏性变更（移除功能）
 
-- **移除「首页专属」首页叠加区**：`@worm-vue3-print/core` 的 `TemplateData.firstPageOverlay` 字段、分页引擎的首页预算扣减、`.first-page-overlay` CSS 与首页叠加层 HTML 全部删除；`@worm-vue3-print/canvas` 与 `@worm-vue3-print/common` 的工具栏「首页专属」入口、画布叠加区占位、属性面板「首页叠加高度」字段同步移除。**行为变更**：`firstPageOverlay.height > 0` 或含元素的用户自有模板，出纸排版回归「无首页叠加区」——首页内容区可用高度比 1.x 多出该叠加高度，请按新口径复核版式。导入含该字段的旧模板时由 `normalizeTemplateUnits` 自动剥离，不会报错。
+- **移除「首页专属」首页叠加区**：`@go-wind/print-core` 的 `TemplateData.firstPageOverlay` 字段、分页引擎的首页预算扣减、`.first-page-overlay` CSS 与首页叠加层 HTML 全部删除；`@go-wind/print-canvas` 与 `@go-wind/print-common` 的工具栏「首页专属」入口、画布叠加区占位、属性面板「首页叠加高度」字段同步移除。**行为变更**：`firstPageOverlay.height > 0` 或含元素的用户自有模板，出纸排版回归「无首页叠加区」——首页内容区可用高度比 1.x 多出该叠加高度，请按新口径复核版式。导入含该字段的旧模板时由 `normalizeTemplateUnits` 自动剥离，不会报错。
 - **移除设计器「叠层对比」**：canvas 的 `requestScreenshot` prop 与 `ScreenshotRequest` / `RequestScreenshotFn` 类型、Common 的 `requestScreenshot` 属性与 `setOverlay()` 公开方法删除。宿主无需再注入截图适配器。
-- **移除服务端截图能力**：`@worm-vue3-print/core` 的 `renderScreenshot` / `buildScreenshotTargetSpec` / `ScreenshotTargetSpec` / `PrintSession.toScreenshot` / `PageDriver.screenshot` 与 `@worm-vue3-print/render` 的 `POST /render/screenshot` 端点删除。PDF 链路（`renderPdf`、`POST /render/pdf`）以及浏览器打印、服务端 PDF、桌面静默打印三条出纸口径均不受影响。
+- **移除服务端截图能力**：`@go-wind/print-core` 的 `renderScreenshot` / `buildScreenshotTargetSpec` / `ScreenshotTargetSpec` / `PrintSession.toScreenshot` / `PageDriver.screenshot` 与 `@go-wind/print-render` 的 `POST /render/screenshot` 端点删除。PDF 链路（`renderPdf`、`POST /render/pdf`）以及浏览器打印、服务端 PDF、桌面静默打印三条出纸口径均不受影响。
 - `skills/print-template-json` 的模板生成器不再补齐 `firstPageOverlay` 骨架字段；内置示例模板已同步剥离。
 - 已知落后：`demo/video/` 的工具栏演示视频仍包含「首页专属」「叠层对比」两个按钮的镜头，本版未重录。
 ```
@@ -1272,8 +1272,8 @@ Expected: 三行均为 `2.0.0`
 ```bash
 npm run build
 npm test
-npm run test -w @worm-vue3-print/render
-npm run test -w @worm-vue3-print/print-client
+npm run test -w @go-wind/print-render
+npm run test -w @go-wind/print-client
 npm run parity:cross-end
 ```
 

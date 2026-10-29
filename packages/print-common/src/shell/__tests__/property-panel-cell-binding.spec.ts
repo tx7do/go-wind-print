@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // 多选单元格时「内容」绑定组让位：它按 r1,c1 单格读写，多选下会只回显/只写第一格。
 import { describe, it, expect } from 'vitest'
-import type { TableSelection } from '@worm-vue3-print/core/designer'
+import type { TableSelection } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

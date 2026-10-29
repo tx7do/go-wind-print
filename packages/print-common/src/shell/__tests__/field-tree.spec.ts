@@ -2,7 +2,7 @@
 // 字段树长名称显示（common 侧）：与 canvas FieldTreePanel.spec.ts 同口径——
 // .node-meta 包裹中文名与变量名，整行 data-tip 与分组 data-tip 带出完整文本（浮层由 print-designer 的 JS 提示承担）。
 import { describe, it, expect } from 'vitest'
-import type { PrintBusinessField } from '@worm-vue3-print/core/designer'
+import type { PrintBusinessField } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

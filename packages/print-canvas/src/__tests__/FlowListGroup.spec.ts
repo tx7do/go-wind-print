@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import FlowListGroup from '../components/property/FlowListGroup.vue'
-import { propertyTip } from '@worm-vue3-print/core/designer'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { propertyTip } from '@go-wind/print-core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function makeElement(options: Record<string, any> = {}): RuntimeElement {
   return {

@@ -17,7 +17,7 @@
 - 对象入参（single）路径行为必须与改造前完全一致（pipeline.spec 现有用例全部不改断言即通过）。
 - 错误文案精确值：`批量打印数据必须是非空对象数组`、`批量打印数据第 N 项必须是对象`（N 为 1 基）、`批量打印最多支持 500 份，当前 M 份`、`第 N 份渲染失败：<原因>`。
 - 提交类型用 Conventional Commits，提交信息末尾空一行加 `Co-Authored-By: Claude Code <noreply@anthropic.com>`。
-- 窄测试：core 用 `npm exec -w @worm-vue3-print/core vitest run -- <相对 tests/ 或源码同目录路径>`；在包目录可 `npx vitest run <path>`。render 集成测试慢：`npm run test -w @worm-vue3-print/render`。
+- 窄测试：core 用 `npm exec -w @go-wind/print-core vitest run -- <相对 tests/ 或源码同目录路径>`；在包目录可 `npx vitest run <path>`。render 集成测试慢：`npm run test -w @go-wind/print-render`。
 - 不新增任何运行时依赖；不引入 DOMParser/jsdom 到 core。
 - 改动后三端不得出现架构守卫禁止项（直接 DOM 测量/纸高推导/码制库 import/硬编码出图参数），收尾跑 `npm run lint:print-architecture`。
 
@@ -141,7 +141,7 @@ export function normalizePrintData(raw: PrintDataInput | undefined): NormalizedP
 Run（在 `packages/print-core`）:
 `npx vitest run src/print/__tests__/normalize-print-data.spec.ts`
 Expected: PASS（7 用例）。
-`npm run build -w @worm-vue3-print/core`
+`npm run build -w @go-wind/print-core`
 Expected: 成功（纯新增文件、未改既有代码）。
 
 - [ ] **Step 5: 提交**
@@ -369,7 +369,7 @@ describe('buildBatchPageCss', () => {
 
 Run: `npx vitest run src/render/html-generator.test.ts src/render/css-builder.test.ts`
 Expected: PASS。
-`npm run build -w @worm-vue3-print/core`
+`npm run build -w @go-wind/print-core`
 Expected: 成功。
 
 - [ ] **Step 7: 提交**
@@ -540,7 +540,7 @@ export function composeBatchHtml(copies: BatchCopyInput[]): {
 
 Run: `npx vitest run src/print/__tests__/batch-compose.spec.ts`
 Expected: PASS（3 用例）。
-`npm run build -w @worm-vue3-print/core`
+`npm run build -w @go-wind/print-core`
 Expected: 成功。
 
 - [ ] **Step 5: 提交**
@@ -774,9 +774,9 @@ describe('批量 printData（数组）', () => {
 
 - [ ] **Step 6: 全量 core 测试 + 构建**
 
-Run: `npm run test -w @worm-vue3-print/core`
+Run: `npm run test -w @go-wind/print-core`
 Expected: 全部 PASS。
-Run: `npm run build -w @worm-vue3-print/core`
+Run: `npm run build -w @go-wind/print-core`
 Expected: 成功。
 
 - [ ] **Step 7: 提交**
@@ -822,7 +822,7 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 
 - [ ] **Step 2: 构建 core 并跑浏览器侧测试**
 
-Run: `npm run build -w @worm-vue3-print/core`
+Run: `npm run build -w @go-wind/print-core`
 Run（在 `packages/print-core`）: `npx vitest run src/browser`
 Expected: 通过。
 
@@ -838,9 +838,9 @@ Expected: 通过。
 
 - [ ] **Step 4: canvas 测试与构建**
 
-Run: `npm run test -w @worm-vue3-print/canvas`
+Run: `npm run test -w @go-wind/print-canvas`
 Expected: 全过（不新增组件测试；若有 PrintHtmlPreview 相关 spec 断言 emit 参数数，按新签名补第二个参数 1）。
-Run: `npm run build -w @worm-vue3-print/canvas`
+Run: `npm run build -w @go-wind/print-canvas`
 Expected: 成功。
 
 - [ ] **Step 5: 提交**
@@ -919,7 +919,7 @@ it('printData 数组含非对象项拒绝并报告项序号', () => {
 
 `clients/print-client/src/main/request-validation.ts`：
 
-a) 文件顶部：`import { MAX_BATCH_COPIES } from '@worm-vue3-print/core'`（确认该包已依赖 core；若 client 仅经 dist 消费，导入路径用既有 core 导入风格）。
+a) 文件顶部：`import { MAX_BATCH_COPIES } from '@go-wind/print-core'`（确认该包已依赖 core；若 client 仅经 dist 消费，导入路径用既有 core 导入风格）。
 
 b) `PrintSubmitSpec.printData` 类型改：
 
@@ -962,7 +962,7 @@ function parsePrintData(
 
 - [ ] **Step 5: 运行测试与 typecheck**
 
-Run: `npm run test -w @worm-vue3-print/print-client`（仅 request-validation 相关；若该 workspace test 脚本跑全量则全跑）
+Run: `npm run test -w @go-wind/print-client`（仅 request-validation 相关；若该 workspace test 脚本跑全量则全跑）
 Run: `npm exec -w @worm-vue3-print/client vitest run -- src/protocol.test.ts src/print-client.test.ts`
 Run: `npm run typecheck -w @worm-vue3-print/client`
 Expected: 全过。
@@ -991,7 +991,7 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 
 - [ ] **Step 1: 加校验函数并在两端点使用**
 
-在 `server.ts` 顶部导入区加 `import { MAX_BATCH_COPIES } from '@worm-vue3-print/core'`，在路由前新增：
+在 `server.ts` 顶部导入区加 `import { MAX_BATCH_COPIES } from '@go-wind/print-core'`，在路由前新增：
 
 ```ts
 /** 校验 printData：对象放行；数组检查非空、上限与每项类型。返回错误信息或 null */
@@ -1025,7 +1025,7 @@ function validatePrintData(printData: unknown): string | null {
 
 - [ ] **Step 2: 类型检查与构建**
 
-Run: `npm run build -w @worm-vue3-print/render`（若该包无 build 脚本则跳过，跑其 typecheck/lint 既有脚本）
+Run: `npm run build -w @go-wind/print-render`（若该包无 build 脚本则跳过，跑其 typecheck/lint 既有脚本）
 Run: `npm run lint:print-architecture`
 Expected: 守卫通过（未在 render 侧引入 DOM 测量/码制/纸高逻辑）。
 
@@ -1072,9 +1072,9 @@ import {
   prepareDocument,
   renderPdf as coreRenderPdf,
   createDomHostRuntime,
-} from '@worm-vue3-print/core'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
+} from '@go-wind/print-core'
+import type { PrintTemplateData } from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'
 
@@ -1173,8 +1173,8 @@ describe('批量打印（printData 数组）', () => {
 
 - [ ] **Step 2: 运行集成测试**
 
-先确保 core 已构建（render 经 dist 消费）：`npm run build -w @worm-vue3-print/core`
-Run: `npm run test -w @worm-vue3-print/render`
+先确保 core 已构建（render 经 dist 消费）：`npm run build -w @go-wind/print-core`
+Run: `npm run test -w @go-wind/print-render`
 Expected: 新增 3 用例与既有用例全部 PASS。若浏览器未安装，先 `npx playwright install chromium`（在 services/print-render 目录）。
 
 - [ ] **Step 3: 连续纸失败的处置（条件步骤）**
@@ -1353,7 +1353,7 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 npm run build
 npm test
 npm run lint:print-architecture
-npm run test -w @worm-vue3-print/render
+npm run test -w @go-wind/print-render
 ```
 
 Expected: 全量构建顺序成功；core/canvas/client-sdk/print-client 单测全过；架构守卫通过；render 集成测试（含 batch.integration）全过。任何失败必须修复后重跑，不得带红收尾。

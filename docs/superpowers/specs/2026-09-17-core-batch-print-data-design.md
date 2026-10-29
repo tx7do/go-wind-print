@@ -103,7 +103,7 @@ demo 已在应用层实现批量（`demo/src/batch-render.ts`：串行渲染 + D
   - 固定纸数组 3 份 → 单个 PDF、页数 = 各份之和、每份首页文本对应不同数据；
   - 连续纸数组 2 份（行数不同）→ PDF 两页物理高度不同，证明命名页生效。若此用例失败，立即停止实现并回到设计（启用连续纸退路）。
 - 契约：扩 `packages/print-client-sdk/src/protocol.test.ts`（数组透传）、`clients/print-client/src/main/request-validation.test.ts`（数组合法/空数组/501/含非对象）。
-- 类型与构建：core 构建、`npm run typecheck -w @worm-vue3-print/client`；收尾全量 `npm run build && npm test`、`npm run lint:print-architecture`（合并器位于 core，三端不新增 DOM 测量/码制 import/硬编码出图参数，守卫须通过）、`npm run test -w @worm-vue3-print/render`。
+- 类型与构建：core 构建、`npm run typecheck -w @worm-vue3-print/client`；收尾全量 `npm run build && npm test`、`npm run lint:print-architecture`（合并器位于 core，三端不新增 DOM 测量/码制 import/硬编码出图参数，守卫须通过）、`npm run test -w @go-wind/print-render`。
 - demo：临时 Playwright 脚本（用后即删，方式同上一轮）验证数组直传后 iframe 内 3 个 `.print-copy`、份间 `break-after: page`、副标题「共 3 份 · 14 页」（采购模板 8/20/50 行 → 2/4/8 页）。
 
 ## 8. 版本与文档

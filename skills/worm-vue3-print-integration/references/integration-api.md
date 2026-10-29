@@ -37,8 +37,8 @@ import {
   PrintDesigner,
   PrintHtmlPreview,
   createDefaultTemplate,
-} from '@worm-vue3-print/canvas'
-import type { PrintBusinessField, TemplateData } from '@worm-vue3-print/canvas'
+} from '@go-wind/print-canvas'
+import type { PrintBusinessField, TemplateData } from '@go-wind/print-canvas'
 
 const template = ref<TemplateData>(createDefaultTemplate())
 const fields = ref<PrintBusinessField[]>([])
@@ -186,7 +186,7 @@ const templateJson = {
 ## 仅使用 core 的服务端/同构管线
 
 ```ts
-import { bindData, paginate, generateHtml } from '@worm-vue3-print/core'
+import { bindData, paginate, generateHtml } from '@go-wind/print-core'
 
 const bound = bindData(templateJson, printData, baseUrl)
 
@@ -197,4 +197,4 @@ const pageLayouts = paginate(bound, measuredElements)
 const html = generateHtml(bound, pageLayouts, printData, { codeRenderer })
 ```
 
-若用户要服务端 PDF，引导其查看/接入 monorepo 内的 `services/print-render` 服务（`@worm-vue3-print/render`）；在接入方业务仓库中不要虚构 `/render/pdf` 实现。
+若用户要服务端 PDF，引导其查看/接入 monorepo 内的 `services/print-render` 服务（`@go-wind/print-render`）；在接入方业务仓库中不要虚构 `/render/pdf` 实现。

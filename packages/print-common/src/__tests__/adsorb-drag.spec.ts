@@ -2,7 +2,7 @@
 // 吸附开关下的拖拽位移口径（对照 canvas useDrag.computePos）：
 // 吸附结果是「目标位绝对坐标」，位移 = 吸附后坐标 - 起始坐标，而非只剩吸附修正量。
 import { describe, it, expect, beforeEach } from 'vitest'
-import { mmToPx } from '@worm-vue3-print/core/designer'
+import { mmToPx } from '@go-wind/print-core/designer'
 import type { DesignerStore } from '../core/store'
 import { PrintDesignerElement, definePrintDesigner } from '../print-designer'
 

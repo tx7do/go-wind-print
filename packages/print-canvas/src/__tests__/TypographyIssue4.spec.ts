@@ -6,7 +6,7 @@ import AppearanceGroup from '../components/property/AppearanceGroup.vue'
 import LongTextElement from '../components/elements/LongTextElement.vue'
 import PageNumberElement from '../components/elements/PageNumberElement.vue'
 import ImageElement from '../components/elements/ImageElement.vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function makeEl(type: string, options: Partial<RuntimeElement['options']> = {}): RuntimeElement {
   return {

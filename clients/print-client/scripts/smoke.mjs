@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 真机冒烟：node scripts/smoke.mjs [printerName]
 // 依次发 hello → printers.list → print.submit（内置 A4 测试模板到默认或指定打印机）。
-// 前置：客户端已启动（npm run dev -w @worm-vue3-print/print-client）。
+// 前置：客户端已启动（npm run dev -w @go-wind/print-client）。
 import { WebSocket } from 'ws'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

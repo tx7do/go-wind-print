@@ -201,11 +201,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import type { PrintBusinessField } from '@worm-vue3-print/core/designer'
-import { evaluateTemplate } from '@worm-vue3-print/core/designer'
-import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
-import { groupFields, filterGroups } from '@worm-vue3-print/core/designer'
-import { resolveSystemVariables } from '@worm-vue3-print/core'
+import type { PrintBusinessField } from '@go-wind/print-core/designer'
+import { evaluateTemplate } from '@go-wind/print-core/designer'
+import { DEFAULT_DEMO_DATA } from '@go-wind/print-core/designer'
+import { groupFields, filterGroups } from '@go-wind/print-core/designer'
+import { resolveSystemVariables } from '@go-wind/print-core'
 
 const props = defineProps<{
   modelValue: boolean

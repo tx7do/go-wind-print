@@ -12,7 +12,7 @@ V1.3.11 是一个 minor 版本：补上元素级「保留换行符」能力，�
 - **长文本缺省行高与设计器对齐**。未单独设行高的长文本，此前纸面比设计器紧约 9%（实测每行 22px vs 24px），现按设计器同口径 1.5 倍排版。
   **行为变更提示**：凡未设行高的长文本，出纸行距变松——自适应行高的元素会长一点，截断档同一个框能少显示一行；仓库 13 份示例与技能模板未变。
 - **表格旁侧的元素不再被「跟随」误拖走**。跟随区此前只看纵向位置，表格右边另一栏的元素也会被吸进来随表格底部漂移；现只保留「与表格横向相交」的元素，同列正下方的照旧跟随。
-- **`@worm-vue3-print/common` 的 `latest` 指向预览版**。npm 会给新包首次发布自动打 `latest`，`--tag next` 挡不住这一步，所以裸写 `npm i @worm-vue3-print/common` 不会报错而是静默装到实验包。已按实测更正 README / 包内 README / 集成技能三处口径，并新增发布面自检 `npm run publish:common:check`（退出码 0/1/2 分级，已串进预览版发布脚本）。
+- **`@go-wind/print-common` 的 `latest` 指向预览版**。npm 会给新包首次发布自动打 `latest`，`--tag next` 挡不住这一步，所以裸写 `npm i @go-wind/print-common` 不会报错而是静默装到实验包。已按实测更正 README / 包内 README / 集成技能三处口径，并新增发布面自检 `npm run publish:common:check`（退出码 0/1/2 分级，已串进预览版发布脚本）。
 
 ## 工程与验收
 - 新增 `scripts/check-release-carriers.mjs`（`npm run check:release-carriers`）：发版前后各跑一次，核对版本号同号、版本段折叠、两份内置更新记录、Release 正文底稿、README 安装包直链表、客户端 dist 是否混旧包、改动是否命中 core 渲染管线（命中则七件安装包需重打）。
@@ -33,7 +33,7 @@ V1.3.11 is a minor release: it adds element-level "keep line breaks" and fixes t
 - **Turning off "自动换行" on a long text had no effect on paper.** The `autoHeight` branch returned early and swallowed the nowrap declaration, so the designer showed one line while the sheet still wrapped. All three renderers now agree. **Behaviour change**: any text/long-text with auto wrap off and no explicit overflow form now prints as a single line; that combination prints as a single overflowing line (an ellipsis needs the "截断" form). All 13 demo samples and the skill's template assets are byte-for-byte unchanged — none uses that combination.
 - **Default line height of long text now matches the designer.** Long texts without an explicit line height used to print about 9% tighter than the designer (measured 22 px vs 24 px per line); paper now uses the same 1.5x. **Behaviour change**: those long texts get looser leading — `autoHeight` elements grow, `clip` forms show one line fewer; all 13 demo samples and the skill templates are unchanged.
 - **Elements beside a table are no longer dragged away by the follow region.** The rule only looked at vertical position, so a column placed to the right of a table was absorbed and drifted with it; now only horizontally intersecting elements follow, while elements directly below in the same column still do.
-- **`@worm-vue3-print/common` had `latest` pointing at the preview build.** npm stamps `latest` on a package's first publish and `--tag next` cannot stop it, so a bare `npm i @worm-vue3-print/common` silently installs the experimental package. Three doc surfaces were corrected against the measurement, and an exit-code-graded self-check (`npm run publish:common:check`) now runs inside the preview publish script.
+- **`@go-wind/print-common` had `latest` pointing at the preview build.** npm stamps `latest` on a package's first publish and `--tag next` cannot stop it, so a bare `npm i @go-wind/print-common` silently installs the experimental package. Three doc surfaces were corrected against the measurement, and an exit-code-graded self-check (`npm run publish:common:check`) now runs inside the preview publish script.
 
 ## Engineering
 - New `scripts/check-release-carriers.mjs` (`npm run check:release-carriers`) to verify release carriers before and after a release.

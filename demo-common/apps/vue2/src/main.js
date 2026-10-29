@@ -1,7 +1,7 @@
 // Vue 2.7 子 demo 的应用入口：注册元素 + 声明自定义元素 + 挂载 SFC。
 // 集成过程（模板 / 脚本 / 样式）全部在 src/App.vue 单文件组件里。
 import Vue from 'vue'
-import { registerAll } from '@worm-vue3-print/common'
+import { registerAll } from '@go-wind/print-common'
 import App from './App.vue'
 
 // ① 一次性注册 <print-designer>：样式在组件 Shadow DOM 内，宿主不需要引 css

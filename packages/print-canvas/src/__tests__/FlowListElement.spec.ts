@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import FlowListElement from '../components/elements/FlowListElement.vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function makeElement(options: Partial<RuntimeElement['options']> = {}): RuntimeElement {
   return {

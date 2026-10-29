@@ -1,7 +1,7 @@
 // GitHub issue #4 Common 端契约：与 canvas/core 同口径（缩进 em、justify 纵向主轴、image 锚点）
 import { describe, it, expect } from 'vitest'
 import { imageStyle, textLikeStyle } from '../elements.js'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

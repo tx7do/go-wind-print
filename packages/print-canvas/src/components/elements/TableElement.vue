@@ -115,22 +115,22 @@
 
 <script setup lang="ts">
 import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import type { RuntimeElement, TableRow, TableCell, TableRowType } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TableRow, TableCell, TableRowType } from '@go-wind/print-core/designer'
 import {
   normalizeSelection, canMergeReason, mergeCells, splitCells,
   insertRow, deleteRow, insertCol, deleteCol, setRowType, syncTableElementSize,
   resolveCellBorderCss, clampResizedColumnWidth,
-} from '@worm-vue3-print/core/designer'
-import { resolveCanvasFontFamily } from '@worm-vue3-print/core'
+} from '@go-wind/print-core/designer'
+import { resolveCanvasFontFamily } from '@go-wind/print-core'
 import { TABLE_EDIT_KEY, type TableEditContext } from '../../composables/useTableSelection'
 import { SELECTED_IDS_KEY } from '../../composables/useSelection'
 import TableContextMenu from './TableContextMenu.vue'
 import CellBarcode from './CellBarcode.vue'
 import CellImage from './CellImage.vue'
-import { resolveBarcodeDesignValue } from '@worm-vue3-print/core/designer'
-import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
-import type { TextFit } from '@worm-vue3-print/core/designer'
-import { cellFitCapMm, cellFitWidthMm, cellImageBoxMm, resolveCellTextFit, resolveShrinkMinFontSize } from '@worm-vue3-print/core/designer'
+import { resolveBarcodeDesignValue } from '@go-wind/print-core/designer'
+import { DEFAULT_DEMO_DATA } from '@go-wind/print-core/designer'
+import type { TextFit } from '@go-wind/print-core/designer'
+import { cellFitCapMm, cellFitWidthMm, cellImageBoxMm, resolveCellTextFit, resolveShrinkMinFontSize } from '@go-wind/print-core/designer'
 import { useShrinkFit } from '../../composables/useShrinkFit'
 
 const ROW_TYPE_BADGE: Record<TableRowType, string> = {

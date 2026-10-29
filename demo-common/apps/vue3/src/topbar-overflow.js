@@ -3,7 +3,7 @@
    本文件只做宿主侧的量宽、搬运 DOM 与状态类维护；链序与 demo 权威示例保持一致，
    避免同一视口宽度下各宿主收起的分组不同。此前这里就地重写了一遍算法，已漂出四条口径（见 TODO T-19b）。 */
 
-import { resolveToolbarOverflow } from '@worm-vue3-print/core/designer'
+import { resolveToolbarOverflow } from '@go-wind/print-core/designer'
 
 /** 收纳优先级链（越靠前越先被收进「更多」），与 index.html 的 data-overflow-unit 一一对应 */
 const CHAIN = ['biz', 'host-switch', 'host-badge', 'clear', 'import', 'export', 'custom', 'batch', 'gallery']

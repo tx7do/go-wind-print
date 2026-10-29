@@ -1,11 +1,11 @@
 // 页面属性补充区段：设计背景 + 拼版打印。
 // DOM 类名对齐 canvas 的 DesignBackgroundConfig.vue / TilingConfig.vue，
 // 拼版的校验与布局数字全部走 core 纯函数（TILE_DEFAULTS / validateTiling / computeTileLayout 等）。
-import { PAPER_PRESETS, isContinuousPaperSize } from '@worm-vue3-print/core/designer'
+import { PAPER_PRESETS, isContinuousPaperSize } from '@go-wind/print-core/designer'
 import {
   TILE_DEFAULTS, computeMaxColumns, computeTileLayout, resolveSheetMm, validateTiling,
-} from '@worm-vue3-print/core'
-import type { TilingOptions } from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
+import type { TilingOptions } from '@go-wind/print-core'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import { divider, field, radioGroup, resetButton, stepper } from './controls'

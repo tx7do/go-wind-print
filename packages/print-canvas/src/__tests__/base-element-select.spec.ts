@@ -6,7 +6,7 @@ import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import BaseElement from '../components/elements/BaseElement.vue'
 import { SELECTED_IDS_KEY } from '../composables/useSelection'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function mkEl(id: string, left: number): RuntimeElement {
   return {

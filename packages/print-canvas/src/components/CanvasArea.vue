@@ -113,11 +113,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, inject, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import type { RuntimeElement, TemplateData, AlignLine } from '@worm-vue3-print/core/designer'
-import { pxToMm, mmToPx } from '@worm-vue3-print/core/designer'
-import { nextWheelScale, MIN_SCALE_PERCENT, FIT_SCALE_MIN_PERCENT } from '@worm-vue3-print/core/designer'
-import { getPaperDimensions } from '@worm-vue3-print/core/designer'
-import { RULER_THICKNESS } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TemplateData, AlignLine } from '@go-wind/print-core/designer'
+import { pxToMm, mmToPx } from '@go-wind/print-core/designer'
+import { nextWheelScale, MIN_SCALE_PERCENT, FIT_SCALE_MIN_PERCENT } from '@go-wind/print-core/designer'
+import { getPaperDimensions } from '@go-wind/print-core/designer'
+import { RULER_THICKNESS } from '@go-wind/print-core/designer'
 import { SELECTED_IDS_KEY } from '../composables/useSelection'
 import CanvasPaper from './CanvasPaper.vue'
 import Ruler from './Ruler.vue'

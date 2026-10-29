@@ -4,11 +4,11 @@
 import {
   calcResizeRect, computeFitScale, computeAdsorb, findMainCell, FIT_SCALE_MIN_PERCENT,
   generateId, getPaperDimensions, MIN_SCALE_PERCENT, mmToPx, nextWheelScale, pxToMm,
-} from '@worm-vue3-print/core/designer'
-import { buildFontFaceCss, normalizeTemplate, validateTiling } from '@worm-vue3-print/core'
-import { fitTextNode } from '@worm-vue3-print/core/browser'
-import type { AlignLine, ElementType, MultiPageTemplateData, ResizePoint, RuntimeElement, TemplateData, UploadDesignBackgroundFn, UploadImageFn } from '@worm-vue3-print/core/designer'
-import type { PrintFontDeclaration } from '@worm-vue3-print/core'
+} from '@go-wind/print-core/designer'
+import { buildFontFaceCss, normalizeTemplate, validateTiling } from '@go-wind/print-core'
+import { fitTextNode } from '@go-wind/print-core/browser'
+import type { AlignLine, ElementType, MultiPageTemplateData, ResizePoint, RuntimeElement, TemplateData, UploadDesignBackgroundFn, UploadImageFn } from '@go-wind/print-core/designer'
+import type { PrintFontDeclaration } from '@go-wind/print-core'
 import { clear, h, render } from './core/h'
 import { DesignerStore } from './core/store'
 import type { DesignerOptions } from './core/store'

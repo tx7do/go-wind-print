@@ -1,6 +1,6 @@
 # apps/react · React 18 宿主集成示例
 
-独立 npm 工程，只用公开包 `@worm-vue3-print/common` + `@worm-vue3-print/core`，
+独立 npm 工程，只用公开包 `@go-wind/print-common` + `@go-wind/print-core`，
 把集成过程全摊开：设计器挂载、模板/字段注入、宿主回调、事件、三条打印链路。
 界面版式与 `../../../demo`（Vue 3 打印设计器示例）**完全一致**，样式为同源单一文件。
 
@@ -13,7 +13,7 @@ npm run dev        # http://localhost:9335
 
 可选（不装也能跑，「打印输出」弹窗会显示「离线」并给出可读提示）：
 ```bash
-npm run dev -w @worm-vue3-print/render     # 服务端 PDF（3001）
+npm run dev -w @go-wind/print-render     # 服务端 PDF（3001）
 # 客户端静默打印需要本机跑着 print-client 桌面客户端（ws 127.0.0.1:17521）
 ```
 
@@ -23,12 +23,12 @@ npm run dev -w @worm-vue3-print/render     # 服务端 PDF（3001）
 
 | 位置 | 内容 |
 | --- | --- |
-| `npm i @worm-vue3-print/common@next @worm-vue3-print/core` | 两个包，无 UI 组件库依赖（`common` 只发预览版，必须带 `@next`） |
+| `npm i @go-wind/print-common@next @go-wind/print-core` | 两个包，无 UI 组件库依赖（`common` 只发预览版，必须带 `@next`） |
 | `src/main.jsx` | `registerAll()` 一次 + `import './styles/demo-ui.css'` |
 | `src/styles/demo-ui.css` | demo 同源样式（由 `demo-common/scripts/sync-demo-styles.mjs` 逐字抽取，四个工程同 MD5，**勿手改**） |
 | `src/App.jsx` | 顶栏 + `<print-designer>` + 预览层 + property 注入 + 事件监听 + 出纸调用 |
 | `src/components/*.jsx` | 打印输出 / 示例库 / 自定义字段三个弹窗，各自独立 |
-| `src/SampleThumb.jsx` | 示例卡片版式缩略图（几何工具从 `@worm-vue3-print/core` 具名导入） |
+| `src/SampleThumb.jsx` | 示例卡片版式缩略图（几何工具从 `@go-wind/print-core` 具名导入） |
 | `src/render-client.js` | 服务端 PDF 链路封装（同源 `/render-api/*`，密钥由 dev 代理注入） |
 | `src/browser-render.js` | 浏览器同构渲染 + 写入预览 iframe |
 

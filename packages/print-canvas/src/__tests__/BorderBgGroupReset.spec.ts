@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import BorderBgGroup from '../components/property/BorderBgGroup.vue'
-import { createDefaultOptions } from '@worm-vue3-print/core/designer'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { createDefaultOptions } from '@go-wind/print-core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 function setup(type: 'text' | 'rect' | 'hline', options: Record<string, any> = {}) {
   const element = reactive({

@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { TableRow } from '@worm-vue3-print/core/designer'
+import type { TableRow } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { render, h } from '../../core/h'
 import { abortTableColResize, renderTable, renderTableContextMenu } from '../table'
@@ -337,7 +337,7 @@ describe('单元格换行与断行口径', () => {
         // 换下一个 cwd 基准
       }
     }
-    throw new Error('未找到 designer.css，先执行 npm run styles -w @worm-vue3-print/common')
+    throw new Error('未找到 designer.css，先执行 npm run styles -w @go-wind/print-common')
   }
 
   it('派生样式表整词断行：.print-table td 不再逐字硬切', () => {

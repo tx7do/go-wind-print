@@ -11,8 +11,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ElementOptions, TemplateData } from '@worm-vue3-print/canvas'
-import { getByPath, getPaperDimensions, isContinuousPaperSize } from '@worm-vue3-print/core'
+import type { ElementOptions, TemplateData } from '@go-wind/print-canvas'
+import { getByPath, getPaperDimensions, isContinuousPaperSize } from '@go-wind/print-core'
 
 /**
  * 示例卡片缩略图：按模板元素坐标等比绘制示意图（不渲染真实条码/二维码）。

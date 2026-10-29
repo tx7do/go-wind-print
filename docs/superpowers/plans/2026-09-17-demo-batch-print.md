@@ -6,7 +6,7 @@
 
 **Architecture:** 改动仅限 `demo/`。对 3 条数据各调一次 core 的 `renderHtmlPages`（同构渲染管线，不重实现），demo 侧用 `DOMParser` 把 3 份完整 HTML 文档拼接为单文档（每份包 `.print-copy` 并强制分页），写入同一隐藏 iframe，一次 `window.print()` 出 3 份。不改 core/canvas/client/render 任何包。
 
-**Tech Stack:** Vue 3.5 `<script setup>`、TypeScript（strict）、`@worm-vue3-print/core/browser`、DOMParser、Playwright 1.63.0（根 node_modules，仅临时验证脚本）。
+**Tech Stack:** Vue 3.5 `<script setup>`、TypeScript（strict）、`@go-wind/print-core/browser`、DOMParser、Playwright 1.63.0（根 node_modules，仅临时验证脚本）。
 
 ## Global Constraints
 
@@ -27,7 +27,7 @@
 - Test（临时，提交前删除）: `demo/src/__tmp__/batch-data.test.ts`
 
 **Interfaces:**
-- Consumes: `DEFAULT_DEMO_DATA`（`@worm-vue3-print/canvas` 转出的 `Record<string, any>`，结构：`supplier.{name,phone,address}` / `receiver.{name,phone,address}` / `order.{no,date,total}` / `goods: Array<{name,spec,unit,qty,price,amount,remark}>`）
+- Consumes: `DEFAULT_DEMO_DATA`（`@go-wind/print-canvas` 转出的 `Record<string, any>`，结构：`supplier.{name,phone,address}` / `receiver.{name,phone,address}` / `order.{no,date,total}` / `goods: Array<{name,spec,unit,qty,price,amount,remark}>`）
 - Produces:
   - `const BATCH_SIZE = 3`
   - `deriveBatchData(base: Record<string, any>): Record<string, any>[]` —— 返回 3 条深拷贝派生数据，不修改入参。
@@ -40,7 +40,7 @@
 
 ```ts
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/canvas'
+import { DEFAULT_DEMO_DATA } from '@go-wind/print-canvas'
 import { BATCH_SIZE, deriveBatchData } from '../batch-data'
 
 describe('deriveBatchData', () => {
@@ -173,7 +173,7 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes:
-  - `renderHtmlPages(template, printData?, baseUrl?, codeRenderer?)` 与 `browserCodeRenderer`，来自 `@worm-vue3-print/core/browser`（demo vite alias 指向 `packages/print-core/src/browser/index.ts`）。单份返回 `{ html, pageCount, paperMm, continuous, pageLayouts }`，`html` 为 `<!DOCTYPE html>` 完整文档。
+  - `renderHtmlPages(template, printData?, baseUrl?, codeRenderer?)` 与 `browserCodeRenderer`，来自 `@go-wind/print-core/browser`（demo vite alias 指向 `packages/print-core/src/browser/index.ts`）。单份返回 `{ html, pageCount, paperMm, continuous, pageLayouts }`，`html` 为 `<!DOCTYPE html>` 完整文档。
   - Task 1 的数据数组（`Record<string, any>[]`）。
 - Produces:
   - `interface BatchRenderResult { html: string; pageCount: number; copies: number }`
@@ -186,8 +186,8 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 ```ts
 // 批量渲染：同一模板对多条数据各跑一次 core 同构管线，再把每份完整 HTML
 // 文档拼接为单个文档（每份 .print-copy 之间强制分页），供一个 iframe 一次打印。
-import { renderHtmlPages, browserCodeRenderer } from '@worm-vue3-print/core/browser'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
+import { renderHtmlPages, browserCodeRenderer } from '@go-wind/print-core/browser'
+import type { PrintTemplateData } from '@go-wind/print-core'
 
 export interface BatchRenderResult {
   /** 拼接后的完整 HTML 文档 */
@@ -248,7 +248,7 @@ export async function renderBatchInBrowser(
 - [ ] **Step 2: typecheck**
 
 Run（在 `demo/` 目录）: `npm run typecheck`
-Expected: 无错误。`PrintTemplateData` 的导入路径与既有 `demo/src/browser-render.ts:3` 完全一致（`import type { PrintTemplateData } from '@worm-vue3-print/core'`），该文件已通过 typecheck。
+Expected: 无错误。`PrintTemplateData` 的导入路径与既有 `demo/src/browser-render.ts:3` 完全一致（`import type { PrintTemplateData } from '@go-wind/print-core'`），该文件已通过 typecheck。
 
 - [ ] **Step 3: 提交**
 

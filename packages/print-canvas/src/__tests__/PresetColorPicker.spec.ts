@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { describe, expect, it } from 'vitest'
 import PresetColorPicker from '../components/PresetColorPicker.vue'
-import { PRESET_COLORS } from '@worm-vue3-print/core/designer'
+import { PRESET_COLORS } from '@go-wind/print-core/designer'
 
 describe('PresetColorPicker', () => {
   it('shows preset colors in the popup', async () => {

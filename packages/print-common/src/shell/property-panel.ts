@@ -12,12 +12,12 @@ import {
   ELEMENT_BORDER_APPLY_HINT,
   resolveFlowColumns, resolveFlowGapX, resolveFlowMaxSpan, resolveFlowRowHeight, suggestFlowColumns,
   resolveCellGroupMode,
-} from '@worm-vue3-print/core/designer'
-import type { BorderPreset, ElementBorderFieldKey, ElementBorderSide, ElementOptions, RuntimeElement } from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
+import type { BorderPreset, ElementBorderFieldKey, ElementBorderSide, ElementOptions, RuntimeElement } from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import { colorTrigger, divider, field, fieldHelp, radioGroup, resetButton, stepper } from './controls'
-import { createDefaultOptions, propertyDefault } from '@worm-vue3-print/core/designer'
+import { createDefaultOptions, propertyDefault } from '@go-wind/print-core/designer'
 import { designBackgroundSection, tilingSection } from './page-extras'
 import { bindingGroup } from './binding'
 import { renderFontSelect } from './font-select'

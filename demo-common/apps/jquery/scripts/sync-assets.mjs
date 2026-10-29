@@ -9,8 +9,8 @@ const APP = join(HERE, '..')
 const OUT = join(APP, 'public', 'vendor')
 
 const FILES = [
-  { from: '@worm-vue3-print/common/dist/common.js', to: 'worm-print-common.js' },
-  { from: '@worm-vue3-print/common/dist/common.css', to: 'worm-print-common.css' },
+  { from: '@go-wind/print-common/dist/common.js', to: 'worm-print-common.js' },
+  { from: '@go-wind/print-common/dist/common.css', to: 'worm-print-common.css' },
   { from: 'jquery/dist/jquery.min.js', to: 'jquery.min.js' },
 ]
 

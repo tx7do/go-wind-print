@@ -8,7 +8,7 @@ import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
 import { watermarkSection } from '../watermark'
-import { WATERMARK_DEFAULTS } from '@worm-vue3-print/core'
+import { WATERMARK_DEFAULTS } from '@go-wind/print-core'
 
 function paint(watermark?: Record<string, any>) {
   const store = new DesignerStore()

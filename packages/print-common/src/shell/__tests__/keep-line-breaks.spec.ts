@@ -7,7 +7,7 @@ import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'
 import type { ShellCtx, ShellState } from '../controls'
-import type { RuntimeElement, ElementType } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, ElementType } from '@go-wind/print-core/designer'
 
 function el(type: string, options: Record<string, any> = {}): RuntimeElement {
   return {

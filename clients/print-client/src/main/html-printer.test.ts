@@ -1,7 +1,7 @@
 // HTML 直打印的打印参数构造（纯函数）：纸张单位微米、零边距、静默
 import { describe, it, expect } from 'vitest'
 import { buildWebPrintOptions } from './html-printer.js'
-import type { PrintOptions } from '@worm-vue3-print/core/client'
+import type { PrintOptions } from '@go-wind/print-core/client'
 
 const label = { width: 60, height: 40 }
 

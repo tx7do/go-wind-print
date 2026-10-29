@@ -1,4 +1,4 @@
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 /** 默认模板：与 canvas 的 createDefaultTemplate 同结构，保证两侧序列化一致 */
 export function createDefaultTemplate(): TemplateData {

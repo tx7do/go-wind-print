@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { EXECUTOR_TARGETS, toElectronPrintToPdfOptions } from '@worm-vue3-print/core'
+import { EXECUTOR_TARGETS, toElectronPrintToPdfOptions } from '@go-wind/print-core'
 import type {
   DriverFactory,
   ExecutorBundle,
@@ -11,7 +11,7 @@ import type {
   PageDriver,
   PdfTargetSpec,
   ViewportPx,
-} from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
 
 /** 模板 HTML 临时目录（隐藏窗口顶层文档） */
 const DOM_HOST_DIR = join(tmpdir(), 'worm-print-client')

@@ -4,8 +4,8 @@
 
 ```
 宿主 Web 页面
-   │  @worm-vue3-print/core/browser（renderHtmlPages 两遍渲染 + 连续纸纸长推导）
-   │  @worm-vue3-print/core/client（SDK：端口探测/重连/超时/鉴权）
+   │  @go-wind/print-core/browser（renderHtmlPages 两遍渲染 + 连续纸纸长推导）
+   │  @go-wind/print-core/client（SDK：端口探测/重连/超时/鉴权）
    ▼  WebSocket（仅绑定 127.0.0.1）
 桌面打印客户端（Electron，clients/print-client）
    ├─ WsServer  握手鉴权 → 协议帧分发
@@ -20,12 +20,12 @@
 ## 1. 前置条件
 
 1. 工位电脑已安装并运行**桌面打印客户端**（详见第 5 节打包与分发）。客户端仅监听回环地址，浏览器必须与客户端在同一台电脑。
-2. 浏览器侧 SDK 随 core 提供，无需单独安装（需已安装 `@worm-vue3-print/core`）。
+2. 浏览器侧 SDK 随 core 提供，无需单独安装（需已安装 `@go-wind/print-core`）。
 
 SDK 为 core 的子路径导入，框架无关（纯 TypeScript，无 Vue/React 依赖）：
 
 ```ts
-import { PrintClient } from '@worm-vue3-print/core/client'
+import { PrintClient } from '@go-wind/print-core/client'
 ```
 
 ## 2. 浏览器侧接入
@@ -33,7 +33,7 @@ import { PrintClient } from '@worm-vue3-print/core/client'
 ### 连接、枚举、打印
 
 ```ts
-import { PrintClient, WormPrintError } from '@worm-vue3-print/core/client'
+import { PrintClient, WormPrintError } from '@go-wind/print-core/client'
 
 const client = new PrintClient()
 client.onStatusChange((s) => {
@@ -78,8 +78,8 @@ client.print(
 渲染前移到宿主页面，客户端只做出纸（core 升级不必重发客户端）：
 
 ```ts
-import { renderHtmlPages, browserCodeRenderer } from '@worm-vue3-print/core/browser'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
+import { renderHtmlPages, browserCodeRenderer } from '@go-wind/print-core/browser'
+import type { PrintTemplateData } from '@go-wind/print-core'
 
 const rendered = await renderHtmlPages(
   templateJson as PrintTemplateData,

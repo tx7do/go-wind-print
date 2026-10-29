@@ -6,9 +6,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
-import { resolveTextBinding } from '@worm-vue3-print/core/designer'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { browserCodeRenderer } from '@go-wind/print-core/browser'
+import { resolveTextBinding } from '@go-wind/print-core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 
 const props = defineProps<{
   element: RuntimeElement

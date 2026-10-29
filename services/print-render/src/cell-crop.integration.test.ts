@@ -3,9 +3,9 @@
 // 这里量三件事：钉盒后 img 盒高等于可用框（而不是整张图）、行高回到声明值、取顶与取底打出的像素不同；
 // 再用独立模板做门控对照——contain 档不钉盒，图照旧把行撑高。
 import { describe, it, expect } from 'vitest'
-import { prepareDocument, createDomHostRuntime } from '@worm-vue3-print/core'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
-import { loadExecutorBundle } from '@worm-vue3-print/core/node'
+import { prepareDocument, createDomHostRuntime } from '@go-wind/print-core'
+import type { PrintTemplateData } from '@go-wind/print-core'
+import { loadExecutorBundle } from '@go-wind/print-core/node'
 import type { Page } from 'playwright'
 import { BrowserPool } from './browser-pool.js'
 import { createPlaywrightDriverFactory } from './driver-playwright.js'

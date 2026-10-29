@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 // 裁剪锚点 Common 端契约：与 canvas 同 DOM 结构、同判轴口径；顺带锁住单元格图片必须撑满内容盒。
 import { describe, it, expect } from 'vitest'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { CROP_SAMPLE_IMAGE } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
+import { CROP_SAMPLE_IMAGE } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

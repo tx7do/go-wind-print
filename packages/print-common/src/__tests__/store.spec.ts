@@ -1,7 +1,7 @@
 // 无框架 store / 格式栏的行为基线：断言的是从 canvas 移植过来的语义，
 // 而不是实现细节——改这些断言前先看 canvas 侧同名用例。
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { RuntimeElement, TemplateData } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TemplateData } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../core/store'
 import { FormatToolbar, MIXED } from '../core/format'
 

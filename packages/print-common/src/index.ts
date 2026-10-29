@@ -8,7 +8,7 @@ export { createDefaultTemplate } from './core/default-template'
 export type {
   ElementType, ElementZone, MultiPageTemplateData, PrintBusinessField,
   RuntimeElement, TableSelection, TemplateData,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 
 /** 一次性注册全部自定义元素；宿主按需调用，避免自动注册污染全局 */
 export function registerAll() {

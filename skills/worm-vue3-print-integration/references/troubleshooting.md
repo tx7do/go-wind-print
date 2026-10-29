@@ -5,14 +5,14 @@
 ## 组件渲染为空白或样式异常
 
 1. 确认已导入一次样式。
-   - NPM/`file:`：`import '@worm-vue3-print/canvas/style.css'`
-   - Vite 源码别名：`import '@worm-vue3-print/canvas/native-controls.css'`
+   - NPM/`file:`：`import '@go-wind/print-canvas/style.css'`
+   - Vite 源码别名：`import '@go-wind/print-canvas/native-controls.css'`
 2. 检查导入顺序：全局 CSS 应在页面私有样式之前加载。
 3. 检查宿主容器高度；`PrintDesigner` 使用 `height: 100%` 的布局，父级没有高度时画布会塌陷。
 
 ## TypeScript 找不到组件或类型
 
-1. 确认从 `@worm-vue3-print/canvas` 导入，而不是深层 `.vue` 文件。
+1. 确认从 `@go-wind/print-canvas` 导入，而不是深层 `.vue` 文件。
 2. 确认 `package.json` 的 `types`/`exports` 能被解析。
 3. 清理构建缓存后重新运行 `vue-tsc --noEmit`。
 4. `file:`/源码方式必须先在仓库根执行 `npm run build`，确保 `dist` 与当前源码一致。
@@ -29,11 +29,11 @@ npm ls vue
 2. 检查包版本：
 
 ```bash
-npm ls @worm-vue3-print/core @worm-vue3-print/canvas
+npm ls @go-wind/print-core @go-wind/print-canvas
 ```
 
    同一项目中不应混用不同版本的 `core`。
-3. 不要在 NPM 安装中导入 `@worm-vue3-print/canvas/native-controls.css`；该路径只在源码别名模式可用。
+3. 不要在 NPM 安装中导入 `@go-wind/print-canvas/native-controls.css`；该路径只在源码别名模式可用。
 
 ## 源码别名不生效
 

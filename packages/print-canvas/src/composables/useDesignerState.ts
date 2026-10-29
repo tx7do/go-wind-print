@@ -4,22 +4,22 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type {
   RuntimeElement, ElementType, ElementZone, PrintBusinessField, TemplateData,
   TableSelection, PrintElementData, MultiPageTemplateData,
-} from '@worm-vue3-print/core/designer'
-import { createRuntimeElement, generateId } from '@worm-vue3-print/core/designer'
-import { createFieldElement } from '@worm-vue3-print/core/designer'
-import { normalizeTemplateUnits } from '@worm-vue3-print/core/designer'
-import { syncTableElementSize } from '@worm-vue3-print/core/designer'
-import { getPaperDimensions } from '@worm-vue3-print/core/designer'
-import { computeFitScale } from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
+import { createRuntimeElement, generateId } from '@go-wind/print-core/designer'
+import { createFieldElement } from '@go-wind/print-core/designer'
+import { normalizeTemplateUnits } from '@go-wind/print-core/designer'
+import { syncTableElementSize } from '@go-wind/print-core/designer'
+import { getPaperDimensions } from '@go-wind/print-core/designer'
+import { computeFitScale } from '@go-wind/print-core/designer'
 import {
   getZoneRects, zoneFromPaperPoint, clampToZone, finalizeElementZone, ZONE_ALLOWED_TYPES,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import { useSelection } from './useSelection'
 import { useClipboard } from './useClipboard'
-import { useAlign, type AlignMode } from '@worm-vue3-print/core/designer'
-import { useGroup } from '@worm-vue3-print/core/designer'
+import { useAlign, type AlignMode } from '@go-wind/print-core/designer'
+import { useGroup } from '@go-wind/print-core/designer'
 import { useHistory, type HistoryState } from './useHistory'
-import { useKeyboard } from '@worm-vue3-print/core/designer'
+import { useKeyboard } from '@go-wind/print-core/designer'
 
 export interface DesignerStateOptions {
   initialTemplate?: TemplateData | MultiPageTemplateData

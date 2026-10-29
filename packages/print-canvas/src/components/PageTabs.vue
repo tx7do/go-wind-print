@@ -37,7 +37,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 import { TILING_SINGLE_PAGE_TIP } from '../composables/useDesignerState'
 import { useHoverTip } from '../composables/useHoverTip'
 

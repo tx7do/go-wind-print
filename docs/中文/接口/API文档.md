@@ -2,13 +2,13 @@
 
 本页按包列出公开 API。所有签名以当前源码为准，类型细节可对照包内 `.ts` 源码与 d.ts。
 
-- [`@worm-vue3-print/core`](#worm-vue3-printcore)：主入口（引擎 + 渲染）、`/browser`、`/designer`、`/client`（静默打印 SDK）子路径
-- [`@worm-vue3-print/canvas`](#worm-vue3-printcanvas)：Vue 3 组件
+- [`@go-wind/print-core`](#worm-vue3-printcore)：主入口（引擎 + 渲染）、`/browser`、`/designer`、`/client`（静默打印 SDK）子路径
+- [`@go-wind/print-canvas`](#worm-vue3-printcanvas)：Vue 3 组件
 - [render 微服务 HTTP 接口](#render-微服务-http-接口)
 
 ---
 
-## @worm-vue3-print/core
+## @go-wind/print-core
 
 纯 TypeScript，浏览器与 Node 均可使用（DOM 相关能力在 `/browser` 子路径）。
 
@@ -20,7 +20,7 @@ import {
   tokenize, parse, evaluate, compileTemplate,
   parseTemplate, renderTemplate,
   getByPath,
-} from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
 ```
 
 | API | 说明 |
@@ -63,7 +63,7 @@ import {
   normalizeTemplate, isMultiPageTemplate, mergeFontDeclarations, composeMultiPageDocument,
   // 批量打印（printData 数组）
   normalizePrintData, MAX_BATCH_COPIES, composeBatchHtml,
-} from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
 ```
 
 | API | 说明 |
@@ -131,7 +131,7 @@ interface MultiPageTemplateData {
 ```ts
 import {
   normalizeTemplate, isMultiPageTemplate, mergeFontDeclarations, composeMultiPageDocument,
-} from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
 ```
 
 | API | 说明 |
@@ -183,7 +183,7 @@ import {
   computeTileLayout, validateTiling, computeMaxColumns, tilePosition,
   resolveSheetMm, normalizeTilingOptions, composeTiledHtml,
   TILE_DEFAULTS, TilingError,
-} from '@worm-vue3-print/core'
+} from '@go-wind/print-core'
 ```
 
 | API | 说明 |
@@ -239,8 +239,8 @@ import {
   domExecutor, EXECUTOR_VERSION,
   waitReady, readMeasurements, readContentBottom, renderCodes,
   applyTextFit, fitTextNode,
-} from '@worm-vue3-print/core/browser'
-import type { BrowserRenderResult, BrowserRenderOptions } from '@worm-vue3-print/core/browser'
+} from '@go-wind/print-core/browser'
+import type { BrowserRenderResult, BrowserRenderOptions } from '@go-wind/print-core/browser'
 ```
 
 `applyTextFit(doc)`：对文档内 `data-fit="shrink"` 的节点（文本元素或单元格定高容器）
@@ -271,7 +271,7 @@ interface BrowserRenderResult {
 框架无关的设计器内核与完整模板模型（**不从主入口转出**，需显式从子路径导入）：
 
 ```ts
-import type { TemplateData, RuntimeElement, PrintBusinessField } from '@worm-vue3-print/core/designer'
+import type { TemplateData, RuntimeElement, PrintBusinessField } from '@go-wind/print-core/designer'
 ```
 
 导出面：模板模型类型（`TemplateData`、`RuntimeElement`、`PrintBusinessField`、`WatermarkOptions` 等）、宿主能力契约（`UploadImageFn`），
@@ -280,15 +280,15 @@ import type { TemplateData, RuntimeElement, PrintBusinessField } from '@worm-vue
 
 ---
 
-## @worm-vue3-print/canvas
+## @go-wind/print-canvas
 
 ```ts
-import { PrintDesigner, PrintHtmlPreview, renderHtmlPages, browserCodeRenderer } from '@worm-vue3-print/canvas'
+import { PrintDesigner, PrintHtmlPreview, renderHtmlPages, browserCodeRenderer } from '@go-wind/print-canvas'
 import type {
   TemplateData, RuntimeElement, PrintBusinessField, UploadImageFn, UploadDesignBackgroundFn,
-} from '@worm-vue3-print/canvas'
+} from '@go-wind/print-canvas'
 // 发布包对外只有一个样式入口（源码别名模式才用 native-controls.css）
-import '@worm-vue3-print/canvas/style.css'
+import '@go-wind/print-canvas/style.css'
 ```
 
 另导出：`createDefaultTemplate()`、`toRuntimePool()`、`getDemoData()`、`DEFAULT_DEMO_DATA`、
@@ -325,18 +325,18 @@ Props：`templateJson`（模板对象）、`printData`（对象或数组）、`b
 
 ---
 
-## `@worm-vue3-print/core/client`
+## `@go-wind/print-core/client`
 
 框架无关的静默打印浏览器端 SDK，core 的子路径导出（无需单独安装），通过 WebSocket 连接本机 Electron 客户端
 （默认端口 `17521`，占用则向后探测）。
 
 ```ts
-import { PrintClient, WsTransport, WormPrintError, MESSAGE_TYPES, DEFAULT_PORT } from '@worm-vue3-print/core/client'
+import { PrintClient, WsTransport, WormPrintError, MESSAGE_TYPES, DEFAULT_PORT } from '@go-wind/print-core/client'
 import type {
   PrintClientOptions, TransportOptions, TransportStatus,
   PrinterInfo, PrintOptions, RenderedHtmlPages,
   HelloResponsePayload, PrintSubmitResponsePayload,
-} from '@worm-vue3-print/core/client'
+} from '@go-wind/print-core/client'
 ```
 
 ### `PrintClient`

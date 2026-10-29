@@ -1,12 +1,12 @@
-# @worm-vue3-print/print-client
+# @go-wind/print-client
 
-worm-vue3-print 跨平台（Windows / Linux / macOS）静默打印桌面客户端。宿主 Web 系统通过浏览器端 SDK（core 子路径 `@worm-vue3-print/core/client`）连接本机运行的本客户端，复用 `@worm-vue3-print/core` 的同构渲染管线，在隐藏窗口里渲染出最终 HTML，再用 Electron `printToPDF` 生成 PDF 并交给系统打印命令静默出纸——无浏览器打印对话框、不依赖浏览器插件。
+worm-vue3-print 跨平台（Windows / Linux / macOS）静默打印桌面客户端。宿主 Web 系统通过浏览器端 SDK（core 子路径 `@go-wind/print-core/client`）连接本机运行的本客户端，复用 `@go-wind/print-core` 的同构渲染管线，在隐藏窗口里渲染出最终 HTML，再用 Electron `printToPDF` 生成 PDF 并交给系统打印命令静默出纸——无浏览器打印对话框、不依赖浏览器插件。
 
 ## 架构
 
 ```
 宿主 Web 页面
-   │  @worm-vue3-print/core/client（SDK：端口探测/重连/超时）
+   │  @go-wind/print-core/client（SDK：端口探测/重连/超时）
    ▼  WebSocket（仅绑定 127.0.0.1）
 WsServer（回环服务：握手鉴权 → 协议帧分发）
    ▼
@@ -64,8 +64,8 @@ PrintEngine（串行锁，并发直接 BUSY）
 ```bash
 npm install                      # 在仓库根目录
 npm run dev:client               # 启动客户端（electron-vite dev，根脚本短别名）
-npm run test -w @worm-vue3-print/print-client  # 单元/集成测试（node + happy-dom，不依赖 Electron）
-npm run build -w @worm-vue3-print/print-client # electron-vite 三环境构建到 out/
+npm run test -w @go-wind/print-client  # 单元/集成测试（node + happy-dom，不依赖 Electron）
+npm run build -w @go-wind/print-client # electron-vite 三环境构建到 out/
 ```
 
 ## 打包
@@ -189,7 +189,7 @@ npm run pack:client:dir
 `print.submitHtml` 的 payload：`{ html, paperMm: {width,height}（毫米）, continuous?, pageCount?, templateName?, print }`。
 出图规格（纸张、零边距、保留背景、`preferCSSPageSize: false`）与超时由 core 统一给出，客户端只负责载入文档与 `printToPDF`。
 > 已知缺口：`print` 中的 `color` 与 `pageRanges` 会被校验通过，但 PDF→系统打印链路未应用这两个参数。
-宿主用 `@worm-vue3-print/core/browser` 的 `renderHtmlPages` 在浏览器页内完成两遍渲染后提交，纸张/方向/边距/连续纸高度已固化进 HTML，`print` 字段只允许 `printerName`、`copies`、`paperName`、`color`、`pageRanges`；传 `paperSize`/`margins`/`landscape` 返回 `INVALID_REQUEST`。HTML 载荷上限 20MB。
+宿主用 `@go-wind/print-core/browser` 的 `renderHtmlPages` 在浏览器页内完成两遍渲染后提交，纸张/方向/边距/连续纸高度已固化进 HTML，`print` 字段只允许 `printerName`、`copies`、`paperName`、`color`、`pageRanges`；传 `paperSize`/`margins`/`landscape` 返回 `INVALID_REQUEST`。HTML 载荷上限 20MB。
 
 错误码：`INVALID_REQUEST`、`UNAUTHORIZED`、`PRINTER_NOT_FOUND`、`PRINTER_OFFLINE`、`PRINT_FAILED`、`BUSY`、`RENDER_TIMEOUT`、`INTERNAL`。
 
@@ -218,7 +218,7 @@ npm run pack:client:dir
 
 `app.getPath('userData')`：
 
-- macOS：`~/Library/Application Support/<应用名>/`（开发态为 `@worm-vue3-print`，绿色版为 `WormPrintClient`）
+- macOS：`~/Library/Application Support/<应用名>/`（开发态为 `@go-wind/print（旧 scope）`，绿色版为 `WormPrintClient`）
 - Windows：`%APPDATA%\<应用名>\`
 - Linux：`~/.config/<应用名>/`
 

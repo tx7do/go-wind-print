@@ -50,7 +50,7 @@ templateData.pageBackground || 'var(--pd-paper, #fff)'
 ## 测试
 
 - `html-generator.test.ts`：新增用例断言 `.print-page` 设置了 `background`；未设置时默认 `#fff`。
-- 运行 `npm run test --workspace @worm-vue3-print/core` 全量通过。
+- 运行 `npm run test --workspace @go-wind/print-core` 全量通过。
 
 ## 非目标
 

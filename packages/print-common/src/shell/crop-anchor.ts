@@ -17,7 +17,7 @@ import {
   propertyTip,
   resolveCropPreview,
   resolveCropTravel,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 import { labelHelp, stepper } from './controls'
 import type { ShellCtx } from './controls'

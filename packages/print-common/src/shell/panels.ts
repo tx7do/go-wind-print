@@ -1,7 +1,7 @@
 // 左栏素材台 / 页签栏 / 状态栏：DOM 类名对齐 canvas 的
 // LeftPanel.vue、FieldTreePanel.vue、LayerPanel.vue、PageTabs.vue、StatusBar.vue。
-import { PAPER_PRESETS, getPaperDimensions, groupFields } from '@worm-vue3-print/core/designer'
-import type { ElementType, PrintBusinessField, RuntimeElement } from '@worm-vue3-print/core/designer'
+import { PAPER_PRESETS, getPaperDimensions, groupFields } from '@go-wind/print-core/designer'
+import type { ElementType, PrintBusinessField, RuntimeElement } from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 import { iconSvg } from '../core/icons'
 import type { ShellCtx } from './controls'

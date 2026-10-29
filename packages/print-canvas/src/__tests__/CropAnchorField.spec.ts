@@ -3,7 +3,7 @@
 // 余量按缩放模式逐轴结算（core resolveCropTravel），图片尺寸由预览图真实 load 事件带出。
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { CROP_SAMPLE_IMAGE } from '@worm-vue3-print/core/designer'
+import { CROP_SAMPLE_IMAGE } from '@go-wind/print-core/designer'
 import CropAnchorField from '../components/property/CropAnchorField.vue'
 
 const BOX = { widthMm: 35, heightMm: 45 }

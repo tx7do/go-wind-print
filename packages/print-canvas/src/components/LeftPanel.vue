@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { ElementType, PrintBusinessField, RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { ElementType, PrintBusinessField, RuntimeElement } from '@go-wind/print-core/designer'
 import LayerPanel from './LayerPanel.vue'
 import FieldTreePanel from './FieldTreePanel.vue'
 

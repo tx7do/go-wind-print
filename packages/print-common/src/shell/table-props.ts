@@ -1,12 +1,12 @@
 // 表格类属性分组：DOM 逐字对齐 canvas 的
 // property/{TableRowGroup,TableCellGroup,TableSettingsGroup,PaginationGroup}.vue
 // （样式由 scripts/gen-styles.mjs 从 canvas 派生，类名对不上样式就掉）。
-// 矩阵/边框/合并等操作一律走 @worm-vue3-print/core/designer 纯函数，
+// 矩阵/边框/合并等操作一律走 @go-wind/print-core/designer 纯函数，
 // 历史与重绘统一经 store.updateElement 收口（canvas 侧靠 Vue 响应式，这里必须显式 emit）。
 import type {
   BorderPreset, ElementOptions, RuntimeElement, TableCell, TableCellBorder,
   TableCellType, TextAlign, TextFit, TableRow, TableRowType,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import {
   applyBorderPreset, canMergeReason, cellFitCapMm, cellFitWidthMm, findMainCell, mergeCells,
   resolveBorderEdgeStates, resolveCellBorderDisplay, collectWritableCells, resolveCellGroupMode,
@@ -15,7 +15,7 @@ import {
   DEFAULT_BORDER,
   setRowType, splitCells, propertyTip, IMAGE_FIT_OPTIONS, resolveDesignImageSrc, barcodeBarWidthRecommendText, createDefaultOptions,
   CELL_BORDER_APPLY_HINT, CELL_BORDER_APPLY_HINT_MULTI, CELL_BORDER_APPLY_HINT_MIXED,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import { h } from '../core/h'
 import type { El } from '../core/h'
 import type { DesignerStore } from '../core/store'

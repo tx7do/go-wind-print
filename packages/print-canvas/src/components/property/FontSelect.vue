@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, useId, watch } from 'vue'
-import { resolveOverlayPlacement, type OverlayPlacement } from '@worm-vue3-print/core/designer'
+import { resolveOverlayPlacement, type OverlayPlacement } from '@go-wind/print-core/designer'
 import {
   filterFontOptions,
   findFontOption,

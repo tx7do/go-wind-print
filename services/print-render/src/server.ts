@@ -4,8 +4,8 @@
 import express from 'express'
 import { renderPdf } from './pdf-render.js'
 import { BrowserPool } from './browser-pool.js'
-import { MAX_BATCH_COPIES } from '@worm-vue3-print/core'
-import type { RenderRequest, PrintTemplateData as TemplateData } from '@worm-vue3-print/core'
+import { MAX_BATCH_COPIES } from '@go-wind/print-core'
+import type { RenderRequest, PrintTemplateData as TemplateData } from '@go-wind/print-core'
 
 /** 校验 printData：对象放行；数组检查非空、上限与每项类型。返回错误信息或 null（与 core 文案一致） */
 function validatePrintData(printData: unknown): string | null {

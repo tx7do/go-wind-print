@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import AppearanceGroup from '../components/property/AppearanceGroup.vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
-import { DEFAULT_DEMO_DATA } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
+import { DEFAULT_DEMO_DATA } from '@go-wind/print-core/designer'
 
 function makeElement(type: string, options: Record<string, any> = {}): RuntimeElement {
   return {

@@ -1,6 +1,6 @@
 // web/src/components/print/composables/useHistory.ts
 import { ref } from 'vue'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 export interface HistoryState {
   elements: any[]

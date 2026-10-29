@@ -2,7 +2,7 @@
 // 外壳画布的单元格字体口径：与出图端（core 的 matrixCellStyle）同序——
 // 单元格自身 → 表格默认字体 → 交还 CSS 继承，且族名必须带全局兜底栈。
 import { describe, it, expect } from 'vitest'
-import type { TableRow } from '@worm-vue3-print/core/designer'
+import type { TableRow } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { h, render } from '../../core/h'
 import { renderTable } from '../table'

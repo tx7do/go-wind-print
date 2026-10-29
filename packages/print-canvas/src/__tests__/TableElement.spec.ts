@@ -7,7 +7,7 @@ import TableElement from '../components/elements/TableElement.vue'
 import TableContextMenu from '../components/elements/TableContextMenu.vue'
 import { TABLE_EDIT_KEY } from '../composables/useTableSelection'
 import { SELECTED_IDS_KEY } from '../composables/useSelection'
-import type { RuntimeElement, TableSelection } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TableSelection } from '@go-wind/print-core/designer'
 
 function makeElement(): RuntimeElement {
   return {

@@ -1,13 +1,13 @@
-# @worm-vue3-print/common
+# @go-wind/print-common
 
-> ⚠️ **实验性质 · 以预览版发布到 npm**：dist-tag 为 `next`，安装必须写 `@worm-vue3-print/common@next`；
+> ⚠️ **实验性质 · 以预览版发布到 npm**：dist-tag 为 `next`，安装必须写 `@go-wind/print-common@next`；
 > 版本号形如 `1.3.7-beta.N`（与主线同号 + 预发布后缀）。npm 上还没有 `latest`，转正时才发 stable。
 > 本包尚未定版，接口与产物形态仍可能调整，**不建议应用到生产环境**；
-> Vue 3 项目请使用成熟方案 `@worm-vue3-print/canvas`，本包目前仅供评估与非生产环境的集成验证。
+> Vue 3 项目请使用成熟方案 `@go-wind/print-canvas`，本包目前仅供评估与非生产环境的集成验证。
 
 打印模板可视化设计器的 **通用宿主适配形态**：任意框架、或完全没有框架的宿主都能直接接入，
 实现为零框架原生 Custom Element + Shadow DOM，**不依赖 Vue / React 等任何框架运行时**，
-用于把 `@worm-vue3-print/canvas`（Vue 3 版设计器）的能力带给 Vue 2、React、jQuery 及任意非 Vue3 宿主。
+用于把 `@go-wind/print-canvas`（Vue 3 版设计器）的能力带给 Vue 2、React、jQuery 及任意非 Vue3 宿主。
 
 - 功能与布局与 Vue 3 版对齐，逐项状态见 [PARITY.md](./PARITY.md)
 - 样式与图标从 canvas 构建产物**派生**（`scripts/gen-styles.mjs` 剥离 `[data-v-*]`、
@@ -18,7 +18,7 @@
 ## 安装
 
 ```bash
-npm i @worm-vue3-print/common@next @worm-vue3-print/core
+npm i @go-wind/print-common@next @go-wind/print-core
 ```
 
 `@next` 是预览版的 dist-tag，安装必须带上它。注意 `latest` 目前被 npm 在首次发布时自动打在了同一个预览版上（红灯判据：`npm run publish:common:check`），所以省略 `@next` 不会报错，而是**静默装到实验包**；维护者摘除 `latest` 后省略才会显式失败。
@@ -28,25 +28,25 @@ npm i @worm-vue3-print/common@next @worm-vue3-print/core
 
 | 宿主 | 安装 | 框架插件 |
 |---|---|---|
-| Vue 3 | `npm i @worm-vue3-print/common@next @worm-vue3-print/core vue` | `@vitejs/plugin-vue`，须配 `isCustomElement` |
-| Vue 2.7 | `npm i @worm-vue3-print/common@next @worm-vue3-print/core vue@2.7` | `@vitejs/plugin-vue2` |
-| React 18 | `npm i @worm-vue3-print/common@next @worm-vue3-print/core react react-dom` | `@vitejs/plugin-react`，无需自定义元素配置 |
+| Vue 3 | `npm i @go-wind/print-common@next @go-wind/print-core vue` | `@vitejs/plugin-vue`，须配 `isCustomElement` |
+| Vue 2.7 | `npm i @go-wind/print-common@next @go-wind/print-core vue@2.7` | `@vitejs/plugin-vue2` |
+| React 18 | `npm i @go-wind/print-common@next @go-wind/print-core react react-dom` | `@vitejs/plugin-react`，无需自定义元素配置 |
 | jQuery / 无打包器 | 取本包 `dist/common.js` + `dist/common.css` 直挂 | 无，见下节 |
 
 ## 浏览器直挂（jQuery / 无打包器宿主）
 
-`vite.bundle.config.ts` 额外产出两个文件，子路径 `@worm-vue3-print/common/browser` 指向它们：
+`vite.bundle.config.ts` 额外产出两个文件，子路径 `@go-wind/print-common/browser` 指向它们：
 
-- `dist/common.js`（499.07 kB / gzip 154.83 kB）：UMD，把 `@worm-vue3-print/core` 与条形码、二维码库
+- `dist/common.js`（499.07 kB / gzip 154.83 kB）：UMD，把 `@go-wind/print-core` 与条形码、二维码库
   全部内联，并挂出全局 `window.WormPrintCommon`。除了本包 `index` 的那套 API
   （`registerAll` / `createDefaultTemplate` / `DesignerStore` / `PrintDesignerElement`），
   还一并挂出出纸要用的 `renderHtmlPages` / `browserCodeRenderer` / `PrintClient` / `WormPrintError`，
   以及宿主自绘模板缩略图所需的纸张几何工具 `getPaperDimensions` / `isContinuousPaperSize` / `getByPath`
-  —— 直挂宿主拿不到裸包名 `@worm-vue3-print/core`，没有这些入口就无法在同一个 `<script>` 里
+  —— 直挂宿主拿不到裸包名 `@go-wind/print-core`，没有这些入口就无法在同一个 `<script>` 里
   完成「浏览器渲染 → 打印 / 静默打印」
 - `dist/common.css`：即 `src/styles/designer.css`（由 `gen-styles.mjs` 从 canvas 派生，含 `:host` 块级基线）。
   Shadow DOM 形态用不到它——样式由组件内联注入；只有把设计器渲染进 **light DOM** 时才需要引它，
-  公开子路径为 `@worm-vue3-print/common/style.css`（打包器 `import '@worm-vue3-print/common/style.css'`，
+  公开子路径为 `@go-wind/print-common/style.css`（打包器 `import '@go-wind/print-common/style.css'`，
   无打包器则复制成文件后 `<link>`），不要深路径引 `dist/`
 
 ```html
@@ -74,7 +74,7 @@ npm i @worm-vue3-print/common@next @worm-vue3-print/core
 ## 使用
 
 ```js
-import { registerAll } from '@worm-vue3-print/common'
+import { registerAll } from '@go-wind/print-common'
 registerAll()   // 注册 <print-designer>，按需调用，不自动污染全局
 ```
 
@@ -94,7 +94,7 @@ d.loadTemplate(json)
 d.save()
 ```
 
-出纸链路不需要设计器，直接走 `@worm-vue3-print/core`（浏览器渲染 / print-render 服务端 /
+出纸链路不需要设计器，直接走 `@go-wind/print-core`（浏览器渲染 / print-render 服务端 /
 桌面静默打印），与 canvas（Vue 3）宿主完全一致。
 
 ## 在 Vue 3 / Vue 2 / React 中使用
@@ -105,7 +105,7 @@ d.save()
 
 ### Vue 3
 
-> Vue 3 项目的生产首选仍是 `@worm-vue3-print/canvas`（功能面更全）；本节面向已定用 common 形态、
+> Vue 3 项目的生产首选仍是 `@go-wind/print-canvas`（功能面更全）；本节面向已定用 common 形态、
 > 或要与 Vue 2 / React 共用同一套注入代码的场景。
 
 ```js
@@ -122,7 +122,7 @@ export default defineConfig({
 ```js
 // main.js
 import { createApp } from 'vue'
-import { registerAll } from '@worm-vue3-print/common'
+import { registerAll } from '@go-wind/print-common'
 
 registerAll()                        // 全应用调一次，不自动污染全局
 createApp(App).mount('#app')
@@ -165,7 +165,7 @@ onMounted(() => {
 ```js
 // main.js
 import Vue from 'vue'
-import { registerAll } from '@worm-vue3-print/common'
+import { registerAll } from '@go-wind/print-common'
 
 registerAll()
 // 必须声明，否则报 Unknown custom element、画面是个空壳
@@ -215,7 +215,7 @@ React 没有 `isCustomElement` 这类编译配置：未知标签 `print-designer
 
 ```jsx
 // main.jsx
-import { registerAll } from '@worm-vue3-print/common'
+import { registerAll } from '@go-wind/print-common'
 
 registerAll()   // 一次即可；设计器样式在组件 Shadow DOM 内，宿主不必引 css
 ```
@@ -273,7 +273,7 @@ export default function App() {
 |---|---|---|
 | 运行时 | Vue 3.5 | 无框架 |
 | 宿主注入 | `provide/inject`、props | element property / attribute + CustomEvent |
-| 样式 | `@worm-vue3-print/canvas/style.css` | 内置 Shadow DOM（`?inline`），无需引样式文件；light DOM 形态引 `@worm-vue3-print/common/style.css` |
+| 样式 | `@go-wind/print-canvas/style.css` | 内置 Shadow DOM（`?inline`），无需引样式文件；light DOM 形态引 `@go-wind/print-common/style.css` |
 | 适用 | Vue 3 项目 | React / Vue 2 / jQuery / 原生 |
 
-Vue 3 项目应继续用 `@worm-vue3-print/canvas`，功能面更全；本包面向非 Vue3 宿主。
+Vue 3 项目应继续用 `@go-wind/print-canvas`，功能面更全；本包面向非 Vue3 宿主。

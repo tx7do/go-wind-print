@@ -5,7 +5,7 @@ Vue 3 可视化打印模板设计器 + 模板表达式引擎 + 同构渲染管�
 可视化拖拽设计打印模板、数据绑定、表达式求值、分页排版；三端共用同一套渲染与分页算法（逻辑同源，像素级一致还需字体与 Chromium 内核同源）。
 纯 Vue 3 + HTML/CSS/SVG 原生控件实现，不依赖任何 UI 组件库，可以接入任意 Vue 3 项目中。
 
-> ⚠️ **实验性能力声明**：`packages/print-common`（`@worm-vue3-print/common`）与示例 `demo-common/` 属于**实验性质**，用于把设计器以零框架运行时形态（原生自定义元素）提供给 **Vue 3 / Vue 2 / React / jQuery 等多种运行时框架**（含无框架宿主）。该包**尚未完成稳定性测试**，已以**预览版**发布到 npm（dist-tag `next`，版本形如 `1.3.7-beta.N`，安装必须写 `npm i @worm-vue3-print/common@next`），不建议用于生产；Vue 3 项目请使用成熟的 `@worm-vue3-print/canvas`。
+> ⚠️ **实验性能力声明**：`packages/print-common`（`@go-wind/print-common`）与示例 `demo-common/` 属于**实验性质**，用于把设计器以零框架运行时形态（原生自定义元素）提供给 **Vue 3 / Vue 2 / React / jQuery 等多种运行时框架**（含无框架宿主）。该包**尚未完成稳定性测试**，已以**预览版**发布到 npm（dist-tag `next`，版本形如 `1.3.7-beta.N`，安装必须写 `npm i @go-wind/print-common@next`），不建议用于生产；Vue 3 项目请使用成熟的 `@go-wind/print-canvas`。
 
 ## 🔗 在线预览
 
@@ -40,13 +40,13 @@ GitHub Pages：**https://worm-longliu.github.io/worm-vue3-print/**
 ```
 worm-vue3-print/
 ├── packages/                  # 可发布的 npm 包（npm workspaces，发布到 npm）
-│   ├── print-core/            # @worm-vue3-print/core   模板表达式引擎 + 同构渲染管线（含浏览器端静默打印 SDK 子路径 /client）
-│   ├── print-canvas/          # @worm-vue3-print/canvas Vue 3 可视化设计器画布
-│   ├── print-common/          # @worm-vue3-print/common 通用宿主适配版设计器（实验性 · 未完全稳定测试；支持多种运行时框架；生产请用 print-canvas）
+│   ├── print-core/            # @go-wind/print-core   模板表达式引擎 + 同构渲染管线（含浏览器端静默打印 SDK 子路径 /client）
+│   ├── print-canvas/          # @go-wind/print-canvas Vue 3 可视化设计器画布
+│   ├── print-common/          # @go-wind/print-common 通用宿主适配版设计器（实验性 · 未完全稳定测试；支持多种运行时框架；生产请用 print-canvas）
 ├── clients/
-│   └── print-client/          # @worm-vue3-print/print-client Electron 静默打印桌面客户端（private，不发布 npm）
+│   └── print-client/          # @go-wind/print-client Electron 静默打印桌面客户端（private，不发布 npm）
 ├── services/
-│   └── print-render/          # @worm-vue3-print/render 服务端 PDF 渲染微服务（private，不发布 npm）
+│   └── print-render/          # @go-wind/print-render 服务端 PDF 渲染微服务（private，不发布 npm）
 ├── demo/                      # 演示项目：Vue 3 设计器 + 预览 + 静默打印集成的完整示例
 ├── demo-common/               # 演示项目（实验性 · 未完全稳定测试）：apps/ 下四个独立宿主 demo（Vue3/Vue2/React/jQuery），index.html 为静态导航页
 ├── docs/                      # 项目文档
@@ -71,9 +71,9 @@ worm-vue3-print/
 
 | 目录 / 文件 | 功能说明 |
 |---|---|
-| `packages/print-core` | 核心包（`@worm-vue3-print/core`）：表达式引擎（lexer / parser / evaluator）、`template-parser`、数据绑定 / 分页 / HTML 生成（`render`）、设计器内核与浏览器适配（`designer` / `browser`，含连续纸探针与 `browserCodeRenderer`）；浏览器端静默打印 SDK 位于子路径 `/client`（传输层 / 协议与错误码 / 打印门面）。纯 TypeScript，无 Vue、无宿主依赖 |
-| `packages/print-canvas` | 设计器画布（`@worm-vue3-print/canvas`）：Vue 3 组件（`components`）、组合式函数（`composables`）、内置帮助内容（`help-content`）、原生控件样式（`styles`）。含 `PrintDesigner`、`PrintHtmlPreview` |
-| `packages/print-common` | ⚠️ **实验性 · 未完全稳定测试**：通用宿主适配设计器（`@worm-vue3-print/common`）：以原生自定义元素 `<print-designer>` 形态提供，**支持多种运行时框架**——任意框架（Vue 3 / Vue 2 / React / jQuery / Angular 等）或无框架宿主均可直接接入，供 React / Vue2 / jQuery 等非 Vue3 宿主使用，**不打包 Vue 运行时**。样式与图标由 `scripts/gen-styles.mjs`、`scripts/gen-icons.mjs` 从 canvas 构建产物派生（类名逐字对齐），交互与渲染逻辑复用 core 的 designer 导出；另产出浏览器直挂形态 `dist/common.js`（UMD，core 与码制库内联，挂 `window.WormPrintCommon`）与 `dist/common.css`，无打包器宿主一个 `<script>` + 一个 `<link>` 即可接入。与 Vue3 版的功能与样式一致性说明见包内 `PARITY.md`，宿主示例在 `demo-common/apps/` |
+| `packages/print-core` | 核心包（`@go-wind/print-core`）：表达式引擎（lexer / parser / evaluator）、`template-parser`、数据绑定 / 分页 / HTML 生成（`render`）、设计器内核与浏览器适配（`designer` / `browser`，含连续纸探针与 `browserCodeRenderer`）；浏览器端静默打印 SDK 位于子路径 `/client`（传输层 / 协议与错误码 / 打印门面）。纯 TypeScript，无 Vue、无宿主依赖 |
+| `packages/print-canvas` | 设计器画布（`@go-wind/print-canvas`）：Vue 3 组件（`components`）、组合式函数（`composables`）、内置帮助内容（`help-content`）、原生控件样式（`styles`）。含 `PrintDesigner`、`PrintHtmlPreview` |
+| `packages/print-common` | ⚠️ **实验性 · 未完全稳定测试**：通用宿主适配设计器（`@go-wind/print-common`）：以原生自定义元素 `<print-designer>` 形态提供，**支持多种运行时框架**——任意框架（Vue 3 / Vue 2 / React / jQuery / Angular 等）或无框架宿主均可直接接入，供 React / Vue2 / jQuery 等非 Vue3 宿主使用，**不打包 Vue 运行时**。样式与图标由 `scripts/gen-styles.mjs`、`scripts/gen-icons.mjs` 从 canvas 构建产物派生（类名逐字对齐），交互与渲染逻辑复用 core 的 designer 导出；另产出浏览器直挂形态 `dist/common.js`（UMD，core 与码制库内联，挂 `window.WormPrintCommon`）与 `dist/common.css`，无打包器宿主一个 `<script>` + 一个 `<link>` 即可接入。与 Vue3 版的功能与样式一致性说明见包内 `PARITY.md`，宿主示例在 `demo-common/apps/` |
 | `clients/print-client` | 静默打印桌面客户端（Electron，private）：主进程 WS 服务 / 打印引擎 / 打印机服务 / 配置与任务记录（`src/main`）、配置窗口 Vue 3 界面（`src/renderer`）、隐藏渲染 worker（`src/worker`）、沙箱 IPC 桥（`src/preload`）、IPC 通道契约（`src/shared`）；含 electron-builder 打包配置与真机冒烟脚本（`scripts/`） |
 | `services/print-render` | 服务端渲染微服务（private）：基于 Playwright 的 PDF 渲染（`driver-playwright` / `pdf-render` / `browser-pool` / `server`），workspace 软链依赖 core，与浏览器预览、桌面客户端共用同一份打印管线 |
 | `demo` | Vue 3 演示项目：设计器接入（`App.vue`）、静默打印集成、渲染客户端封装（`render-client.ts`）、业务字段（`business.ts`）、内置模板 JSON（`template-purchase-receipt.json`），端口 9303 |
@@ -88,13 +88,13 @@ worm-vue3-print/
 
 | 包 | 目录 | 发布 | 说明 |
 |----|------|------|------|
-| `@worm-vue3-print/core` | `packages/print-core` | npm | 模板表达式引擎与同构渲染管线（数据绑定 / HTML 生成 / 分页，含连续纸探针推导），纯 TypeScript，无 Vue、无宿主依赖，浏览器与 Node 均可运行；浏览器端静默打印 SDK 经子路径 `@worm-vue3-print/core/client` 提供 |
-| `@worm-vue3-print/canvas` | `packages/print-canvas` | npm | Vue 3 可视化设计器画布（原生控件，无 Element Plus；含 `PrintDesigner`、`PrintHtmlPreview` 组件） |
-| `@worm-vue3-print/common` | `packages/print-common` | npm 预览版（`next`）· **实验性** | ⚠️ 通用宿主适配设计器 `<print-designer>`（零框架运行时，实现为原生 Custom Element + Shadow DOM）：**支持多种运行时框架**，功能与样式对齐 `@worm-vue3-print/canvas`，供 React / Vue2 / jQuery 等非 Vue3 宿主接入（详见包内 `PARITY.md`）。**以预览版发布，安装须写 `@worm-vue3-print/common@next`**（`--tag next` 挡不住 npm 给新包首发自动打的 `latest`，实测 `latest` 与 `next` 同指预览版，裸装会静默吃到实验包；判据 `npm run publish:common:check`）；**尚在实验阶段、未完全稳定测试，不建议用于生产**，Vue 3 项目请继续使用 `@worm-vue3-print/canvas`（成熟方案） |
-| `@worm-vue3-print/render` | `services/print-render` | 内部 | 基于 Playwright（Headless Chromium）的服务端 PDF 渲染微服务，Docker 部署；与浏览器预览、桌面客户端共用同一份渲染管线，保证三端出纸一致 |
-| `@worm-vue3-print/print-client` | `clients/print-client` | 内部 | 跨平台静默打印桌面客户端（Electron，回环 WebSocket + core 同构渲染 + `webContents.print` 静默出纸） |
+| `@go-wind/print-core` | `packages/print-core` | npm | 模板表达式引擎与同构渲染管线（数据绑定 / HTML 生成 / 分页，含连续纸探针推导），纯 TypeScript，无 Vue、无宿主依赖，浏览器与 Node 均可运行；浏览器端静默打印 SDK 经子路径 `@go-wind/print-core/client` 提供 |
+| `@go-wind/print-canvas` | `packages/print-canvas` | npm | Vue 3 可视化设计器画布（原生控件，无 Element Plus；含 `PrintDesigner`、`PrintHtmlPreview` 组件） |
+| `@go-wind/print-common` | `packages/print-common` | npm 预览版（`next`）· **实验性** | ⚠️ 通用宿主适配设计器 `<print-designer>`（零框架运行时，实现为原生 Custom Element + Shadow DOM）：**支持多种运行时框架**，功能与样式对齐 `@go-wind/print-canvas`，供 React / Vue2 / jQuery 等非 Vue3 宿主接入（详见包内 `PARITY.md`）。**以预览版发布，安装须写 `@go-wind/print-common@next`**（`--tag next` 挡不住 npm 给新包首发自动打的 `latest`，实测 `latest` 与 `next` 同指预览版，裸装会静默吃到实验包；判据 `npm run publish:common:check`）；**尚在实验阶段、未完全稳定测试，不建议用于生产**，Vue 3 项目请继续使用 `@go-wind/print-canvas`（成熟方案） |
+| `@go-wind/print-render` | `services/print-render` | 内部 | 基于 Playwright（Headless Chromium）的服务端 PDF 渲染微服务，Docker 部署；与浏览器预览、桌面客户端共用同一份渲染管线，保证三端出纸一致 |
+| `@go-wind/print-client` | `clients/print-client` | 内部 | 跨平台静默打印桌面客户端（Electron，回环 WebSocket + core 同构渲染 + `webContents.print` 静默出纸） |
 
-> 发布到 npm 的正式包只有 `core` 与 `canvas`（`npm run publish:npm`，由 GitHub Actions 按标签发布）；`@worm-vue3-print/common` 以**预览版**发布——dist-tag `next`、版本号形如 `1.3.7-beta.N`、不进 `latest`，由 `npm run publish:common:beta` 在本地手工发布（流程见 [CONTRIBUTING.md](CONTRIBUTING.md)）；`render` 与 `print-client` 为私有工作区包，分别以 Docker 镜像和安装包形式分发，客户端安装包挂在 [GitHub Releases](https://github.com/worm-longliu/worm-vue3-print/releases)（见下文[下载客户端安装包](#下载客户端安装包)）。示例 `demo-common` 不在工作区内，仍以 `file:` 依赖消费本仓库的 common；该包**尚未完成稳定性测试**，不建议应用到生产，Vue 3 项目请使用 `@worm-vue3-print/canvas`。
+> 发布到 npm 的正式包只有 `core` 与 `canvas`（`npm run publish:npm`，由 GitHub Actions 按标签发布）；`@go-wind/print-common` 以**预览版**发布——dist-tag `next`、版本号形如 `1.3.7-beta.N`、不进 `latest`，由 `npm run publish:common:beta` 在本地手工发布（流程见 [CONTRIBUTING.md](CONTRIBUTING.md)）；`render` 与 `print-client` 为私有工作区包，分别以 Docker 镜像和安装包形式分发，客户端安装包挂在 [GitHub Releases](https://github.com/worm-longliu/worm-vue3-print/releases)（见下文[下载客户端安装包](#下载客户端安装包)）。示例 `demo-common` 不在工作区内，仍以 `file:` 依赖消费本仓库的 common；该包**尚未完成稳定性测试**，不建议应用到生产，Vue 3 项目请使用 `@go-wind/print-canvas`。
 
 ## 功能特性
 
@@ -135,13 +135,13 @@ npm test         # 运行所有包测试
 
 ```bash
 # 安装核心包（模板表达式引擎 + 同构渲染管线）
-npm install @worm-vue3-print/core
+npm install @go-wind/print-core
 
 # 安装设计器画布（Vue 3 可视化设计器 + 预览组件）
-npm install @worm-vue3-print/canvas
+npm install @go-wind/print-canvas
 ```
 
-静默打印浏览器端 SDK 随 core 提供，无需单独安装，从 `@worm-vue3-print/core/client` 导入（需配合本机运行的桌面打印客户端）。
+静默打印浏览器端 SDK 随 core 提供，无需单独安装，从 `@go-wind/print-core/client` 导入（需配合本机运行的桌面打印客户端）。
 
 > core / canvas 当前版本：`1.3.11`。
 
@@ -152,37 +152,37 @@ npm install @worm-vue3-print/canvas
 npm outdated
 
 # 更新到最新版本
-npm update @worm-vue3-print/core @worm-vue3-print/canvas
+npm update @go-wind/print-core @go-wind/print-canvas
 
 # 或直接安装最新版
-npm install @worm-vue3-print/core@latest @worm-vue3-print/canvas@latest
+npm install @go-wind/print-core@latest @go-wind/print-canvas@latest
 ```
 
 其他包管理器：
-- yarn: `yarn upgrade @worm-vue3-print/core @worm-vue3-print/canvas`
-- pnpm: `pnpm update @worm-vue3-print/core @worm-vue3-print/canvas`
+- yarn: `yarn upgrade @go-wind/print-core @go-wind/print-canvas`
+- pnpm: `pnpm update @go-wind/print-core @go-wind/print-canvas`
 
 ## 快速使用
 
-### `@worm-vue3-print/core`（模板表达式引擎 + 同构渲染管线）
+### `@go-wind/print-core`（模板表达式引擎 + 同构渲染管线）
 
 ```ts
-import { bindData, paginate, generateHtml } from '@worm-vue3-print/core'
+import { bindData, paginate, generateHtml } from '@go-wind/print-core'
 
 const bound = bindData(templateJson, printData)      // 数据绑定
 const pages = paginate(bound, measured, options)     // 分页排版
 const html = generateHtml(pages)                     // 生成 HTML
 ```
 
-### `@worm-vue3-print/canvas`（Vue 3 可视化设计器）
+### `@go-wind/print-canvas`（Vue 3 可视化设计器）
 
 以下接入配置与仓库 `demo/App.vue` 保持一致：
 
 ```ts
-import { PrintDesigner, PrintHtmlPreview, createDefaultTemplate } from '@worm-vue3-print/canvas'
-import type { PrintBusinessField, TemplateData } from '@worm-vue3-print/canvas'
+import { PrintDesigner, PrintHtmlPreview, createDefaultTemplate } from '@go-wind/print-canvas'
+import type { PrintBusinessField, TemplateData } from '@go-wind/print-canvas'
 // 设计器控件样式（发布包唯一对外样式入口），需全局引入一次
-import '@worm-vue3-print/canvas/style.css'
+import '@go-wind/print-canvas/style.css'
 ```
 
 ```vue
@@ -260,7 +260,7 @@ function onLoadDefaultLayout() {
 
 - **桌面打印客户端**（`clients/print-client`，Electron）：部署在业务工位电脑上，在隐藏窗口内复用 `core/browser` 同构渲染模板，
   再调用 `webContents.print({ silent: true })` 直接出纸——无系统打印对话框、不依赖浏览器插件。
-- **浏览器端 SDK**（core 子路径 `@worm-vue3-print/core/client`，无需单独安装）：浏览器页面通过 WebSocket（默认从 `127.0.0.1:17521` 起端口探测，占用则 +1）
+- **浏览器端 SDK**（core 子路径 `@go-wind/print-core/client`，无需单独安装）：浏览器页面通过 WebSocket（默认从 `127.0.0.1:17521` 起端口探测，占用则 +1）
   连接本机运行的客户端，完成端口探测 / 自动重连 / 打印机枚举 / 静默打印。
 
 ### 下载客户端安装包
@@ -317,7 +317,7 @@ npm run pack:client:dir
 ### 宿主侧接入（浏览器端 SDK）
 
 ```ts
-import { PrintClient, WormPrintError } from '@worm-vue3-print/core/client'
+import { PrintClient, WormPrintError } from '@go-wind/print-core/client'
 
 const client = new PrintClient()
 client.onStatusChange((s) => console.log('客户端状态：', s)) // 'disconnected' | 'connecting' | 'connected'

@@ -1,17 +1,17 @@
-# @worm-vue3-print/render
+# @go-wind/print-render
 
 基于 Playwright（Headless Chromium）的 PDF 打印渲染微服务，位于 monorepo 的
 `services/print-render`（`private` 服务包，不发布 npm，仅 Docker 部署）。
-通过 npm workspace 本地软链依赖同仓库的 `@worm-vue3-print/core`（表达式引擎与渲染管线），
+通过 npm workspace 本地软链依赖同仓库的 `@go-wind/print-core`（表达式引擎与渲染管线），
 修改 core 无需发版即可在本服务生效。
 宿主（如管理后台 `web`）的后端 `PrintRenderClient` 调用本服务的 `POST /render/pdf`，传入 `templateJson`（模板 JSON）与 `printData`（打印数据），
-模板绑定、分页与 HTML 生成在 Node 侧完成；测量、连续纸探针、码制渲染与出图由 `@worm-vue3-print/core` 的 DOM 执行器在页面上下文执行（与浏览器预览、桌面客户端共用同一份管线）。
+模板绑定、分页与 HTML 生成在 Node 侧完成；测量、连续纸探针、码制渲染与出图由 `@go-wind/print-core` 的 DOM 执行器在页面上下文执行（与浏览器预览、桌面客户端共用同一份管线）。
 
 ## 渲染流程
 
-两遍渲染由 `@worm-vue3-print/core` 的打印管线统一实现（`src/pdf-render.ts` 只做宿主装配，`src/driver-playwright.ts` 提供页面能力）：
+两遍渲染由 `@go-wind/print-core` 的打印管线统一实现（`src/pdf-render.ts` 只做宿主装配，`src/driver-playwright.ts` 提供页面能力）：
 
-1. 数据绑定：`@worm-vue3-print/core` 的 `bindData` 将 `printData` 变量/表达式替换进模板；
+1. 数据绑定：`@go-wind/print-core` 的 `bindData` 将 `printData` 变量/表达式替换进模板；
 2. 第一遍测量：`generateHtml` 生成测量 HTML，`page.setContent()` 加载后测量各元素实际高度（mm）；
 3. 分页计算：`paginate` 基于实测高度执行分页算法（含表格重复表头、小计/汇总）；
 4. 第二遍出图：按分页结果生成最终 HTML，`page.pdf()` 输出 PDF。
@@ -47,9 +47,9 @@ npx playwright install chromium
 
 # 常用命令（仓库根执行；dev:render / dev:client / dev:demo 为根脚本短别名）
 npm run dev:render                        # 开发运行（tsx 直跑 src/server.ts）
-npm run build -w @worm-vue3-print/render   # tsc 编译到 services/print-render/dist/
-npm run start -w @worm-vue3-print/render   # 生产运行（node dist/server.js）
-npm run test -w @worm-vue3-print/render    # vitest（分页用例需可启动浏览器）
+npm run build -w @go-wind/print-render   # tsc 编译到 services/print-render/dist/
+npm run start -w @go-wind/print-render   # 生产运行（node dist/server.js）
+npm run test -w @go-wind/print-render    # vitest（分页用例需可启动浏览器）
 ```
 
 > `BrowserPool` 自动探测系统浏览器（env 覆盖 → PATH → 常见安装路径），找不到才回退
@@ -96,7 +96,7 @@ Playwright 自带 Chromium 都不存在时，服务启动会报明确错误，�
 
 ## Docker 构建
 
-镜像以**monorepo 仓库根为构建上下文**，`@worm-vue3-print/core` 经 workspace 本地软链
+镜像以**monorepo 仓库根为构建上下文**，`@go-wind/print-core` 经 workspace 本地软链
 一并拷入镜像构建，不依赖 npm registry 发布版本：
 
 ```bash

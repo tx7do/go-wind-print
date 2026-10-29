@@ -1,6 +1,6 @@
 // print.submit / print.submitHtml payload 校验：边界在进入打印引擎前收敛，错误一律 INVALID_REQUEST。
-import type { PrintOptions } from '@worm-vue3-print/core/client'
-import { MAX_BATCH_COPIES } from '@worm-vue3-print/core'
+import type { PrintOptions } from '@go-wind/print-core/client'
+import { MAX_BATCH_COPIES } from '@go-wind/print-core'
 import { ProtocolFailure } from './protocol-error.js'
 
 /** print.submit 校验后的模板渲染任务（原 shared/render-protocol.ts 的 RenderJobSpec） */

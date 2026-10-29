@@ -23,10 +23,10 @@ function emitCommonCss(): Plugin {
 export default defineConfig({
   resolve: {
     alias: [
-      { find: /^@worm-vue3-print\/core\/designer$/, replacement: fileURLToPath(new URL('../print-core/src/designer/index.ts', import.meta.url)) },
-      { find: /^@worm-vue3-print\/core\/browser$/, replacement: fileURLToPath(new URL('../print-core/src/browser/index.ts', import.meta.url)) },
-      { find: /^@worm-vue3-print\/core\/client$/, replacement: fileURLToPath(new URL('../print-core/src/client/index.ts', import.meta.url)) },
-      { find: /^@worm-vue3-print\/core$/, replacement: fileURLToPath(new URL('../print-core/src/index.ts', import.meta.url)) },
+      { find: /^@go-wind\/print-core\/designer$/, replacement: fileURLToPath(new URL('../print-core/src/designer/index.ts', import.meta.url)) },
+      { find: /^@go-wind\/print-core\/browser$/, replacement: fileURLToPath(new URL('../print-core/src/browser/index.ts', import.meta.url)) },
+      { find: /^@go-wind\/print-core\/client$/, replacement: fileURLToPath(new URL('../print-core/src/client/index.ts', import.meta.url)) },
+      { find: /^@go-wind\/print-core$/, replacement: fileURLToPath(new URL('../print-core/src/index.ts', import.meta.url)) },
     ],
   },
   plugins: [emitCommonCss()],

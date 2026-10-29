@@ -4,7 +4,7 @@
 import { h } from '../core/h'
 import { iconSvg } from '../core/icons'
 import { colorPicker } from './color-picker'
-import type { PrintFontDeclaration } from '@worm-vue3-print/core'
+import type { PrintFontDeclaration } from '@go-wind/print-core'
 import type { DesignerStore } from '../core/store'
 
 /** 外壳局部 UI 状态（不落模板数据，仅影响渲染） */

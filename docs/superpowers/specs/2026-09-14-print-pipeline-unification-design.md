@@ -182,7 +182,7 @@ export type ExecutorMethod = 'waitReady' | 'readMeasurements' | 'readContentBott
 2. core/browser 收敛：`dom-executor.ts`、`driver-iframe.ts`、`browser-runtime.ts`，`browser-pagination.ts` 改薄包装，`browser-code-renderer.ts` 改参数化；
 3. core 增加 IIFE 构建产物与导出；
 4. 服务端切换：新增 `driver-playwright.ts`；`pdf-render.ts` **保留 `renderPdf` / `renderScreenshot` 同名同签名导出**（`server.ts` 与既有集成测试直接 import，签名一变全断），内部改调 core 管线；删除 `barcode-renderer.ts` 与 `bwip-js` 依赖并更新 lock；Express、浏览器池、鉴权保持不动，外层请求超时与 core 预算同源；同步修改 `.github/workflows/ci.yml` 的 render job（删除 `src/barcode-renderer.test.ts` 步骤，改为 core 码制用例 + 新增连续纸与 PDF 规格用例）；
-5. 客户端切换：新增 `driver-electron.ts`（每任务一个隐藏窗口 + 模板 HTML 作为顶层文档）与 `print-host.ts`（打印机枚举专用常驻窗口）；main 侧调 core 管线；删除 `paper.ts`、`pdf-generator.ts` 的参数构造、`render-engine.ts` 的编排，以及 worker 渲染进程、`worker-preload`、`render-protocol`、`src/worker/*` 与对应构建入口；`print.submitHtml` 链路保留但改为复用 core 的出图规格推导与超时封装；`buildWebPrintSettings` 瘦身为 `buildPrintJobSettings`（仅份数与驱动纸型名，`color`/`pageRanges` 属既有缺口另行登记）；`request-validation.ts` 需把原 `RenderJobSpec` 类型落到本地（`print.submit` 的校验逻辑不变）；WebSocket 协议、串行锁、任务历史、出纸命令、托盘不动；打包冒烟需验证 `require('@worm-vue3-print/core')` 在 asar 内可解析（main 构建为 `externalizeDepsPlugin()`，core 由 electron-builder 从 dist 收集）；
+5. 客户端切换：新增 `driver-electron.ts`（每任务一个隐藏窗口 + 模板 HTML 作为顶层文档）与 `print-host.ts`（打印机枚举专用常驻窗口）；main 侧调 core 管线；删除 `paper.ts`、`pdf-generator.ts` 的参数构造、`render-engine.ts` 的编排，以及 worker 渲染进程、`worker-preload`、`render-protocol`、`src/worker/*` 与对应构建入口；`print.submitHtml` 链路保留但改为复用 core 的出图规格推导与超时封装；`buildWebPrintSettings` 瘦身为 `buildPrintJobSettings`（仅份数与驱动纸型名，`color`/`pageRanges` 属既有缺口另行登记）；`request-validation.ts` 需把原 `RenderJobSpec` 类型落到本地（`print.submit` 的校验逻辑不变）；WebSocket 协议、串行锁、任务历史、出纸命令、托盘不动；打包冒烟需验证 `require('@go-wind/print-core')` 在 asar 内可解析（main 构建为 `externalizeDepsPlugin()`，core 由 electron-builder 从 dist 收集）；
 6. 文档口径同步（逐处）：`services/print-render/README.md:9`「由服务端纯 Node 侧完成渲染」需改写；根 `README.md:7,48,70,249` 与 `packages/print-core/README.md:25` 的「一致」表述加限定（档位一：算法同源，字体与内核仍需同源才达像素级一致）；`clients/print-client/README.md:16-17,32-35,97` 的 worker/IPC 架构描述与目录表；`skills/worm-vue3-print-integration/references/` 下 `silent-print.md:7,17`、`troubleshooting.md:88`、`integration-api.md:173`；`docs/中文/指南/静默打印.md:173`；中英文 CHANGELOG 记录两处行为变更；
 7. 发布：core 走 minor（只新增导出），canvas 跟版；服务端与客户端不发 npm。
 
@@ -209,7 +209,7 @@ export type ExecutorMethod = 'waitReady' | 'readMeasurements' | 'readContentBott
 | `clients/print-client/src/main/render-engine.test.ts` | 保留在客户端（`buildWebPrintSettings` 仍属客户端：份数、纸型名、页范围） |
 | `clients/print-client/src/main/print-engine.test.ts`、`protocol-handler.test.ts`、`request-validation.test.ts` | 不动 |
 
-8. 验收命令：`npm run build`、`npm test`、`npm run test -w @worm-vue3-print/render`、打包冒烟 `npm run pack:client:dir`。
+8. 验收命令：`npm run build`、`npm test`、`npm run test -w @go-wind/print-render`、打包冒烟 `npm run pack:client:dir`。
 
 ## 11. 风险与回退
 
@@ -237,5 +237,5 @@ export type ExecutorMethod = 'waitReady' | 'readMeasurements' | 'readContentBott
 - 服务端页面不复用：`services/print-render/src/browser-pool.ts:146-176`，`acquire()` 每次 `browser.newPage()`，`release()` 直接 `page.close()`。
 - 服务端 `setContent` 会重建文档，此前注入的脚本随之失效；`addScriptTag` 注入是按文档生效的。
 - 客户端主进程目前仅有一处运行时 DOM 调用：`clients/print-client/src/main/print-engine.ts:223-231` 的 `executeJavaScript` 就绪等待；核心渲染逻辑此前都在 worker 渲染进程。
-- 打包链路：`clients/print-client/electron.vite.config.ts:7` 对 main 使用 `externalizeDepsPlugin()`，core 由 electron-builder 从 dist 收集进 asar（`clients/print-client/electron-builder.yml:11-14`），因此 main 运行时 `require('@worm-vue3-print/core')` 可行但需冒烟验证。
+- 打包链路：`clients/print-client/electron.vite.config.ts:7` 对 main 使用 `externalizeDepsPlugin()`，core 由 electron-builder 从 dist 收集进 asar（`clients/print-client/electron-builder.yml:11-14`），因此 main 运行时 `require('@go-wind/print-core')` 可行但需冒烟验证。
 - 文档受影响位置：`services/print-render/README.md:9`、根 `README.md:7,48,70,249`、`packages/print-core/README.md:25`、`clients/print-client/README.md:16-17,32-35,97`、`skills/worm-vue3-print-integration/references/silent-print.md:7,17`、`troubleshooting.md:88`、`integration-api.md:173`、`docs/中文/指南/静默打印.md:173`。

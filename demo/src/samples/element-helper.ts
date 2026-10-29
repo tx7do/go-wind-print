@@ -7,7 +7,7 @@ import type {
   TableCell,
   TableRow,
   TableRowType,
-} from '@worm-vue3-print/canvas'
+} from '@go-wind/print-canvas'
 
 /** 元素类型 → 属性面板标题（与打印端 typeMetaMap 一致） */
 const TYPE_TITLES: Record<ElementType, string> = {

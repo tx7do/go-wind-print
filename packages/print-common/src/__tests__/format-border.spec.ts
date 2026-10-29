@@ -1,7 +1,7 @@
 // 顶部格式栏的边框落盘路由：元素上下文与单元格上下文各走哪条路，与 canvas 的 useFormatToolbar 同口径。
 // canvas 侧只测了内层方法（applyCellBorderPreset / applyElementBorder），本文件锁住 common 这层「按上下文分流」。
 import { describe, it, expect } from 'vitest'
-import type { ElementType, RuntimeElement, TableCell } from '@worm-vue3-print/core/designer'
+import type { ElementType, RuntimeElement, TableCell } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../core/store'
 import { FormatToolbar } from '../core/format'
 import { render } from '../core/h'

@@ -1,6 +1,6 @@
 # apps/vue2 · Vue 2.7 宿主集成示例（SFC 单文件组件 · demo 同版式）
 
-独立 npm 工程，只用 `@worm-vue3-print/common` + `@worm-vue3-print/core`。
+独立 npm 工程，只用 `@go-wind/print-common` + `@go-wind/print-core`。
 界面版式与 `demo/`（Vue 3 打印设计器示例）**完全一致**：顶栏 + 全屏画布 + 四个弹窗
 （打印预览 / 打印输出 / 示例库 / 自定义字段与数据），样式为各工程同源的 `demo-ui.css`，
 本工程的 `.vue` 不写任何私有布局样式。用 runtime-only 构建（不需要 `vue/dist/vue.esm.js`）。
@@ -12,7 +12,7 @@ npm install
 npm run dev        # http://localhost:9332
 
 # 可选：不装也能跑，页面显示「离线」并给出可读提示
-npm run dev -w @worm-vue3-print/render     # 服务端 PDF（3001，dev 代理注入密钥）
+npm run dev -w @go-wind/print-render     # 服务端 PDF（3001，dev 代理注入密钥）
 # 客户端静默打印需本机跑着 print-client 桌面客户端（ws 127.0.0.1:17521）
 ```
 
@@ -34,7 +34,7 @@ npm run dev -w @worm-vue3-print/render     # 服务端 PDF（3001，dev 代理�
 | `src/main.js` | `registerAll()` + `Vue.config.ignoredElements = ['print-designer']` + `new Vue({ render: h => h(App) }).$mount('#app')` |
 | `vite.config.js` | `@vitejs/plugin-vue2`（`plugins: [vue2()]`），`/render-api` 代理注入 `X-Render-Key` |
 
-依赖：`npm i @worm-vue3-print/common@next @worm-vue3-print/core vue@2.7`（`common` 目前只发预览版，必须带 `@next`）；`npm i -D @vitejs/plugin-vue2`。
+依赖：`npm i @go-wind/print-common@next @go-wind/print-core vue@2.7`（`common` 目前只发预览版，必须带 `@next`）；`npm i -D @vitejs/plugin-vue2`。
 示例数据在 `src/templates.js`（10 个示例，带 group/paper/desc 元数据；由 `demo-common/scripts/sync-demo-samples.mjs`
 从 demo 的 `src/samples` 同源生成，勿手改），改成你的接口返回即可。
 

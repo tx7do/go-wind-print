@@ -33,13 +33,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import type { PrintTemplateData } from '@worm-vue3-print/core'
-import { renderHtmlPages } from '@worm-vue3-print/core/browser'
-import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
+import type { PrintTemplateData } from '@go-wind/print-core'
+import { renderHtmlPages } from '@go-wind/print-core/browser'
+import { browserCodeRenderer } from '@go-wind/print-core/browser'
 import {
   applyPreviewViewZoom, defaultZoomKey, paperWidthPx, resolvePrinterDpi,
   resolveZoomKey, zoomPresets, zoomValueOf,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 
 const props = defineProps<{
   /** 模板 JSON（设计器 TemplateData 结构兼容） */

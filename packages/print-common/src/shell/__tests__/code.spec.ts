@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 // 元素级码类绘制：二维码图形必须与出纸同源，且铺满元素盒
 import { describe, it, expect, beforeAll } from 'vitest'
-import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
-import type { RuntimeElement, TableRow } from '@worm-vue3-print/core/designer'
+import { browserCodeRenderer } from '@go-wind/print-core/browser'
+import type { RuntimeElement, TableRow } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

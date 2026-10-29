@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 import {
   propertyTip,
   resolveFlowColumns,
@@ -64,7 +64,7 @@ import {
   resolveFlowMaxSpan,
   resolveFlowRowHeight,
   suggestFlowColumns,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import PropertyGroup from './PropertyGroup.vue'
 import StepperInput from './StepperInput.vue'
 

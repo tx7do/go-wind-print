@@ -6,7 +6,7 @@ import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import CanvasArea from '../components/CanvasArea.vue'
 import { SELECTED_IDS_KEY } from '../composables/useSelection'
-import type { RuntimeElement, TemplateData } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, TemplateData } from '@go-wind/print-core/designer'
 
 function makeTemplate(): TemplateData {
   return {

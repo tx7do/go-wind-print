@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { BindingDescriptor, PrintBusinessField } from '@worm-vue3-print/core/designer'
+import type { BindingDescriptor, PrintBusinessField } from '@go-wind/print-core/designer'
 import ExpressionEditor from '../ExpressionEditor.vue'
 
 const props = defineProps<{

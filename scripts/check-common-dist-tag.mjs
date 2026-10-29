@@ -1,6 +1,6 @@
 // common 的 dist-tag 自检：预览版只能挂 next，不得占用 latest。
 // 背景：npm 首次发布新包时会自动给最高版本打 latest，`--tag next` 挡不住这一步，
-// 于是 `npm i @worm-vue3-print/common` 会静默装到实验性预览版（与 README/CONTRIBUTING 的声明相反）。
+// 于是 `npm i @go-wind/print-common` 会静默装到实验性预览版（与 README/CONTRIBUTING 的声明相反）。
 // 用法：
 //   node scripts/check-common-dist-tag.mjs            只查（exit 0 健康 / 1 latest 被预览版占用）
 //   node scripts/check-common-dist-tag.mjs --dry-run  查到问题时打印将执行的命令，不执行
@@ -8,7 +8,7 @@
 //   node scripts/check-common-dist-tag.mjs --warn-only  照旧打印红灯但 exit 0（给演练链用：既有红灯不该把演练判失败）
 import { execFileSync } from 'node:child_process'
 
-const PKG = '@worm-vue3-print/common'
+const PKG = '@go-wind/print-common'
 const REGISTRY = 'https://registry.npmjs.org'
 const args = process.argv.slice(2)
 const FIX = args.includes('--fix')

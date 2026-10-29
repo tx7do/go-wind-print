@@ -1,6 +1,6 @@
 # 打印模板设计器 Demo
 
-`@worm-vue3-print/canvas` 的独立使用示例（Vite + Vue 3，无 Element Plus）。
+`@go-wind/print-canvas` 的独立使用示例（Vite + Vue 3，无 Element Plus）。
 
 ## 内容
 

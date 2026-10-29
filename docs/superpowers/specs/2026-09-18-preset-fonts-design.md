@@ -190,7 +190,7 @@ loadFonts?: () => Promise<{ server: FontSourceReport; client: FontSourceReport }
 ### 验证命令
 
 - `npm run build`
-- `npm test -w @worm-vue3-print/core`、`npm test -w @worm-vue3-print/canvas`
+- `npm test -w @go-wind/print-core`、`npm test -w @go-wind/print-canvas`
 
 ## 9. 受影响文件清单
 
@@ -215,6 +215,6 @@ loadFonts?: () => Promise<{ server: FontSourceReport; client: FontSourceReport }
 
 ## 11. 验证记录（2026-09-18 实施后）
 
-- 已跑：`npm run build`（含 canvas 的 `vue-tsc` 类型检查）、`npm run typecheck`（demo）、`npm test -w @worm-vue3-print/core`（539 用例）、`npm test -w @worm-vue3-print/canvas`（210 用例）。
+- 已跑：`npm run build`（含 canvas 的 `vue-tsc` 类型检查）、`npm run typecheck`（demo）、`npm test -w @go-wind/print-core`（539 用例）、`npm test -w @go-wind/print-canvas`（210 用例）。
 - 已跑（临时、未入库，5 个用例）：预设置顶与「（预设）」标注及同名合并、未查询时不报「未连接」、点击按钮触发查询且 loading 时禁用、查询后按端提示连接、失败文案、无 `loadFonts` 不渲染按钮——全部通过，临时脚本已删除。
 - 未验证（留给人工联调）：真实浏览器中点击按钮后的取数时延与 loading 观感；桌面客户端在线/离线切换时下拉的刷新表现；服务端离线时的超时（3s）体感。

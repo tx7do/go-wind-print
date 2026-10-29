@@ -184,7 +184,7 @@ export default {
 
 <h3>变更</h3>
 <ul>
-  <li><strong>静默打印 SDK 并入 core</strong>：原 <code>@worm-vue3-print/client</code> 不再单独安装，改为从 <code>@worm-vue3-print/core/client</code> 导入；<code>PrintClient</code> 等能力保持不变，core 也不会因此增加依赖。</li>
+  <li><strong>静默打印 SDK 并入 core</strong>：原 <code>@worm-vue3-print/client</code> 不再单独安装，改为从 <code>@go-wind/print-core/client</code> 导入；<code>PrintClient</code> 等能力保持不变，core 也不会因此增加依赖。</li>
 </ul>
 
 <h3>修复</h3>
@@ -224,8 +224,8 @@ export default {
 
 <h3>变更</h3>
 <ul>
-  <li><code>@worm-vue3-print/core</code> 新增子路径 <code>/designer</code>：框架无关的设计器内核，包含完整模板模型类型、通用工具（元素工厂、表格矩阵、单位换算、模板迁移、标尺等）与纯交互逻辑（对齐、分组、键盘、缩放、吸附计算），不依赖 Vue/React。</li>
-  <li><code>@worm-vue3-print/core</code> 新增子路径 <code>/browser</code>：浏览器侧渲染适配器（<code>renderHtmlPages</code> 两遍分页渲染、条形码/二维码渲染器）。</li>
+  <li><code>@go-wind/print-core</code> 新增子路径 <code>/designer</code>：框架无关的设计器内核，包含完整模板模型类型、通用工具（元素工厂、表格矩阵、单位换算、模板迁移、标尺等）与纯交互逻辑（对齐、分组、键盘、缩放、吸附计算），不依赖 Vue/React。</li>
+  <li><code>@go-wind/print-core</code> 新增子路径 <code>/browser</code>：浏览器侧渲染适配器（<code>renderHtmlPages</code> 两遍分页渲染、条形码/二维码渲染器）。</li>
   <li>设计器模型、工具与纯逻辑下沉至 core 子路径，canvas 仅保留 Vue 适配层；公共 API 保持不变，core 主入口仍为零运行时依赖，为后续多框架适配打下基础。</li>
 </ul>
 
@@ -314,8 +314,8 @@ export default {
 <h3>新增</h3>
 <ul>
   <li>首次开源发布。</li>
-  <li><code>@worm-vue3-print/core</code>：模板表达式引擎与同构渲染管线（HTML 生成 / 分页 / 数据绑定）。</li>
-  <li><code>@worm-vue3-print/canvas</code>：Vue 3 可视化打印模板设计器画布。</li>
+  <li><code>@go-wind/print-core</code>：模板表达式引擎与同构渲染管线（HTML 生成 / 分页 / 数据绑定）。</li>
+  <li><code>@go-wind/print-canvas</code>：Vue 3 可视化打印模板设计器画布。</li>
   <li>渲染微服务拆分为独立仓库 <code>worm-vue3-print-render</code>（仅 Docker 部署，不上 npm）。</li>
 </ul>
 

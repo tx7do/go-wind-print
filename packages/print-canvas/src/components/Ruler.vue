@@ -18,12 +18,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { mmToPx } from '@worm-vue3-print/core/designer'
+import { mmToPx } from '@go-wind/print-core/designer'
 import {
   buildRulerTicks,
   chooseMajorStepMM,
   RULER_THICKNESS,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 
 const props = defineProps<{
   orientation: 'horizontal' | 'vertical'

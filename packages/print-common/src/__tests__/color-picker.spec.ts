@@ -2,7 +2,7 @@
 // 颜色选择器单测：移植 canvas PresetColorPicker.vue 的换算/输入/选中/清除语义，
 // 断言口径与 canvas 侧同名用例（src/__tests__/PresetColorPicker.spec.ts）对齐。
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PRESET_COLORS } from '@worm-vue3-print/core/designer'
+import { PRESET_COLORS } from '@go-wind/print-core/designer'
 import { render, h } from '../core/h'
 import {
   closeColorPicker, colorPicker, hsvToRgb, normalizeHex, parseHex, rgbToHex, rgbToHsv,

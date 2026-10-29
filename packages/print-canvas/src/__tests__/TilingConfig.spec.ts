@@ -4,9 +4,9 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TilingConfig from '../components/property/TilingConfig.vue'
-import { TILE_DEFAULTS } from '@worm-vue3-print/core'
-import type { TilingOptions } from '@worm-vue3-print/core'
-import type { TemplateData } from '@worm-vue3-print/core/designer'
+import { TILE_DEFAULTS } from '@go-wind/print-core'
+import type { TilingOptions } from '@go-wind/print-core'
+import type { TemplateData } from '@go-wind/print-core/designer'
 
 /** 70×40mm 标签模板 */
 function labelTemplate(overrides: Partial<TemplateData> = {}): TemplateData {

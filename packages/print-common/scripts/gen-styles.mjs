@@ -9,7 +9,7 @@ import { fileURLToPath, URL } from 'node:url'
  * 前提是 Common 的 DOM 类名结构必须与 canvas 一致 —— 这正是「样式完全一致」的机械约束：
  * 类名对不上，样式就会掉，比对截图时立刻暴露。
  *
- * 依赖 canvas 已构建（npm run build -w @worm-vue3-print/canvas）。
+ * 依赖 canvas 已构建（npm run build -w @go-wind/print-canvas）。
  */
 const CANVAS_CSS = fileURLToPath(new URL('../../../packages/print-canvas/dist/canvas.css', import.meta.url))
 const NATIVE_CSS = fileURLToPath(new URL('../../../packages/print-canvas/src/styles/native-controls.css', import.meta.url))
@@ -20,7 +20,7 @@ let canvasCss
 try {
   canvasCss = readFileSync(CANVAS_CSS, 'utf8')
 } catch {
-  console.error('[gen-styles] 缺少 packages/print-canvas/dist/canvas.css，先执行 npm run build -w @worm-vue3-print/canvas')
+  console.error('[gen-styles] 缺少 packages/print-canvas/dist/canvas.css，先执行 npm run build -w @go-wind/print-canvas')
   process.exit(1)
 }
 

@@ -1,4 +1,4 @@
-# @worm-vue3-print/canvas
+# @go-wind/print-canvas
 
 Vue 3 可视化打印模板设计器画布（`worm-vue3-print` monorepo）。纯 Vue 3 + HTML/CSS/SVG +
 原生控件实现，**不依赖 Element Plus、不依赖宿主 API/路由/租户**。模板保存、字段查询、
@@ -7,7 +7,7 @@ Vue 3 可视化打印模板设计器画布（`worm-vue3-print` monorepo）。纯
 ## 安装
 
 ```bash
-npm install @worm-vue3-print/canvas @worm-vue3-print/core
+npm install @go-wind/print-canvas @go-wind/print-core
 ```
 
 ## 宿主接入
@@ -15,10 +15,10 @@ npm install @worm-vue3-print/canvas @worm-vue3-print/core
 接入配置与仓库 `demo/App.vue` 保持一致：
 
 ```ts
-import { PrintDesigner, PrintHtmlPreview, createDefaultTemplate } from '@worm-vue3-print/canvas'
-import type { PrintBusinessField, TemplateData } from '@worm-vue3-print/canvas'
+import { PrintDesigner, PrintHtmlPreview, createDefaultTemplate } from '@go-wind/print-canvas'
+import type { PrintBusinessField, TemplateData } from '@go-wind/print-canvas'
 // 设计器控件样式（发布包唯一对外样式入口），需全局引入一次
-import '@worm-vue3-print/canvas/style.css'
+import '@go-wind/print-canvas/style.css'
 ```
 
 ```vue

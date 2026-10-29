@@ -1,7 +1,7 @@
 // web/src/components/print/composables/useClipboard.ts
 import { ref } from 'vue'
-import type { RuntimeElement, PrintElementData } from '@worm-vue3-print/core/designer'
-import { generateId, generateGroupId } from '@worm-vue3-print/core/designer'
+import type { RuntimeElement, PrintElementData } from '@go-wind/print-core/designer'
+import { generateId, generateGroupId } from '@go-wind/print-core/designer'
 
 export function useClipboard() {
   const clipboard = ref<PrintElementData[] | null>(null)

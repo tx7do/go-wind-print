@@ -1,6 +1,6 @@
 # apps/vue3 · Vue 3 宿主集成示例
 
-一个独立 npm 工程，只用公开包 `@worm-vue3-print/common` + `@worm-vue3-print/core`，
+一个独立 npm 工程，只用公开包 `@go-wind/print-common` + `@go-wind/print-core`，
 页面里把集成过程全摊开：设计器挂载、模板/字段注入、宿主回调、事件、三条打印链路。
 
 界面版式与 `demo/`（Vue 3 打印设计器示例）**完全一致**：顶栏 + 全屏画布 + 四个弹层
@@ -15,7 +15,7 @@ npm install
 npm run dev        # http://localhost:9331
 
 # 可选：不装也能跑，弹窗里显示「离线」并给出可读提示
-npm run dev -w @worm-vue3-print/render     # 服务端 PDF（3001，dev 代理注入密钥）
+npm run dev -w @go-wind/print-render     # 服务端 PDF（3001，dev 代理注入密钥）
 # 客户端静默打印需要本机跑着 print-client 桌面客户端（ws 127.0.0.1:17521）
 ```
 
@@ -25,7 +25,7 @@ npm run dev -w @worm-vue3-print/render     # 服务端 PDF（3001，dev 代理�
 
 | 位置 | 内容 |
 | --- | --- |
-| `npm i @worm-vue3-print/common@next @worm-vue3-print/core` | 两个包，无 UI 组件库依赖（`common` 只发预览版，必须带 `@next`） |
+| `npm i @go-wind/print-common@next @go-wind/print-core` | 两个包，无 UI 组件库依赖（`common` 只发预览版，必须带 `@next`） |
 | `src/main.js` | `registerAll()` 一次，注册 `<print-designer>`（设计器样式在组件 Shadow DOM 内，不必引 css） |
 | `vite.config.js` | `@vitejs/plugin-vue` 的 `template.compilerOptions.isCustomElement: tag => tag.startsWith('print-')` |
 | `src/App.vue` | 版式骨架 + property 注入 + 事件监听 + 三条出纸链路；`src/SampleThumb.vue` 为示例库卡片缩略图（几何工具取自 core） |

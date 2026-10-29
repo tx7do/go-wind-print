@@ -4,13 +4,13 @@
 import type {
   RuntimeElement, ElementOptions, TableSelection, TableCell,
   TextAlign, VerticalAlign, TableCellBorder, ElementBorderSide,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import {
   applyBorderPreset, acceptsElementBorder, ELEMENT_BORDER_SIDES, type BorderPreset,
   applyElementBorderPreset, setCellBorderEdge, setElementBorderEdgeVisible, elementVisibleBorders,
   resolveBorderEdgeStates, resolveCellGroupMode, resolveCellBorderDisplay,
   type BorderEdgeState, type ElementBorderSpec,
-} from '@worm-vue3-print/core/designer'
+} from '@go-wind/print-core/designer'
 import type { DesignerStore } from './store'
 
 /** 多选目标间字段值不一致的哨兵 */

@@ -2,7 +2,7 @@
 // 属性台搜索验收：对照 canvas 的 PropertySearch.vue + PropertyPanel.vue
 // （filteredGroups / matchedKeys / searching 三件套门控）。
 import { describe, it, expect } from 'vitest'
-import type { ElementType } from '@worm-vue3-print/core/designer'
+import type { ElementType } from '@go-wind/print-core/designer'
 import { DesignerStore } from '../../core/store'
 import { FormatToolbar } from '../../core/format'
 import { render } from '../../core/h'

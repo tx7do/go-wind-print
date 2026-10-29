@@ -2,13 +2,13 @@
 // 类名与 canvas 逐字一致（样式由 scripts/gen-styles.mjs 从 canvas 派生，只认类名）。
 //
 // ─── 外部依赖清单（全部已在 core 中真实导出，无臆造）─────────────────────
-//   @worm-vue3-print/core/designer
+//   @go-wind/print-core/designer
 //     · evaluateTemplate(text, ctx): string   模板求值（ designer/utils/expression-eval.ts ）
 //     · DEFAULT_DEMO_DATA                     预览用示例数据（ designer/utils/demo-data.ts ）
 //     · groupFields(fields): FieldGroup[]     业务字段按 fieldKey 首段分组（ designer/utils/field-groups.ts ）
 //     · filterGroups(groups, keyword)         分组关键字过滤（ designer/utils/field-groups.ts ）
 //     · type PrintBusinessField               宿主业务字段类型（ designer/types.ts ）
-//   @worm-vue3-print/core
+//   @go-wind/print-core
 //     · resolveSystemVariables(now?, page?)   系统变量取值，与渲染端同一实现（ render/data-binder.ts ）
 //   ../core/h：h() 构造 DOM 描述、render() 落地、clear() 清空容器
 //   未使用 iconSvg：canvas 版此处只有 emoji 字形与「×」文本按钮，无 lucide 图标。
@@ -67,9 +67,9 @@
 //   另外 canvas 的弹窗在组件树里由 v-model 控制显隐，本包改为「调用方决定 DOM 存在与否」。
 //   内部状态是闭包对象 state（activeTab/searchText/expression/binding），配一个 repaint(root) 做显式重绘
 //   （页签高亮、搜索占位、列表、文本域、预览）；换 target 就重新调用本函数拿新 DOM，无需 update 接口。
-import { DEFAULT_DEMO_DATA, evaluateTemplate, filterGroups, groupFields } from '@worm-vue3-print/core/designer'
-import type { PrintBusinessField } from '@worm-vue3-print/core/designer'
-import { resolveSystemVariables } from '@worm-vue3-print/core'
+import { DEFAULT_DEMO_DATA, evaluateTemplate, filterGroups, groupFields } from '@go-wind/print-core/designer'
+import type { PrintBusinessField } from '@go-wind/print-core/designer'
+import { resolveSystemVariables } from '@go-wind/print-core'
 import { clear, h, render } from '../core/h'
 import type { El } from '../core/h'
 

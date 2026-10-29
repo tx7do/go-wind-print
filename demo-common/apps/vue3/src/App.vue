@@ -237,13 +237,13 @@
   </div>
 </template>
 <script setup>
-// Vue 3 宿主集成 @worm-vue3-print/common 的完整链路示例。
+// Vue 3 宿主集成 @go-wind/print-common 的完整链路示例。
 // 版式与 ./demo（Vue 3 设计器示例）完全一致：样式由 sync-demo-styles.mjs 从 demo 逐字抽取生成，
 // 本文件不写任何私有样式；事件不走侧栏面板，而是与 demo 同口径写控制台 + 下载 + alert。
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { initTopbarOverflow } from './topbar-overflow.js'
-import { createDefaultTemplate } from '@worm-vue3-print/common'
-import { PrintClient, WormPrintError } from '@worm-vue3-print/core/client'
+import { createDefaultTemplate } from '@go-wind/print-common'
+import { PrintClient, WormPrintError } from '@go-wind/print-core/client'
 import { SAMPLES } from './templates'
 import SampleThumb from './SampleThumb.vue'
 import { checkRenderHealth, openPdfBlob, requestServerPdf } from './render-client'

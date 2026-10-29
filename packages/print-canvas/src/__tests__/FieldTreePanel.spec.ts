@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import FieldTreePanel from '../components/FieldTreePanel.vue'
-import type { PrintBusinessField } from '@worm-vue3-print/core/designer'
+import type { PrintBusinessField } from '@go-wind/print-core/designer'
 
 const LONG_LABEL = '客户签收备注（加急）'
 const LONG_KEY = 'customer.receiptRemark.urgentHandling'

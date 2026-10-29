@@ -2,7 +2,7 @@
 
 - 日期：2026-09-13
 - 状态：已与用户确认方向（方案 A）
-- 范围：`@worm-vue3-print/core` 水印渲染表达方式 + `@worm-vue3-print/canvas` 设计器画布接线
+- 范围：`@go-wind/print-core` 水印渲染表达方式 + `@go-wind/print-canvas` 设计器画布接线
 
 ## 1. 背景与问题
 

@@ -49,10 +49,10 @@
 
 - **worm-vue3-print**：Vue 3 可视化打印模板设计器 + 模板表达式引擎 + 同构渲染管线的开源 monorepo（npm workspaces，工作区为 `packages/*`、`services/*`、`clients/*`）。
 - 工作区包：
-  - `packages/print-core`（`@worm-vue3-print/core`）：模板表达式引擎、同构渲染管线与框架无关的设计器内核（纯 TypeScript，无 Vue/React 依赖）。根入口导出引擎与渲染能力，`/designer`、`/browser`、`/client`（静默打印浏览器端 SDK）为子路径导出。
-  - `packages/print-canvas`（`@worm-vue3-print/canvas`）：Vue 3 可视化设计器画布（原生控件，不依赖 Element Plus 等 UI 组件库，无宿主业务依赖）。
-  - `services/print-render`（`@worm-vue3-print/render`）：基于 Playwright（Headless Chromium）的 PDF/截图打印渲染微服务，Docker 部署。
-  - `clients/print-client`（`@worm-vue3-print/print-client`）：跨平台静默打印桌面客户端（Electron，本地 WebSocket + core 同构渲染）。
+  - `packages/print-core`（`@go-wind/print-core`）：模板表达式引擎、同构渲染管线与框架无关的设计器内核（纯 TypeScript，无 Vue/React 依赖）。根入口导出引擎与渲染能力，`/designer`、`/browser`、`/client`（静默打印浏览器端 SDK）为子路径导出。
+  - `packages/print-canvas`（`@go-wind/print-canvas`）：Vue 3 可视化设计器画布（原生控件，不依赖 Element Plus 等 UI 组件库，无宿主业务依赖）。
+  - `services/print-render`（`@go-wind/print-render`）：基于 Playwright（Headless Chromium）的 PDF/截图打印渲染微服务，Docker 部署。
+  - `clients/print-client`（`@go-wind/print-client`）：跨平台静默打印桌面客户端（Electron，本地 WebSocket + core 同构渲染）。
 - 其他目录：`demo`（Vite 集成示例）、`docs`（中英文档）、`skills`（集成技能）、`.release`（发布相关）。
 - 边界约定：`core`（纯逻辑）→ `canvas`（设计器 UI）→ 宿主应用；SDK、渲染服务与桌面客户端只依赖 `core`，分层清晰，改动不得破坏该边界。
 - 开发命令：`npm install` / `npm run build` / `npm test`；发布到 npm 的正式包仅 `core` 与 `canvas` 两个（`publish:npm`）。`common` 以**预览版**发布（dist-tag `next`、版本号 `1.3.7-beta.N`、不进 `latest`，走 `publish:common:beta` 本地手工发），改该包时注意版本号与主线**不同步**，升主线号不要顺手改它。
@@ -71,4 +71,4 @@
 
 1. 代码检查：`git diff` 审查命名、包边界、类型约定、是否外科手术式修改。
 2. 构建验证：`npm run build`；必要时按改动范围运行对应 workspace 的构建或测试。
-3. 运行验证：运行与改动直接相关的测试；涉及渲染管线时执行 `npm run test -w @worm-vue3-print/render`；涉及客户端或 SDK 时运行对应 workspace 测试。
+3. 运行验证：运行与改动直接相关的测试；涉及渲染管线时执行 `npm run test -w @go-wind/print-render`；涉及客户端或 SDK 时运行对应 workspace 测试。

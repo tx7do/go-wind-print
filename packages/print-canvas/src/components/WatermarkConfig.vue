@@ -66,8 +66,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import type { WatermarkOptions, PrintBusinessField } from '@worm-vue3-print/core/designer'
-import { WATERMARK_DENSITY_PRESETS, WATERMARK_DEFAULTS } from '@worm-vue3-print/core'
+import type { WatermarkOptions, PrintBusinessField } from '@go-wind/print-core/designer'
+import { WATERMARK_DENSITY_PRESETS, WATERMARK_DEFAULTS } from '@go-wind/print-core'
 import PresetColorPicker from './PresetColorPicker.vue'
 import ExpressionEditor from './ExpressionEditor.vue'
 import ResetButton from './property/ResetButton.vue'

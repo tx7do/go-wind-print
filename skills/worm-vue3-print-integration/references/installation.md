@@ -9,13 +9,13 @@
 ### 仅使用渲染/表达式引擎
 
 ```bash
-npm install @worm-vue3-print/core@^1.3.0
+npm install @go-wind/print-core@^1.3.0
 ```
 
 ### 使用可视化设计器 + 浏览器预览
 
 ```bash
-npm install @worm-vue3-print/core@^1.3.0 @worm-vue3-print/canvas@^1.3.0
+npm install @go-wind/print-core@^1.3.0 @go-wind/print-canvas@^1.3.0
 ```
 
 - `canvas` 会自动带入 `dompurify`、`jsbarcode`、`qrcode` 等依赖。
@@ -26,32 +26,32 @@ npm install @worm-vue3-print/core@^1.3.0 @worm-vue3-print/canvas@^1.3.0
 ### 非 Vue 3 宿主使用可视化设计器（预览版）
 
 ```bash
-npm install @worm-vue3-print/common@next @worm-vue3-print/core
+npm install @go-wind/print-common@next @go-wind/print-core
 ```
 
-- `common` 只发**预览版**：dist-tag `next`，版本号形如 `1.3.7-beta.N`，安装必须写 `@next`。判据 `npm view @worm-vue3-print/common dist-tags --json`：`next` 必然存在；`latest` 本不该存在，但 **npm 给新包首次发布自动打 `latest`**，`--tag next` 挡不住这一步，所以实测里 `latest` 与 `next` 同指预览版——此时裸写 `npm i @worm-vue3-print/common`（不带 `@next`）不会报错，而是**静默装到实验包**。仓库自检 `npm run publish:common:check`（exit 1 即该红灯），维护者用 `node scripts/check-common-dist-tag.mjs --fix` 摘除 `latest` 后裸装才会显式失败。
+- `common` 只发**预览版**：dist-tag `next`，版本号形如 `1.3.7-beta.N`，安装必须写 `@next`。判据 `npm view @go-wind/print-common dist-tags --json`：`next` 必然存在；`latest` 本不该存在，但 **npm 给新包首次发布自动打 `latest`**，`--tag next` 挡不住这一步，所以实测里 `latest` 与 `next` 同指预览版——此时裸写 `npm i @go-wind/print-common`（不带 `@next`）不会报错，而是**静默装到实验包**。仓库自检 `npm run publish:common:check`（exit 1 即该红灯），维护者用 `node scripts/check-common-dist-tag.mjs --fix` 摘除 `latest` 后裸装才会显式失败。
 - 零框架运行时（原生 Custom Elements + Shadow DOM，无 `vue` peer 依赖）：`<print-designer>` 用 property / attribute 注入 `fields`、`template`，宿主能力与事件走 property 赋值和 `CustomEvent`。
-- 样式默认由组件内联注入，**Shadow DOM 形态不引样式文件**；只有渲染进 light DOM 才 `import '@worm-vue3-print/common/style.css'`（→ `dist/common.css`）。
-- 无打包器宿主走子路径 `@worm-vue3-print/common/browser`（UMD `dist/common.js`，core 与码制库已内联，挂 `window.WormPrintCommon`）。
-- **边界**：该包尚未完成稳定性测试，生产项目先告知用户风险；Vue 3 宿主仍用 `@worm-vue3-print/canvas`。NPM 安装时不要写深路径 `@worm-vue3-print/common/dist/...`——`exports` 只开放 `.`、`./browser`、`./style.css`。
+- 样式默认由组件内联注入，**Shadow DOM 形态不引样式文件**；只有渲染进 light DOM 才 `import '@go-wind/print-common/style.css'`（→ `dist/common.css`）。
+- 无打包器宿主走子路径 `@go-wind/print-common/browser`（UMD `dist/common.js`，core 与码制库已内联，挂 `window.WormPrintCommon`）。
+- **边界**：该包尚未完成稳定性测试，生产项目先告知用户风险；Vue 3 宿主仍用 `@go-wind/print-canvas`。NPM 安装时不要写深路径 `@go-wind/print-common/dist/...`——`exports` 只开放 `.`、`./browser`、`./style.css`。
 
 ### 静默打印浏览器端 SDK
 
-需要无打印对话框的静默出纸时，SDK 随 core 提供，无需单独安装（从子路径 `@worm-vue3-print/core/client` 导入），需另配本机运行的桌面打印客户端。
+需要无打印对话框的静默出纸时，SDK 随 core 提供，无需单独安装（从子路径 `@go-wind/print-core/client` 导入），需另配本机运行的桌面打印客户端。
 
 接入与客户端部署见 [静默打印](silent-print.md)。
 
 ### 样式导入
 
 ```ts
-import '@worm-vue3-print/canvas/style.css'
+import '@go-wind/print-canvas/style.css'
 ```
 
 NPM 安装时不要写：
 
 ```ts
 // 源码别名方式专用；NPM 包未暴露该子路径
-import '@worm-vue3-print/canvas/native-controls.css'
+import '@go-wind/print-canvas/native-controls.css'
 ```
 
 ## 方案 B：源码安装
@@ -81,13 +81,13 @@ npm install <仓库路径>/packages/print-core <仓库路径>/packages/print-can
 ```json
 {
   "dependencies": {
-    "@worm-vue3-print/core": "file:../worm-vue3-print/packages/print-core",
-    "@worm-vue3-print/canvas": "file:../worm-vue3-print/packages/print-canvas"
+    "@go-wind/print-core": "file:../worm-vue3-print/packages/print-core",
+    "@go-wind/print-canvas": "file:../worm-vue3-print/packages/print-canvas"
   }
 }
 ```
 
-该方式消费 `packages/*/dist`。修改库源码后必须回到仓库根目录执行 `npm run build`。样式仍导入 `@worm-vue3-print/canvas/style.css`。
+该方式消费 `packages/*/dist`。修改库源码后必须回到仓库根目录执行 `npm run build`。样式仍导入 `@go-wind/print-canvas/style.css`。
 
 ### B3. Vite 直接消费源码（最接近 demo）
 
@@ -113,9 +113,9 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@worm-vue3-print/canvas/native-controls.css': `${repo}/packages/print-canvas/src/styles/native-controls.css`,
-      '@worm-vue3-print/canvas': `${repo}/packages/print-canvas/src/index.ts`,
-      '@worm-vue3-print/core': `${repo}/packages/print-core/src/index.ts`,
+      '@go-wind/print-canvas/native-controls.css': `${repo}/packages/print-canvas/src/styles/native-controls.css`,
+      '@go-wind/print-canvas': `${repo}/packages/print-canvas/src/index.ts`,
+      '@go-wind/print-core': `${repo}/packages/print-core/src/index.ts`,
     },
   },
   server: {
@@ -129,8 +129,8 @@ export default defineConfig({
 3. 组件入口与样式：
 
 ```ts
-import { PrintDesigner, PrintHtmlPreview } from '@worm-vue3-print/canvas'
-import '@worm-vue3-print/canvas/native-controls.css'
+import { PrintDesigner, PrintHtmlPreview } from '@go-wind/print-canvas'
+import '@go-wind/print-canvas/native-controls.css'
 ```
 
 该模式下 Vite 直接编译包内源码，不再依赖 `dist`；浏览器侧依赖必须由宿主显式声明，demo 就是这种结构。

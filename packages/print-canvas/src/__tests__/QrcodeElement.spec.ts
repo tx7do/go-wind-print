@@ -2,8 +2,8 @@
 import { describe, it, expect } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { reactive } from 'vue'
-import { browserCodeRenderer } from '@worm-vue3-print/core/browser'
-import type { RuntimeElement } from '@worm-vue3-print/core/designer'
+import { browserCodeRenderer } from '@go-wind/print-core/browser'
+import type { RuntimeElement } from '@go-wind/print-core/designer'
 import QrcodeElement from '../components/elements/QrcodeElement.vue'
 
 const SVG_SRC_PREFIX = 'data:image/svg+xml;charset=utf-8,'
