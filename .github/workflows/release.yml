@@ -31,7 +31,7 @@ jobs:
 
       - name: 安装依赖
 # Windows 生成的 lockfile 缺 Linux 平台 rollup 原生二进制（npm/cli#4828），install 规避
-        run: npm install
+        run: rm -f package-lock.json && npm install
 
       - name: 构建
         run: npm run build
