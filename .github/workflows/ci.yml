@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
+      - run: npm install
       # 矩阵只盖三个公开包；render 有下方专用 job，print-client 依赖 Electron 二进制暂不进矩阵
       - run: npm run build -w @go-wind/print-core
       - run: npm run build -w @go-wind/print-canvas
@@ -44,7 +44,7 @@ jobs:
           node-version: 20
           cache: npm
       - name: 安装依赖（不下载浏览器）
-        run: npm ci
+        run: npm install
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
       - name: 安装 Chromium 与系统依赖

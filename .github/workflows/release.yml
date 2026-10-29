@@ -30,7 +30,8 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: 安装依赖
-        run: npm ci
+# Windows 生成的 lockfile 缺 Linux 平台 rollup 原生二进制（npm/cli#4828），install 规避
+        run: npm install
 
       - name: 构建
         run: npm run build
