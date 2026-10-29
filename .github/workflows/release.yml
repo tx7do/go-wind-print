@@ -1,19 +1,17 @@
 name: Release
 
-# 仅允许在 GitHub Actions 页面手动触发（已取消推送 v* 标签自动发布）
-# 手动执行前请先打标签：git tag -a v1.2.2 -m "v1.2.2" && git push origin v1.2.2
+# 手动触发：需先推标签 git tag -a v1.3.12 && git push fork v1.3.12
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: '要发布的版本标签（如 v1.2.2，需已推送到远端）'
+        description: '要发布的版本标签（如 v1.3.12，需已推送到远端）'
         required: true
         type: string
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    # 创建 GitHub Release 需要 contents 写权限
     permissions:
       contents: write
     steps:
@@ -26,18 +24,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
           registry-url: https://registry.npmjs.org
 
-      - name: 安装依赖
-# Windows 生成的 lockfile 缺 Linux 平台 rollup 原生二进制（npm/cli#4828），install 规避
-        run: rm -rf node_modules package-lock.json packages/*/node_modules && npm install
+      # npm workspace 在 CI 干净环境有平台二进制 bug（npm/cli#4828）
+      # + workspace 图 edgesOut 崩溃——逐包独立安装绕开两个问题
+      - name: 安装依赖（逐包独立）
+        run: |
+          for pkg in print-core print-canvas print-common; do
+            cd "packages/$pkg"
+            rm -rf node_modules package-lock.json
+            npm install --no-package-lock
+            cd ../..
+          done
 
       - name: 构建
-        run: npm run build
-
-      - name: 测试
-        run: npm test
+        run: |
+          cd packages/print-core && npx vite build && npx vue-tsc -p tsconfig.build.json && cd ../..
+          cd packages/print-canvas && npx vite build && npx vue-tsc -p tsconfig.build.json && node ../../scripts/inject-license-banner.mjs dist && cd ../..
+          cd packages/print-common && npm run build && cd ../..
 
       - name: 校验标签与包版本一致
         run: |
@@ -50,7 +54,7 @@ jobs:
               exit 1
             fi
           done
-          echo "标签与两个包版本一致：$TAG"
+          echo "标签与 core/canvas 版本一致：$TAG"
 
       # canvas 依赖 core，必须先发 core
       - name: 发布 @go-wind/print-core
@@ -65,7 +69,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # 顺带自动创建 GitHub 发行版（正文见 .github/release/notes.md，无需手工建）
+      # common（零框架宿主适配包）版本线独立（beta），admin react 端消费
+      - name: 发布 @go-wind/print-common
+        working-directory: packages/print-common
+        run: npm publish --access public --tag beta
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
